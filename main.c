@@ -1,5 +1,9 @@
 
 
+#include <inttypes.h>
+#include <stdint.h>
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,7 +12,6 @@
 #include <sys/stat.h>    
 #include <fcntl.h>
 #include <stdbool.h>
-#include <stdint.h>
 
 #include <unistd.h>
 #include <math.h>
@@ -22,6 +25,7 @@
 #include "dvbpsi/pat.h"
 #include "dvbpsi/cat.h"
 #include "dvbpsi/pmt.h"
+#include "dvbpsi/tot.h"
 #include "dvbpsi/dr.h"
 
 typedef int vlc_bool_t;
@@ -61,9 +65,23 @@ typedef struct ts_cat_s{
     ts_pid_t  emm_pid[4];
 } ts_cat_t;
 
+typedef struct ts_sdt_s
+{
+    dvbpsi_t    *handle;
+    ts_pid_t    *pid;
+} ts_sdt_t;
+typedef struct ts_tdt_s
+{
+    dvbpsi_t    *handle;
+    ts_pid_t    *pid;
+} ts_tdt_t;
+
+
 typedef struct{    
     ts_pat_t    pat;   
     ts_cat_t cat;
+    ts_sdt_t    sdt;
+    ts_tdt_t    tdt;
     int         i_pmt;    //total num of programs
     ts_pmt_t    pmt;    
     ts_pid_t    pid[8192];//0-0x1fff
@@ -74,9 +92,9 @@ typedef struct{
 #define STREAM_IDENTIFIER_DR 0x52
 #define SUBTITLING_DR 0x59
 
-static void DumpCAT(void* p_data, dvbpsi_cat_t* p_cat);
+//static void DumpCAT(void* p_data, dvbpsi_cat_t* p_cat);
 
-static void DumpPMT(void* p_data, dvbpsi_pmt_t* p_pmt);
+//static void DumpPMT(void* p_data, dvbpsi_pmt_t* p_pmt);
 
 static void msg_callback(dvbpsi_t *handle, const dvbpsi_msg_level_t level, const char* msg)
 {
@@ -115,57 +133,6 @@ static int ReadPacket( int i_fd, uint8_t* p_dst )
     return (i_rc <= 0) ? i_rc : 188;
 }
 
-static void DumpPAT(void* p_data, dvbpsi_pat_t* p_pat)
-{
-    dvbpsi_pat_program_t* p_program = p_pat->p_first_program;  
-    ts_stream_t* p_stream = (ts_stream_t*) p_data;
-    if (p_stream->pmt.handle)   
-    {        
-        printf("freeing old PMT\n");        
-        dvbpsi_pmt_detach(p_stream->pmt.handle);     
-        dvbpsi_delete(p_stream->pmt.handle);     
-        p_stream->pmt.handle = NULL;   
-    }
-    p_stream->pat.i_pat_version = p_pat->i_version;   
-    p_stream->pat.i_ts_id = p_pat->i_ts_id;
-
-    
-    printf(  "\n");  
-    printf(  "New PAT\n");  
-    printf(  "  transport_stream_id : %d\n", p_pat->i_ts_id);  
-    printf(  "  version_number      : %d\n", p_pat->i_version);  
-    printf(  "    | program_number @ PMT_PID\n");
-    while(p_program)  
-    {   
-        if (p_stream->pmt.handle)           
-        {
-            dvbpsi_pmt_detach(p_stream->pmt.handle);              
-            dvbpsi_delete(p_stream->pmt.handle);
-            p_stream->pmt.handle = NULL;
-        }
-        p_stream->i_pmt++;
-        p_stream->pmt.i_number = p_program->i_number;
-        p_stream->pmt.pid_pmt = &p_stream->pid[p_program->i_pid];
-        p_stream->pmt.pid_pmt->i_pid = p_program->i_pid;
-        p_stream->pmt.handle = dvbpsi_new(&msg_callback, DVBPSI_MSG_DEBUG);
-        if (p_stream->pmt.handle == NULL)
-        {
-            printf( "could not allocate new dvbpsi_t handle\n");
-            break;
-        }  
-        if (!dvbpsi_pmt_attach(p_stream->pmt.handle, p_program->i_number,DumpPMT, p_stream))   
-        {           
-            dvbpsi_delete(p_stream->pmt.handle);
-            printf("could not attach PMT\n");      
-            break;
-        }
-        printf("    | %14d @ 0x%x (%d)\n",p_program->i_number, p_program->i_pid, p_program->i_pid);
-        p_program = p_program->p_next;  
-    }  
-    printf(  "  active              : %d\n", p_pat->b_current_next);  
-    dvbpsi_pat_delete(p_pat);
-
-}
 
 
 
@@ -317,6 +284,94 @@ static void DumpPMT(void* p_data, dvbpsi_pmt_t* p_pmt)
     dvbpsi_pmt_delete(p_pmt);
 }
 
+static void DumpPAT(void* p_data, dvbpsi_pat_t* p_pat)
+{
+    dvbpsi_pat_program_t* p_program = p_pat->p_first_program;  
+    ts_stream_t* p_stream = (ts_stream_t*) p_data;
+    if (p_stream->pmt.handle)   
+    {        
+        printf("freeing old PMT\n");        
+        dvbpsi_pmt_detach(p_stream->pmt.handle);     
+        dvbpsi_delete(p_stream->pmt.handle);     
+        p_stream->pmt.handle = NULL;   
+    }
+    p_stream->pat.i_pat_version = p_pat->i_version;   
+    p_stream->pat.i_ts_id = p_pat->i_ts_id;
+
+    
+    printf(  "\n");  
+    printf(  "New PAT\n");  
+    printf(  "  transport_stream_id : %d\n", p_pat->i_ts_id);  
+    printf(  "  version_number      : %d\n", p_pat->i_version);  
+    printf(  "    | program_number @ PMT_PID\n");
+    while(p_program)  
+    {   
+        if (p_stream->pmt.handle)           
+        {
+            dvbpsi_pmt_detach(p_stream->pmt.handle);              
+            dvbpsi_delete(p_stream->pmt.handle);
+            p_stream->pmt.handle = NULL;
+        }
+        p_stream->i_pmt++;
+        p_stream->pmt.i_number = p_program->i_number;
+        p_stream->pmt.pid_pmt = &p_stream->pid[p_program->i_pid];
+        p_stream->pmt.pid_pmt->i_pid = p_program->i_pid;
+        p_stream->pmt.handle = dvbpsi_new(&msg_callback, DVBPSI_MSG_DEBUG);
+        if (p_stream->pmt.handle == NULL)
+        {
+            printf( "could not allocate new dvbpsi_t handle\n");
+            break;
+        }  
+        if (!dvbpsi_pmt_attach(p_stream->pmt.handle, p_program->i_number,DumpPMT, p_stream))   
+        {           
+            dvbpsi_delete(p_stream->pmt.handle);
+            printf("could not attach PMT\n");      
+            break;
+        }
+        printf("    | %14d @ 0x%x (%d)\n",p_program->i_number, p_program->i_pid, p_program->i_pid);
+        p_program = p_program->p_next;  
+    }  
+    printf(  "  active              : %d\n", p_pat->b_current_next);  
+    dvbpsi_pat_delete(p_pat);
+
+}
+
+static void handle_TOT(void* p_data, dvbpsi_tot_t* p_tot)
+{
+    //ts_stream_t* p_stream = (ts_stream_t*) p_data;
+
+    printf("\n");
+    uint8_t table_id = (p_tot->p_first_descriptor != NULL) ? 0x73 : 0x70;
+    if (table_id == 0x70) /* TDT */
+        printf("  TDT: Time and Date Table\n");
+    else if (table_id == 0x73) /* TOT */
+        printf("  TOT: Time Offset Table\n");
+
+    printf("\tVersion number : %d\n", p_tot->i_version);
+    printf("\tCurrent next   : %s\n", p_tot->b_current_next ? "yes" : "no");
+    printf("\tUTC time       : %"PRId64"\n", p_tot->i_utc_time);
+
+    DumpDescriptors("\t  |  ]", p_tot->p_first_descriptor);
+    dvbpsi_tot_delete(p_tot);
+}
+
+
+static void handle_subtable(dvbpsi_t *p_dvbpsi, uint8_t i_table_id, uint16_t i_extension,
+                            void *p_data)
+{
+    switch (i_table_id)
+    {
+        case 0x70: /* TDT */
+        case 0x73: /* TOT only */
+            if (!dvbpsi_tot_attach(p_dvbpsi, i_table_id, i_extension, handle_TOT, p_data))
+                    fprintf(stderr, "dvbinfo: Failed to attach TOT subdecoder\n");
+            break;
+        default:
+            break;
+
+    }
+
+}
 int main(int argc,char *argv[])
 {
 
@@ -364,6 +419,18 @@ int main(int argc,char *argv[])
     printf("Context create fail\n");
     goto exit;
   }
+  
+  /* TDT demuxer */
+  p_stream->tdt.handle = dvbpsi_new(&msg_callback, DVBPSI_MSG_DEBUG);
+  if (p_stream->tdt.handle == NULL)
+      goto exit;
+  if (!dvbpsi_AttachDemux(p_stream->tdt.handle, handle_subtable, p_stream))
+  {
+      dvbpsi_delete(p_stream->tdt.handle);
+      p_stream->tdt.handle = NULL;
+      goto exit;
+  }
+    
   if(!dvbpsi_pat_attach(p_stream->pat.handle, DumpPAT, p_stream))
   {
     goto exit;
@@ -397,7 +464,16 @@ int main(int argc,char *argv[])
             else if(i_pid == 0x1)
             {            	
                 dvbpsi_packet_push(p_stream->cat.handle, p_tmp);
+            }else if (i_pid == 0x02) /* Transport Stream Description Table */
+            {
+                dvbpsi_packet_push(p_stream->tdt.handle, p_tmp);
+             }
+            else if(i_pid==0x11)
+            {
+	       //dvbpsi_packet_push(p_stream->sdt.handle, p_tmp);
             }
+                    else if (i_pid == 0x14) /* TDT/TOT */
+            {dvbpsi_packet_push(p_stream->tdt.handle, p_tmp);}
             else if( p_stream->pmt.pid_pmt && i_pid == p_stream->pmt.pid_pmt->i_pid )                
                 dvbpsi_packet_push(p_stream->pmt.handle, p_tmp);
 
@@ -475,7 +551,9 @@ exit:
     {    
         dvbpsi_cat_detach(p_stream->cat.handle);    
         dvbpsi_delete(p_stream->cat.handle);  
-    }
+    }   
+   if (dvbpsi_decoder_present(p_stream->sdt.handle))
+       dvbpsi_DetachDemux(p_stream->sdt.handle);
    if( p_stream )  free( p_stream );
   return 0;
 }
