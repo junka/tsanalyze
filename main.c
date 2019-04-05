@@ -2,22 +2,21 @@
 
 #include <inttypes.h>
 #include <stdint.h>
-
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>    
-#include <sys/stat.h>    
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <stdbool.h>
-
 #include <unistd.h>
 #include <math.h>
 
-//#include "type.h"
+#include "bits.h"
+#include "table.h"
 
+//#include "type.h"
+#if 0
 #include "dvbpsi/dvbpsi.h"
 #include "dvbpsi/descriptor.h"
 #include "dvbpsi/demux.h"
@@ -27,6 +26,7 @@
 #include "dvbpsi/pmt.h"
 #include "dvbpsi/tot.h"
 #include "dvbpsi/dr.h"
+#endif
 
 typedef int vlc_bool_t;
 #define VLC_FALSE 0
@@ -35,10 +35,10 @@ typedef int vlc_bool_t;
 typedef int64_t mtime_t;
 
 
-typedef struct{    
-dvbpsi_t * handle;    
-int i_pat_version;   
-int i_ts_id;
+typedef struct{
+	dvbpsi_t * handle;
+	int i_pat_version;
+	int i_ts_id;
 } ts_pat_t;
 
 typedef struct ts_pid_s{    

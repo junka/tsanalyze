@@ -8,13 +8,13 @@ CFLAGS = $(MK_FLAGS)
 CFLAGS += $(INC)
 CFLAGS += $(LIB)
 
-MK_LIB = -ldvbpsi -lm
+MK_LIB = -lm
 
 OBJ_O = main.o
 
 OBJ_D = $(MK_OBJS:.o=.d)
 
-MK_EXES = tsanalyze.exe
+MK_EXES = tsanalyze
 
 
 CC=gcc
@@ -38,5 +38,5 @@ $(MK_EXES):$(OBJ_O)
 
 
 clean:
-	rm -f $(MK_EXES);
+	rm -f $(MK_EXES)
 	rm -f *.o
