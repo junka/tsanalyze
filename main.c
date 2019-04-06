@@ -15,170 +15,38 @@
 #include "bits.h"
 #include "table.h"
 
-//#include "type.h"
-#if 0
-#include "dvbpsi/dvbpsi.h"
-#include "dvbpsi/descriptor.h"
-#include "dvbpsi/demux.h"
-#include "dvbpsi/psi.h"
-#include "dvbpsi/pat.h"
-#include "dvbpsi/cat.h"
-#include "dvbpsi/pmt.h"
-#include "dvbpsi/tot.h"
-#include "dvbpsi/dr.h"
-#endif
 
-typedef int vlc_bool_t;
-#define VLC_FALSE 0
-#define VLC_TRUE  1
 
-typedef int64_t mtime_t;
 
 
 typedef struct{
-	dvbpsi_t * handle;
-	int i_pat_version;
-	int i_ts_id;
-} ts_pat_t;
-
-typedef struct ts_pid_s{    
-    int         i_pid;    
-    vlc_bool_t  b_seen;    
-    int         i_cc;   /* countinuity counter */    
-    vlc_bool_t  b_pcr;  /* this PID is the PCR_PID */    
-    mtime_t     i_pcr;  /* last know PCR value */
-} ts_pid_t;
-
-typedef struct ts_pmt_s{    
-    dvbpsi_t * handle;   
-    int         i_number; /* i_number = 0 is actually a NIT */    
-    int         i_pmt_version;   
-    ts_pid_t    *pid_pmt;  
-    ts_pid_t    *pid_pcr;
-} ts_pmt_t;
-
-typedef struct ts_cat_s{    
-    dvbpsi_t * handle;   
-    int         i_number; /* i_number = 0 is actually a NIT */    
-    int         i_cat_version;
-    int	        system_id[4];
-    ts_pid_t  emm_pid[4];
-} ts_cat_t;
-
-typedef struct ts_sdt_s
-{
-    dvbpsi_t    *handle;
-    ts_pid_t    *pid;
-} ts_sdt_t;
-typedef struct ts_tdt_s
-{
-    dvbpsi_t    *handle;
-    ts_pid_t    *pid;
-} ts_tdt_t;
-
-
-typedef struct{    
-    ts_pat_t    pat;   
-    ts_cat_t cat;
-    ts_sdt_t    sdt;
-    ts_tdt_t    tdt;
-    int         i_pmt;    //total num of programs
-    ts_pmt_t    pmt;    
-    ts_pid_t    pid[8192];//0-0x1fff
+    pat_t pat;
+    int pmt_number;   /*total num of programs*/
+    pmt_t pmt;
+    uint16_t pid[8192];  /*0-0x1fff*/
 } ts_stream_t;
 
-#define SYSTEM_CLOCK_DR 0x0B
-#define MAX_BITRATE_DR 0x0E
-#define STREAM_IDENTIFIER_DR 0x52
-#define SUBTITLING_DR 0x59
 
-//static void DumpCAT(void* p_data, dvbpsi_cat_t* p_cat);
-
-//static void DumpPMT(void* p_data, dvbpsi_pmt_t* p_pmt);
-
-static void msg_callback(dvbpsi_t *handle, const dvbpsi_msg_level_t level, const char* msg)
-{
-    switch(level)    
-    {        
-        case DVBPSI_MSG_ERROR: 
-            printf( "Error: "); 
-            break;        
-        case DVBPSI_MSG_WARN:  
-            printf("Warning: "); 
-            break;        
-        case DVBPSI_MSG_DEBUG: 
-            printf("Debug: "); 
-            break;        
-        default: /* do nothing */            
-            return;    
-    }    
-    printf("%s\n", msg);
-}
 
 static int ReadPacket( int i_fd, uint8_t* p_dst )
-{    
-    int i = 187;    
-    int i_rc = 1;    
-    p_dst[0] = 0;    
-    while((p_dst[0] != 0x47) && (i_rc > 0))    
+{
+    int i = 187;
+    int i_rc = 1;
+    p_dst[0] = 0;
+    while((p_dst[0] != 0x47) && (i_rc > 0))
     {       
-        i_rc = read(i_fd, p_dst, 1);    
+        i_rc = read(i_fd, p_dst, 1);
     }    
-    while((i != 0) && (i_rc > 0))    
+    while((i != 0) && (i_rc > 0))
     {        
-        i_rc = read(i_fd, p_dst + 188 - i, i);        
-        if(i_rc >= 0)            
-            i -= i_rc;    
-    }    
+        i_rc = read(i_fd, p_dst + 188 - i, i);
+        if(i_rc >= 0)
+            i -= i_rc;
+    }
     return (i_rc <= 0) ? i_rc : 188;
 }
 
 
-
-
-
-/***************************************************************************** * GetTypeName *****************************************************************************/
-static char const* GetTypeName(uint8_t type)
-{  
-    switch (type)   
-    {    
-        case 0x00:      
-            return "Reserved";    
-        case 0x01:      
-            return "ISO/IEC 11172 Video";    
-        case 0x02:      
-            return "ISO/IEC 13818-2 Video";    
-        case 0x03:      
-            return "ISO/IEC 11172 Audio";    
-        case 0x04:      
-            return "ISO/IEC 13818-3 Audio";    
-        case 0x05:      
-            return "ISO/IEC 13818-1 Private Section";    
-        case 0x06:      
-            return "ISO/IEC 13818-1 Private PES data packets";    
-        case 0x07:      
-            return "ISO/IEC 13522 MHEG";    
-        case 0x08:      
-            return "ISO/IEC 13818-1 Annex A DSM CC";    
-        case 0x09:      
-            return "H222.1";    
-        case 0x0A:      
-            return "ISO/IEC 13818-6 type A";    
-        case 0x0B:      
-            return "ISO/IEC 13818-6 type B";    
-        case 0x0C:      
-            return "ISO/IEC 13818-6 type C";    
-        case 0x0D:      
-            return "ISO/IEC 13818-6 type D";    
-        case 0x0E:      
-            return "ISO/IEC 13818-1 auxillary";    
-        default:      
-            if (type < 0x80)   
-                return "ISO/IEC 13818-1 reserved";      
-            else   
-                return "User Private";   
-        }
-}
 
 /***************************************************************************** * DumpMaxBitrateDescriptor *****************************************************************************/
 static void DumpMaxBitrateDescriptor(dvbpsi_max_bitrate_dr_t* bitrate_descriptor)
@@ -213,32 +81,32 @@ static void DumpSubtitleDescriptor(dvbpsi_subtitling_dr_t* p_subtitle_descriptor
 
 
 static void DumpDescriptors(const char* str, dvbpsi_descriptor_t* p_descriptor)
-{    
-    int i;    
-    while(p_descriptor)    
-    {        
-        printf( "%s 0x%02x : ", str, p_descriptor->i_tag);        
-        switch (p_descriptor->i_tag)        
-        {        
-            case SYSTEM_CLOCK_DR:            
+{
+    int i;
+    while(p_descriptor)
+    {
+        printf( "%s 0x%02x : ", str, p_descriptor->i_tag);
+        switch (p_descriptor->tag)
+        {
+            case SYSTEM_CLOCK_DR:
                 DumpSystemClockDescriptor(dvbpsi_DecodeSystemClockDr(p_descriptor));
-                break;        
-            case MAX_BITRATE_DR:            
+                break;
+            case MAX_BITRATE_DR:
                 DumpMaxBitrateDescriptor(dvbpsi_DecodeMaxBitrateDr(p_descriptor));         
-                break;       
-            case STREAM_IDENTIFIER_DR:            
+                break;
+            case STREAM_IDENTIFIER_DR:
                 DumpStreamIdentifierDescriptor(dvbpsi_DecodeStreamIdentifierDr(p_descriptor));     
-                break;       
-            case SUBTITLING_DR:      
+                break;
+            case SUBTITLING_DR:
                 DumpSubtitleDescriptor(dvbpsi_DecodeSubtitlingDr(p_descriptor));      
-                break;        
-            default:        
-                printf(  "\"");         
-                for(i = 0; i < p_descriptor->i_length; i++)  
-                    printf(  "%c", p_descriptor->p_data[i]);   
-                printf( "\"\n");        
-        }        
-        p_descriptor = p_descriptor->p_next;    
+                break;
+            default:
+                printf(  "\"");
+                for(i = 0; i < p_descriptor->i_length; i++)
+                    printf(  "%c", p_descriptor->p_data[i]);
+                printf( "\"\n");
+        }
+        p_descriptor = p_descriptor->p_next;
     }
 }
 
@@ -363,8 +231,6 @@ static void handle_subtable(dvbpsi_t *p_dvbpsi, uint8_t i_table_id, uint16_t i_e
     {
         case 0x70: /* TDT */
         case 0x73: /* TOT only */
-            if (!dvbpsi_tot_attach(p_dvbpsi, i_table_id, i_extension, handle_TOT, p_data))
-                    fprintf(stderr, "dvbinfo: Failed to attach TOT subdecoder\n");
             break;
         default:
             break;
@@ -372,6 +238,13 @@ static void handle_subtable(dvbpsi_t *p_dvbpsi, uint8_t i_table_id, uint16_t i_e
     }
 
 }
+
+
+
+
+
+
+
 int main(int argc,char *argv[])
 {
 

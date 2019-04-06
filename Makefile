@@ -10,7 +10,8 @@ CFLAGS += $(LIB)
 
 MK_LIB = -lm
 
-OBJ_O = main.o
+SRC=$(wildcard $(DIR)/*.c $(DIR)/src/*.c)
+OBJ_O = $(patsubst %c, %o, $(SRC))
 
 OBJ_D = $(MK_OBJS:.o=.d)
 
