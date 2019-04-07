@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#include "bits.h"
+#include "ts.h"
 
 /*
 * port from ffmpeg for judging TS packet length

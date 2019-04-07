@@ -40,6 +40,30 @@ typedef struct{
 	uint8_t adaptation_field_extension_flag:1;
 }ts_adaptation_field;
 
+enum PID_e{
+	PAT_PID		= 0x0000,
+	CAT_PID		= 0x0001,
+	TSDT_PID	= 0x0002,
+	IPMP_PID	= 0x0003,
+
+	/* 4 - 15 reserved for future use */
+	NIT_PID		= 0x0010,
+	SDT_PID		= 0x0011,
+	BAT_PID		= 0x0011,
+	EIT_PID		= 0x0012,
+	RST_PID		= 0x0013,
+	TDT_PID		= 0x0014,
+	TOT_PID		= 0x0014,
+	RNT_PID		= 0x0016,
+	DIT_PID		= 0x001E,
+	SIT_PID		= 0x001F,
+
+	/* 32-8186 for PMT */
+	
+	NULL_PID	= 0x1FFF,
+};
+
+
 /*define helper for reading bits set*/
 #define TS_READ8(buff,offset,len) (buff[0] &(1<<(7-offset)))
 

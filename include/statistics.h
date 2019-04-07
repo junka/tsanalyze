@@ -5,7 +5,9 @@
 extern "C"{
 #endif
 
-
+struct stats{
+	
+};
 
 
 #ifdef __cplusplus
