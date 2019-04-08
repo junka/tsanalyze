@@ -83,6 +83,7 @@ enum TableId {
 	CIT_TID			= 0x77, /* content_identifier_section (TS 102 323) */
 	MPE_FEC_TID		= 0x78, /* mpe_fec_section (EN 301 192) */
 	RNT_TID			= 0x79, /* resolution_notification_section (TS 102 323) */
+	MPE_IFEC_TID		= 0x7A, /*MPE-IFEC section (ETSI TS 102 772 [51])*/
 	DIT_TID			= 0x7E,	/* discontinuity_information_section */
 	SIT_TID			= 0x7F,	/* selection_information_section */
 
@@ -197,6 +198,89 @@ typedef struct{
 	uint32_t crc32;
 }pmt_t;
 
+/*infos int nit*/
+struct transport_stream_info{
+	uint16_t transport_stream_id;
+	uint16_t original_network_id;
+	uint16_t reserved_future_use:4;
+	uint16_t transport_descriptors_length:12;
+	struct descriptor * transport_stream_desriptor_list;
+	struct transport_stream_info * next;
+};
+
+
+typedef struct {
+	uint8_t table_id;	/* 0x40,0x41 */
+	uint16 section_syntax_indicator:1;
+	uint16_t reserved_future_use:1;
+	uint16_t reserved:2;
+	uint16_t section_length:12;
+	uint16_t network_id;
+	uint8_t reserved1:2;
+	uint8_t version_number:5;
+	uint8_t current_next_indicator:1;
+	uint8_t section_number;
+	uint8_t last_section_number;
+	uint16_t reserved2:4;
+	uint16_t network_descriptors_length:12;
+	struct descriptor * network_desriptor_list;
+	uint16_t reserved3:4;
+	uint16_t transport_stream_loop_length:12;
+	struct transport_stream_info* stream_list;
+	uint32_t crc32;
+}nit_t;
+
+/*infos in bat*/
+typedef struct {
+	uint8_t table_id;	/* 0x4A */
+	uint16 section_syntax_indicator:1;
+	uint16_t reserved_future_use:1;
+	uint16_t reserved:2;
+	uint16_t section_length:12;
+	uint16_t bouquet_id;
+	uint8_t reserved1:2;
+	uint8_t version_number:5;
+	uint8_t current_next_indicator:1;
+	uint8_t section_number;
+	uint8_t last_section_number;
+	uint16_t reserved2:4;
+	uint16_t bouquet_descriptors_length:12;
+	struct descriptor * bouquet_desriptor_list;
+	uint16_t reserved3:4;
+	uint16_t transport_stream_loop_length:12;
+	struct transport_stream_info* stream_list;
+	uint32_t crc32;
+}bat_t;
+
+/*infos in SDT*/
+struct service_info{
+	uint16_t service_id;
+	uint8_t reserved_future_use:6;
+	uint8_t EIT_schedule_flag:1;
+	uint8_t EIT_present_following_flag:1;
+	uint16_t running_status:3;
+	uin16_t free_CA_mode:1;
+	uint16_t descriptors_loop_length:12;
+	struct descriptor * service_desriptor_list;
+};
+
+typedef struct {
+	uint8_t table_id;	/* 0x42,0x46 */
+	uint16 section_syntax_indicator:1;
+	uint16_t reserved_future_use:1;
+	uint16_t reserved:2;
+	uint16_t section_length:12;
+	uint16_t transport_stream_id;
+	uint8_t reserved1:2;
+	uint8_t version_number:5;
+	uint8_t current_next_indicator:1;
+	uint8_t section_number;
+	uint8_t last_section_number;
+	uint16_t original_network_id;
+	uint8_t reserved2;
+	struct service_info* service_list;
+	uint32_t crc32;
+}sdt_t;
 
 typedef struct{
 	uint8_t table_id;
