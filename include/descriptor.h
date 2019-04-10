@@ -456,7 +456,22 @@ struct SL_descriptor_t{
 	};
 };
 
+struct FMC_info{
+	uint16_t ES_ID;
+	uint8_t FlexMuxChannel;
+	struct FMC_info*next;
+};
+
 struct FMC_descriptor_t{
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void *next;
+			struct FMC_info *FMC_info_list;
+		};
+	};
 };
 
 struct external_ES_ID_descriptor_t{
@@ -479,10 +494,16 @@ struct FmxBufferSize_descriptor_t{
 };
 
 struct MultiplexBuffer_descriptor_t{
-	uint64_t descriptor_tag:8;
-	uint64_t descriptor_length:8;
-	uint64_t MB_buffer_size:24;
-	uint64_t TB_leak_rate:24;
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void *next;
+			uint24_t MB_buffer_size;
+			uint24_t TB_leak_rate;/* in units of 400 bits per second the rate at which data is transferred */
+		};
+	};
 };
 
 /*see EN_300 468 chapter 6*/
@@ -598,31 +619,117 @@ struct CA_identifier_descriptor_t{
 	};
 };
 
-struct cell_frequency_link_descriptor_t{
+struct subcell_info{
+	uint8_t cell_id_extension;
+	uint32_t transposer_frequency;
+	struct subcell_info *next;
+};
 
+struct cell_frequency_info{
+	uint16_t cell_id;
+	uint32_t frequency;
+	uint8_t subcell_info_loop_length;
+	struct subcell_info *subcell_info_list;
+};
+
+struct cell_frequency_link_descriptor_t{
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct cell_frequency_info *cell_info_list;
+		};
+	};
+};
+
+struct subcell_list_info{
+	uint64_t cell_id_extension:8;
+	uint64_t subcell_latitude:16;
+	uint64_t subcell_longitude:16;
+	uint64_t subcell_extent_of_latitude:12;
+	uint64_t subcell_extent_of_longitude:12;
+	struct subcell_list_info *next;
+};
+
+struct cell_list_info{
+	uint16_t cell_id;
+	uint16_t cell_latitude;
+	uint16_t cell_longitude;
+	uint32_t cell_extent_of_latitude:12;
+	uint32_t cell_extent_of_longitude:12;
+	uint32_t subcell_info_loop_length:8;
+	struct subcell_list_info *subcell_list;
+	struct cell_list_info *next;
 };
 
 struct cell_list_descriptor_t{
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct cell_list_info * cell_list;
+		};
+	};
 
 };
 
 struct component_descriptor{ 
-	uint8_t descriptor_tag;
-	uint8_t descriptor_length;
-	uint8_t stream_content_ext:4; 
-	uint8_t stream_content:4;
-	uint8_t component_type;
-	uint32_t component_tag:8; 
-	uint32_t ISO_639_language_code:24; 
-	uint8_t text_char[0];
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t stream_content_ext:4; 
+			uint8_t stream_content:4;
+			uint8_t component_type;
+			uint32_t component_tag:8; 
+			uint32_t ISO_639_language_code:24; 
+			uint8_t *text_char;
+		};
+	};
+};
+
+struct content_info{
+	uint8_t content_nibble_level_1:4;
+	uint8_t content_nibble_level_2:4;
+	uint8_t byte;
+	struct content_info * next;
 };
 
 struct content_descriptor_t{
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct content_info * content_list;
+		};
+	};
+};
 
+struct country_code{
+	uint24_t country_code;
+	struct country_code * next;
 };
 
 struct country_availability_descriptor_t{
-
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t country_availability_flag:1;
+			uint8_t reserved_future_use:7;
+			struct country_code* country_list;
+		};
+	};
 };
 
 struct data_broadcast_descriptor_t{
