@@ -1,57 +1,5 @@
 #include "descriptor.h"
 
-/*see EN_300 468 chapter 6*/
-
-/*adaptation_field_data_descriptor*/
-struct adaptation_field_data_identifier
-{
-	uint8_t announcement_switching_data:1;
-	uint8_t AU_information_data:1;
-	uint8_t PVR_assist_information_data:1;
-	uint8_t tsap_timeline:1;
-	uint8_t reserved:4;
-};
-/*ancillary_data_descriptor*/
-struct ancillary_data_identifier
-{
-	uint8_t DVD_video_ancillary_data:1;
-	uint8_t extended_ancillary_data:1;
-	uint8_t announcement_switching_data:1;
-	uint8_t DAB_ancillary_data:1;
-	uint8_t scale_factor_error_check:1;
-	uint8_t MPEG4_ancillary_data:1;
-	uint8_t RDS_via_UECP:1;
-	uint8_t reserved:1;
-};
-
-/*Announcement support descriptor*/
-struct announcement_support_indicator{
-	uint16_t emergency_alarm:1;
-	uint16_t road_traffic_flash:1;
-	uint16_t public_transport_flash:1;
-	uint16_t warning_message:1;
-	uint16_t news_flash:1;
-	uint16_t weather_flash:1;
-	uint16_t event_announcement:1;
-	uint16_t personal_call:1;
-	uint16_t reserved:8;
-};
-
-struct ISO_639_Language_descriptor{
-
-};
-
-struct component_descriptor{ 
-	uint8_t descriptor_tag;
-	uint8_t descriptor_length;
-	uint8_t stream_content_ext:4; 
-	uint8_t stream_content:4;
-	uint8_t component_type;
-	uint32_t component_tag:8; 
-	uint32_t ISO_639_language_code:24; 
-	uint8_t data[0];
-};
-
 static void DumpMaxBitrateDescriptor(dvbpsi_max_bitrate_dr_t* bitrate_descriptor)
 {  
     printf( "Bitrate: %d\n", bitrate_descriptor->i_max_bitrate);
