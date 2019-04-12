@@ -1,4 +1,64 @@
+#include <stdio.h>
+#include <stdint.h>
 #include "descriptor.h"
+
+int ParsePAT(uint8_t * pBuffer, uint32_t uiBufSize, pat_t * pPAT)
+{
+	int iSectionLength = 0;
+	uint8_t *pData = pBuffer;
+
+	if (pBuffer == NULL || pPAT == NULL)
+	{
+		return -1;
+	}
+
+	if (*pBuffer != PAT_TID)
+	{
+		return -1;
+	}
+
+	iSectionLength = ((pData[1] << 8) | pData[2])  & 0x0FFF;
+	if ((uint32_t)(iSectionLength + 3) != uiBufSize)
+	{
+		return -1;
+	}
+
+	//Transport Stream ID
+	pPAT->transport_stream_id = (pData[3] << 8) | pData[4];
+
+
+	pPAT->version_number = (pData[5] >> 1) & 0x1F;
+
+	if (!(pData[5] & 0x01)) //current_next_indicator
+	{
+			return -1;
+	}
+
+	pPAT->section_number = pData[6];
+	pPAT->last_section_number = pData[7];
+
+	iSectionLength -= 5 + 4; 
+	pData += 8;
+	
+	//TODO: limit program total length
+	pPAT->list = NULL;
+
+	while (iSectionLength > 0)
+	{
+		struct program_list *pl = malloc(sizeof(struct program_list));
+		struct program_list *next = NULL;
+		pl->program_number = (pData[0] << 8) + pData[1]; 
+		pl->program_map_PID = ((pData[2] << 8) + pData[3]) & 0x1FFF;
+		next = pPAT->list;
+		pPAT->list = pl;
+		pl->next = next;
+		pData += 4;
+		iSectionLength -= 4;
+	}
+
+	return 0;
+}
+
 
 static void DumpMaxBitrateDescriptor(dvbpsi_max_bitrate_dr_t* bitrate_descriptor)
 {  
