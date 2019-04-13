@@ -165,9 +165,26 @@ typedef struct{
 	uint32_t crc32;
 }pat_t;
 
+/* INFO int CAT */
+typedef struct{
+	uint8_t table_id;	/* 0x00 */
+	uint16 section_syntax_indicator:1;
+	uint16_t z:1;
+	uint16_t reserved:2;
+	uint16_t section_length:12;
+	uint16_t transport_stream_id;
+	uint8_t reserved1:2;
+	uint8_t version_number:5;
+	uint8_t current_next_indicator:1;
+	uint8_t section_number;
+	uint8_t last_section_number;
+	struct descriptor *list; /*may have multicrypt CA descriptor here*/
+	uint32_t crc32;
+}cat_t;
+
+
+
 /* INFO int PMT */
-
-
 struct stream_info{
 	uint8_t stream_type;
 	uint16_t reserved:3;
