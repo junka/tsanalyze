@@ -68,3 +68,9 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 		return -1;
 }
 
+
+#define MAX_TS_PID_NUM 8192
+
+static uint16_t tspid[MAX_TS_PID_NUM];
+
+static 

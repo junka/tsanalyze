@@ -1,215 +1,137 @@
 #include <stdio.h>
 #include <stdint.h>
+
+#include "ts.h"
 #include "descriptor.h"
 
-int parse_pat(uint8_t * pbuf, uint32_t buf_size, pat_t * pPAT)
+int parse_video_stream_descriptor(uint8_t *buf, uint32_t len, video_stream_descriptor_t *vs)
 {
-	uint32_t section_len = 0;
-	uint8_t *pdata = pbuf;
-
-	if (pbuf == NULL || pPAT == NULL)
-	{
+	if(buf[0]!=video_stream_descriptor)
 		return -1;
-	}
-
-	if (*pbuf != PAT_TID)
-	{
+	vs->descriptor_tag = video_stream_descriptor;
+	vs->descriptor_length = buf[1];
+	vs->next = NULL;
+	vs->multiple_frame_rate_flag = (buf[2]>>7)&0x01;
+	vs->frame_rate_code = (buf[2] >>3)&0x0F;
+	vs->MPEG_1_only_flag = (buf[2]>>2)&0x01;
+	vs->constrained_parameter_flag = (buf[2]>>1)&0x01;
+	vs->still_picture_flag = buf[2]&0x01;
+	vs->profile_and_level_indication = buf[3] ;
+	vs->chroma_format = buf[4]>>6;
+	vs->frame_rate_extension_flag = (buf[4]>>5)&0x01;
+	return 0;
+}
+int parse_audio_stream_descriptor(uint8_t *buf, uint32_t len, audio_stream_descriptor_t *as)
+{
+	if(buf[0]!=audio_stream_descriptor)
 		return -1;
-	}
+	as->descriptor_tag = audio_stream_descriptor;
+	as->descriptor_length = buf[1];
+	as->free_format_flag = buf[2]>>7;
+	as->ID = (buf[2]>>6)&0x01;
+	as->layer = (buf[2]>>4)&0x03;
+	as->variable_rate_audio_indicator = (buf[2]>>3)&0x01;
+	return 0;
+}
 
-	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	if ((section_len + 3) != buf_size)
-	{
+int parse_hierarchy_descriptor(uint8_t *buf, uint32_t len, hierarchy_descriptor_t *hi)
+{
+	if(buf[0]!=hierarchy_descriptor)
 		return -1;
-	}
-	pPAT->section_length = section_len;
+	hi->descriptor_tag = hierarchy_descriptor;
+	hi->descriptor_length = buf[1];
+	hi->hierarchy_type = buf[2] &0x0F;
+	hi->hierarchy_layer_index = (buf[3])&0x03F;
+	hi->hierarchy_embedded_layer_index = (buf[4])&0x3F;
+	hi->hierarchy_channel = (buf[5])&0x3F;
+	return 0;
+}
 
-	//Transport Stream ID
-	pPAT->transport_stream_id = (pdata[3] << 8) | pdata[4];
-
-
-	pPAT->version_number = (pdata[5] >> 1) & 0x1F;
-
-	if (!(pdata[5] & 0x01)) //current_next_indicator
-	{
+int parse_registration_descriptor(uint8_t *buf, uint32_t len, registration_descriptor_t *re)
+{
+	if(buf[0]!=registration_descriptor)
 		return -1;
-	}
+	re->descriptor_tag = registration_descriptor;
+	re->descriptor_length = buf[1];
+	re->format_identifier = TS_READ32(buf+2);
+	re->additional_identification_info = malloc(buf[1]-4);
+	memcpy(re->additional_identification_info,buf+6, buf[1]-4);
+	return 0;
+}
 
-	pPAT->section_number = pdata[6];
-	pPAT->last_section_number = pdata[7];
+int parse_data_stream_alignment_descriptor(uint8_t *buf, uint32_t len, data_stream_alignment_descriptor_t *dsa)
+{
+	if(buf[0]!=data_stream_alignment_descriptor)
+		return -1;
+	dsa->descriptor_tag = data_stream_alignment_descriptor;
+	dsa->descriptor_length = buf[1];
+	dsa->alignment_type = buf[2];
+	return 0;
+}
 
-	section_len -= 5 + 4; 
-	pdata += 8;
-	
-	//TODO: limit program total length
-	pPAT->list = NULL;
+int parse_target_background_grid_descriptor(uint8_t *buf, uint32_t len, target_background_grid_descriptor_t *tbg)
+{
+	if(buf[0]!=target_background_grid_descriptor)
+		return -1;
+	tbg->descriptor_tag = target_background_grid_descriptor;
+	tbg->descriptor_length = buf[1];
+	tbg->horizontal_size = (buf[2]<<6|buf[3]>>2);//TS_READ32(buf+2) >>18;
+	tbg->vertical_size = (TS_READ32(buf+2)>>4) &0x3FFF;
+	tbg->aspect_ratio_information = buf[5]&0x0F;
+	return 0;
+}
 
-	while (section_len > 0)
-	{
-		struct program_list *pl = malloc(sizeof(struct program_list));
-		struct program_list *next = NULL;
-		pl->program_number = (pdata[0] << 8) + pdata[1]; 
-		pl->program_map_PID = ((pdata[2] << 8) + pdata[3]) & 0x1FFF;
-		next = pPAT->list;
-		pPAT->list = pl;
-		pl->next = next;
-		pdata += 4;
-		section_len -= 4;
-	}
+int parse_video_window_descriptor(uint8_t *buf, uint32_t len, video_window_descriptor_t *vw)
+{
+	if(buf[0]!=video_window_descriptor)
+		return -1;
+	vw->descriptor_tag = video_window_descriptor;
+	vw->descriptor_length = buf[1];
+	vw->next = NULL;
+	vw->horizontal_offset = (buf[2]<<6|buf[3]>>2);
+	vw->vertical_offset = (TS_READ32(buf+2)>>4) &0x3FFF;
+	vw->window_priority = buf[5]&0x0F;
+	return 0;
+}
 
+int parse_ca_descriptor(uint8_t *buf, uint32_t len, CA_descriptor_t *ca)
+{
+	if(buf[0]!=CA_descriptor)
+		return -1;
+	ca->descriptor_tag = CA_descriptor;
+	ca->descriptor_length = buf[1];
+	ca->next = NULL;
+	ca->CA_system_ID = buf[2]<<8 |buf[3];
+	ca->CA_PID = (buf[5]<<8 |buf[6]) & 0x1FFF ;
+	return 0;
+}
+
+int parse_maximum_bitrate_descriptor(uint8_t *buf, uint32_t len, maximum_bitrate_descriptor_t *mb)
+{
+	if(buf[0]!=maximum_bitrate_descriptor)
+		return -1;
+	mb->descriptor_tag = maximum_bitrate_descriptor;
+	mb->descriptor_length = buf[1];
+	mb->next = NULL;
+	mb->maximum_bitrate = (buf[2]<<16 |buf[3]<<8 |buf[4])&0x3FFFFF;
 	return 0;
 }
 
 
-int parse_cat(uint8_t * pbuf, uint32_t buf_size, cat_t * pCAT)
+static int parse_system_clock_descriptor(uint8_t *buf, uint32_t len, system_clock_descriptor_t *sc)
 {
-	uint32_t section_len = 0;
-	uint8_t *pdata = pbuf;
-
-	if (pbuf == NULL || pCAT == NULL)
-	{
+	if(buf[0]!=system_clock_descriptor)
 		return -1;
-	}
-
-	if (*pbuf != PAT_TID)
-	{
-		return -1;
-	}
-
-	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	if ((section_len + 3) != buf_size)
-	{
-		return -1;
-	}
-	pPAT->section_length = section_len;
-
-	//Transport Stream ID
-	pPAT->transport_stream_id = (pdata[3] << 8) | pdata[4];
-
-
-	pPAT->version_number = (pdata[5] >> 1) & 0x1F;
-
-	if (!(pdata[5] & 0x01)) //current_next_indicator
-	{
-		return -1;
-	}
-
-	pPAT->section_number = pdata[6];
-	pPAT->last_section_number = pdata[7];
-
-	section_len -= 5 + 4; 
-	pdata += 8;
-	
-	//TODO: limit program total length
-	pPAT->list = NULL;
-
-	while (section_len > 0)
-	{
-		struct program_list *pl = malloc(sizeof(struct program_list));
-		struct program_list *next = NULL;
-		pl->program_number = (pdata[0] << 8) + pdata[1]; 
-		pl->program_map_PID = ((pdata[2] << 8) + pdata[3]) & 0x1FFF;
-		next = pPAT->list;
-		pPAT->list = pl;
-		pl->next = next;
-		pdata += 4;
-		section_len -= 4;
-	}
-
+	sc->descriptor_tag = maximum_bitrate_descriptor;
+	sc->descriptor_length = buf[1];
+	sc->next = NULL;
+	sc->external_clock_reference_indicator = buf[2]>>7;
+	sc->clock_accuracy_integer = buf[2]&0x3F;
+	sc->clock_accuracy_exponent = buf[3]>>5;
 	return 0;
 }
 
-
-int parse_pmt(uint8_t * pbuf, uint32_t buf_size, pmt_t * pPMT)
-{
-	uint32_t section_len = 0;
-	uint8_t *pdata = pbuf;
-
-	if (pbuf == NULL || pPMT == NULL)
-	{
-		return -1;
-	}
-
-	if (*pbuf != PMT_TID)
-	{
-		return -1;
-	}
-
-	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	if ((section_len + 3) != buf_size)
-	{
-		return -1;
-	}
-	pPMT->section_length = section_len;
-
-	//Transport Stream ID
-	pPMT->program_number = (pdata[3] << 8) | pdata[4];
-
-
-	pPMT->version_number = (pdata[5] >> 1) & 0x1F;
-
-	if (!(pdata[5] & 0x01)) //current_next_indicator
-	{
-		return -1;
-	}
-
-	pPMT->section_number = pdata[6];
-	pPMT->last_section_number = pdata[7];
-
-	section_len -= 5 + 4; 
-	pdata += 8;
-	
-	pPMT->desriptor_list = NULL;
-
-	while (section_len > 0)
-	{
-		struct program_list *pl = malloc(sizeof(struct program_list));
-		struct program_list *next = NULL;
-		pl->program_number = (pdata[0] << 8) + pdata[1]; 
-		pl->program_map_PID = ((pdata[2] << 8) + pdata[3]) & 0x1FFF;
-		next = pPMT->desriptor_list;
-		pPMT->desriptor_list = pl;
-		pl->next = next;
-		pdata += 4;
-		section_len -= 4;
-	}
-
-	return 0;
-}
-
-
-
-
-
-static void DumpMaxBitrateDescriptor(dvbpsi_max_bitrate_dr_t* bitrate_descriptor)
-{  
-    printf( "Bitrate: %d\n", bitrate_descriptor->i_max_bitrate);
-}
-
-
-static void DumpSystemClockDescriptor(dvbpsi_system_clock_dr_t* p_clock_descriptor)
-{  
-    printf( "External clock: %s, Accuracy: %E\n", p_clock_descriptor->b_external_clock_ref ? "Yes" : "No",     p_clock_descriptor->i_clock_accuracy_integer *     pow(10.0, -(double)p_clock_descriptor->i_clock_accuracy_exponent));
-}
-
-
-static void DumpStreamIdentifierDescriptor(dvbpsi_stream_identifier_dr_t* p_si_descriptor)
-{  
-    printf( "Component tag: %d\n", p_si_descriptor->i_component_tag);
-}
-
-static void DumpSubtitleDescriptor(dvbpsi_subtitling_dr_t* p_subtitle_descriptor)
-{  
-    int a; 
-    printf("%d subtitles,\n", p_subtitle_descriptor->i_subtitles_number);  
-    for (a = 0; a < p_subtitle_descriptor->i_subtitles_number; ++a)    
-    {
-        printf( "       | %d - lang: %c%c%c, type: %d, cpid: %d, apid: %d\n", a,         p_subtitle_descriptor->p_subtitle[a].i_iso6392_language_code[0],         p_subtitle_descriptor->p_subtitle[a].i_iso6392_language_code[1],         p_subtitle_descriptor->p_subtitle[a].i_iso6392_language_code[2],         p_subtitle_descriptor->p_subtitle[a].i_subtitling_type,         p_subtitle_descriptor->p_subtitle[a].i_composition_page_id,         p_subtitle_descriptor->p_subtitle[a].i_ancillary_page_id);    
-    }
-}
-
-
-static void DumpDescriptors(const char* str, descriptor_t* p_descriptor)
+static void dump_descriptors(const char* str, descriptor_t* p_descriptor)
 {
     int i;
     while(p_descriptor)
@@ -217,25 +139,25 @@ static void DumpDescriptors(const char* str, descriptor_t* p_descriptor)
         printf( "%s 0x%02x : ", str, p_descriptor->tag);
         switch (p_descriptor->tag)
         {
-            case SYSTEM_CLOCK_DR:
+            case system_clock_descriptor:
                 DumpSystemClockDescriptor(dvbpsi_DecodeSystemClockDr(p_descriptor));
                 break;
-            case MAX_BITRATE_DR:
+            case maximum_bitrate_descriptor:
                 DumpMaxBitrateDescriptor(dvbpsi_DecodeMaxBitrateDr(p_descriptor));         
                 break;
-            case STREAM_IDENTIFIER_DR:
+            case stream_identifier_descriptor:
                 DumpStreamIdentifierDescriptor(dvbpsi_DecodeStreamIdentifierDr(p_descriptor));     
                 break;
-            case SUBTITLING_DR:
+            case subtitling_descriptor:
                 DumpSubtitleDescriptor(dvbpsi_DecodeSubtitlingDr(p_descriptor));      
                 break;
             default:
                 printf(  "\"");
-                for(i = 0; i < p_descriptor->i_length; i++)
-                    printf(  "%c", p_descriptor->p_data[i]);
+                for(i = 0; i < p_descriptor->length; i++)
+                    printf(  "%c", p_descriptor->data[i]);
                 printf( "\"\n");
         }
-        p_descriptor = p_descriptor->p_next;
+        p_descriptor = p_descriptor->next;
     }
 }
 
