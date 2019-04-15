@@ -365,7 +365,7 @@ struct smoothing_buffer_descriptor_t{
 			uint24_t reserved:2;
 			uint24_t sb_leak_rate:22;
 			uint24_t reserved1:2;
-			uint23_t sb_size:22;
+			uint24_t sb_size:22;
 		};
 	};
 };
@@ -392,7 +392,7 @@ struct ibp_descriptor_t{
 			void *next;
 			uint16_t closed_gop_flag:1;
 			uint16_t identical_gop_flag:1;
-			uint14_t max_gop_length:14;
+			uint16_t max_gop_length:14;
 		};
 	};
 };
@@ -824,4 +824,4 @@ struct service_list_descriptor_t{
 }
 #endif
 
-#endif
+#endif /* _DESCRIPTOR_H_ */
