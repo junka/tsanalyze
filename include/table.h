@@ -185,7 +185,7 @@ typedef struct{
 
 
 /* INFO int PMT */
-struct stream_info{
+struct es_info{
 	uint8_t stream_type;
 	uint16_t reserved:3;
 	uint16_t elementary_PID:13;
@@ -211,7 +211,7 @@ typedef struct{
 	uint16_t reserved3:4;
 	uint16_t program_info_length:12;
 	struct descriptor * desriptor_list;
-	struct stream_info* stream_list;
+	struct es_info* es_list;
 	uint32_t crc32;
 }pmt_t;
 
@@ -299,9 +299,20 @@ typedef struct {
 	uint32_t crc32;
 }sdt_t;
 
+
+typedef struct{
+	pat_t pat;
+	cat_t cat;
+	int ca_num;
+	int pmt_num;
+	pmt_t pmt[4096];  /*maybe no necessary */
+	stats_t stats;
+}mpeg_psi_t;
+
+
 typedef struct{
 	uint8_t table_id;
-	int (*table_proc)(uint8_t *pkt,uint8_t len);
+	int (*table_proc)(uint16_t pid,uint8_t *pkt,uint16_t len);
 }table_ops;
 
 

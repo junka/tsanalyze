@@ -9,12 +9,12 @@ extern "C"{
 
 typedef struct filter
 {
-    uint16_t pid;
-    uint8_t depth;
-    uint8_t coff[MAX_FILTER_DEPTH];
-    uint8_t mask[MAX_FILTER_DEPTH];
-    uint8_t negete[MAX_FILTER_DEPTH];
-    int (*callback)(uint16_t pid,uint8_t *data,uint32_t len);
+	uint16_t pid;
+	uint8_t depth;
+	uint8_t coff[MAX_FILTER_DEPTH];
+	uint8_t mask[MAX_FILTER_DEPTH];
+	uint8_t negete[MAX_FILTER_DEPTH];
+	int (*callback)(uint16_t pid,uint8_t *data,uint16_t len);
 }filter_t;
 
 
