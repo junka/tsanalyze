@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <stdint.h>
 #include "utils.h"
 
 #define LINE_LEN 128

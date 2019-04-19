@@ -1,45 +1,47 @@
+#include <stdio.h>
+#include <stdint.h>
 #include "table.h"
 
 static char const* get_stream_type(uint8_t type)
 {
-    switch (type)
-    {
-        case 0x00:
-            return "Reserved";
-        case 0x01:
-            return "ISO/IEC 11172 Video";
-        case 0x02:
-            return "ISO/IEC 13818-2 Video";
-        case 0x03:
-            return "ISO/IEC 11172 Audio";
-        case 0x04:
-            return "ISO/IEC 13818-3 Audio";
-        case 0x05:
-            return "ISO/IEC 13818-1 Private Section";
-        case 0x06:
-            return "ISO/IEC 13818-1 Private PES data packets";    
-        case 0x07:
-            return "ISO/IEC 13522 MHEG";
-        case 0x08:
-            return "ISO/IEC 13818-1 Annex A DSM CC";
-        case 0x09:
-            return "H222.1";
-        case 0x0A:
-            return "ISO/IEC 13818-6 type A";
-        case 0x0B:
-            return "ISO/IEC 13818-6 type B";
-        case 0x0C:
-            return "ISO/IEC 13818-6 type C";
-        case 0x0D:
-            return "ISO/IEC 13818-6 type D";
-        case 0x0E:
-            return "ISO/IEC 13818-1 auxillary";
-        default:
-            if (type < 0x80)
-                return "ISO/IEC 13818-1 reserved";
-            else
-                return "User Private";
-        }
+	switch (type)
+	{
+	case 0x00:
+		return "Reserved";
+	case 0x01:
+		return "ISO/IEC 11172 Video";
+	case 0x02:
+		return "ISO/IEC 13818-2 Video";
+	case 0x03:
+		return "ISO/IEC 11172 Audio";
+	case 0x04:
+		return "ISO/IEC 13818-3 Audio";
+	case 0x05:
+		return "ISO/IEC 13818-1 Private Section";
+	case 0x06:
+		return "ISO/IEC 13818-1 Private PES data packets";
+	case 0x07:
+		return "ISO/IEC 13522 MHEG";
+	case 0x08:
+		return "ISO/IEC 13818-1 Annex A DSM CC";
+	case 0x09:
+		return "H222.1";
+	case 0x0A:
+		return "ISO/IEC 13818-6 type A";
+	case 0x0B:
+		return "ISO/IEC 13818-6 type B";
+	case 0x0C:
+		return "ISO/IEC 13818-6 type C";
+	case 0x0D:
+		return "ISO/IEC 13818-6 type D";
+	case 0x0E:
+		return "ISO/IEC 13818-1 auxillary";
+	default:
+		if (type < 0x80)
+			return "ISO/IEC 13818-1 reserved";
+		else
+			return "User Private";
+	}
 }
 
 static void dump_PAT(void* p_data, pat_t* p_pat)
@@ -48,9 +50,9 @@ static void dump_PAT(void* p_data, pat_t* p_pat)
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 	//if (p_stream->pmt)
 	{
-	    //dvbpsi_pmt_detach(p_stream->pmt.handle);
-	    //dvbpsi_delete(p_stream->pmt.handle);
-	    //p_stream->pmt = NULL;
+		//dvbpsi_pmt_detach(p_stream->pmt.handle);
+		//dvbpsi_delete(p_stream->pmt.handle);
+		//p_stream->pmt = NULL;
 	}
 	p_stream->pat.version_number = p_pat->version_number;
 	p_stream->pat.transport_stream_id = p_pat->transport_stream_id;
@@ -70,23 +72,23 @@ static void dump_PAT(void* p_data, pat_t* p_pat)
 			//p_stream->pmt.handle = NULL;
 		}
 		//p_stream->pmt_num++;
-		p_stream->pmt.program_number = p_program->program_number;
-		p_stream->pmt.stream_list-> = &p_stream->pid[p_program->i_pid];
-		p_stream->pmt.pid_pmt->i_pid = p_program->i_pid;
-		p_stream->pmt.handle = dvbpsi_new(&msg_callback, DVBPSI_MSG_DEBUG);
-		if (p_stream->pmt.handle == NULL)
-		{
-			printf( "could not allocate new dvbpsi_t handle\n");
-			break;
-		}
-		if (!dvbpsi_pmt_attach(p_stream->pmt.handle, p_program->i_number,DumpPMT, p_stream))   
-		{
-			dvbpsi_delete(p_stream->pmt.handle);
-			printf("could not attach PMT\n");      
-			break;
-		}
-		printf("    | %14d @ 0x%x (%d)\n",p_program->i_number, p_program->i_pid, p_program->i_pid);
-		p_program = p_program->p_next;
+		//p_stream->pmt.program_number = p_program->program_number;
+		//p_stream->pmt.es_list-> = &p_stream->pid[p_program->program_map_PID];
+		//p_stream->pmt->program_map_PID = p_program->program_map_PID;
+		//p_stream->pmt.handle = dvbpsi_new(&msg_callback, DVBPSI_MSG_DEBUG);
+		//if (p_stream->pmt.handle == NULL)
+		//{
+		//	printf( "could not allocate new dvbpsi_t handle\n");
+		//	break;
+		//}
+		//if (!dvbpsi_pmt_attach(p_stream->pmt.handle, p_program->i_number,DumpPMT, p_stream))   
+		//{
+			//dvbpsi_delete(p_stream->pmt.handle);
+		//	printf("could not attach PMT\n");      
+		//	break;
+		//}
+		printf("    | %14d @ 0x%x (%d)\n",p_program->program_number, p_program->program_map_PID, p_program->program_map_PID);
+		p_program = p_program->next;
 	}  
 	printf(  "  active              : %d\n", p_pat->current_next_indicator);
 
@@ -94,7 +96,7 @@ static void dump_PAT(void* p_data, pat_t* p_pat)
 
 static void dump_CAT(void* p_data, cat_t* p_cat)
 {
-	struct CA_descriptor_t* p_descriptor = p_cat->list;
+	CA_descriptor_t* p_descriptor = p_cat->list;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 	p_stream->cat.version_number=p_cat->version_number;
 	printf("\n");
@@ -109,43 +111,49 @@ static void dump_CAT(void* p_data, cat_t* p_cat)
 		p_descriptor = p_descriptor->next;
 	}
 }
+static void dump_TDT(void* p_data, tdt_t* p_tdt)
+{
+	//ts_stream_t* p_stream = (ts_stream_t*) p_data;
 
+	printf("\n");
+	printf("  TDT: Time and Date Table\n");
+
+	//printf("\tVersion number : %d\n", p_tot->version);
+	//printf("\tCurrent next   : %s\n", p_tot->b_current_next ? "yes" : "no");
+	printf("\tUTC time       : %lu\n", p_tdt->utc_time);
+
+	//dump_descriptors("\t  |  ]", p_tot->time_offset_descriptor_list);
+}
 
 static void dump_TOT(void* p_data, tot_t* p_tot)
 {
-    //ts_stream_t* p_stream = (ts_stream_t*) p_data;
+	//ts_stream_t* p_stream = (ts_stream_t*) p_data;
 
-    printf("\n");
-    uint8_t table_id = (p_tot->p_first_descriptor != NULL) ? 0x73 : 0x70;
-    if (table_id == 0x70) /* TDT */
-        printf("  TDT: Time and Date Table\n");
-    else if (table_id == 0x73) /* TOT */
-        printf("  TOT: Time Offset Table\n");
+	printf("\n");
+	printf("  TOT: Time Offset Table\n");
 
-    printf("\tVersion number : %d\n", p_tot->i_version);
-    printf("\tCurrent next   : %s\n", p_tot->b_current_next ? "yes" : "no");
-    printf("\tUTC time       : %"PRId64"\n", p_tot->i_utc_time);
+	//printf("\tVersion number : %d\n", p_tot->version);
+	//printf("\tCurrent next   : %s\n", p_tot->b_current_next ? "yes" : "no");
+	printf("\tUTC time       : %lu\n", p_tot->utc_time);
 
-    dump_descriptors("\t  |  ]", p_tot->p_first_descriptor);
-    dvbpsi_tot_delete(p_tot);
+	dump_descriptors("\t  |  ]", p_tot->time_offset_descriptor_list);
 }
 
-
-static void handle_subtable(dvbpsi_t *p_dvbpsi, uint8_t i_table_id, uint16_t i_extension,
-                            void *p_data)
+#if 0
+static void handle_subtable(void *p_psi, uint8_t i_table_id, uint16_t i_extension,
+					void *p_data)
 {
-    switch (i_table_id)
-    {
-        case 0x70: /* TDT */
-        case 0x73: /* TOT only */
-            break;
-        default:
-            break;
-
-    }
+	switch (i_table_id)
+	{
+		case 0x70: /* TDT */
+		case 0x73: /* TOT only */
+			break;
+		default:
+			break;
+	}
 
 }
-
+#endif
 
 
 static void dump_PMT(void* p_data, pmt_t* p_pmt)
@@ -153,9 +161,9 @@ static void dump_PMT(void* p_data, pmt_t* p_pmt)
 	struct es_info* p_es = p_pmt->es_list;
 	descriptor_t* des;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
-	p_stream->pmt.version_number = p_pmt->version_number;
-	p_stream->pmt.PCR_PID = &p_stream->pid[p_pmt->PCR_PID];
-	p_stream->pid[p_pmt->PCR_PID].b_pcr = VLC_TRUE;    
+	//p_stream->pmt.version_number = p_pmt->version_number;
+	//p_stream->pmt.PCR_PID = &p_stream->pid[p_pmt->PCR_PID];
+	//p_stream->pid[p_pmt->PCR_PID].b_pcr = VLC_TRUE;    
 	printf("\n" );
 	printf( "active PMT\n" );
 	printf( "  program_number : %d\n", p_pmt->program_number );
@@ -363,7 +371,7 @@ static int cat_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 
 static int pmt_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
-	parse_pmt(pkt,len,&(psi.pmt[pid]);
+	parse_pmt(pkt,len,&(psi.pmt[pid]));
 	return 0;
 }
 

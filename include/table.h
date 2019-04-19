@@ -1,15 +1,16 @@
 #ifndef _TABLE_H_
 #define _TABLE_H_
 
-#include "descriptor.h"
 /* define ts structure ,see ISO/IEC13818-1 */
 
 #ifdef __cplusplus
 extern "C"{
 #endif
 
+#include "descriptor.h"
+
 /* table id */
-enum TableId {
+typedef enum {
 	/* ISO/IEC 13818-1, ITU T-REC H.222.0 */
 	PAT_TID		= 0x00,	/* program_association_section */
 	CAT_TID		= 0x01,	/* conditional_access_section */
@@ -83,7 +84,7 @@ enum TableId {
 	CIT_TID			= 0x77, /* content_identifier_section (TS 102 323) */
 	MPE_FEC_TID		= 0x78, /* mpe_fec_section (EN 301 192) */
 	RNT_TID			= 0x79, /* resolution_notification_section (TS 102 323) */
-	MPE_IFEC_TID		= 0x7A, /*MPE-IFEC section (ETSI TS 102 772 [51])*/
+	MPE_IFEC_TID	= 0x7A, /*MPE-IFEC section (ETSI TS 102 772 [51])*/
 	DIT_TID			= 0x7E,	/* discontinuity_information_section */
 	SIT_TID			= 0x7F,	/* selection_information_section */
 
@@ -108,12 +109,12 @@ enum TableId {
 	/* 0x90 - 0xFE: PRIVATE */
 
 	/* 0xFF: ISO RESERVED */
-	RESERVED_TID		= 0xFF
-};
+	RESERVED_TID		= 0xFF,
+}TID_E;
 
 
 /* stream type */
-enum StreamType {
+typedef enum {
 	STEAM_TYPE_RESERVED		= 0x00,
 	STEAM_TYPE_MPEG1_VIDEO		= 0x01,
 	STEAM_TYPE_MPEG2_VIDEO		= 0x02,
@@ -134,24 +135,23 @@ enum StreamType {
 	STEAM_TYPE_MPEG4_AUDIO		= 0x11,
 	STEAM_TYPE_MPEG4_PES		= 0x12,
 	STEAM_TYPE_MPEG4_SECTIONS	= 0x13,
-	STEAM_TYPE_SYNC_DOWNLOAD_PROT	= 0x14
+	STEAM_TYPE_SYNC_DOWNLOAD_PROT	= 0x14,
 	/* 0x15 - 0x7F: ITU-T Rec. H.222.0 | ISO/IEC 13818-1 Reserved */
 	/* 0x80 - 0xFF: User Private */
-};
-
+} StreamType_E;
 
 
 /* INFO int PAT */
-struct program_list{
+struct program_list {
 	uint16_t program_number;
 	uint16_t reserved:3;
 	uint16_t program_map_PID:13;
 	struct program_list * next;
 };
 
-typedef struct{
+typedef struct {
 	uint8_t table_id;	/* 0x00 */
-	uint16 section_syntax_indicator:1;
+	uint16_t section_syntax_indicator:1;
 	uint16_t z:1;
 	uint16_t reserved:2;
 	uint16_t section_length:12;
@@ -163,12 +163,12 @@ typedef struct{
 	uint8_t last_section_number;
 	struct program_list *list;
 	uint32_t crc32;
-}pat_t;
+} pat_t;
 
 /* INFO int CAT */
-typedef struct{
+typedef struct {
 	uint8_t table_id;	/* 0x00 */
-	uint16 section_syntax_indicator:1;
+	uint16_t section_syntax_indicator:1;
 	uint16_t z:1;
 	uint16_t reserved:2;
 	uint16_t section_length:12;
@@ -194,9 +194,9 @@ struct es_info{
 	struct descriptor * descriptor_list;
 };
 
-typedef struct{
+typedef struct {
 	uint8_t table_id;	/* 0x02 */
-	uint16 section_syntax_indicator:1;
+	uint16_t section_syntax_indicator:1;
 	uint16_t z:1;
 	uint16_t reserved:2;
 	uint16_t section_length:12;
@@ -228,7 +228,7 @@ struct transport_stream_info{
 
 typedef struct {
 	uint8_t table_id;	/* 0x40,0x41 */
-	uint16 section_syntax_indicator:1;
+	uint16_t section_syntax_indicator:1;
 	uint16_t reserved_future_use:1;
 	uint16_t reserved:2;
 	uint16_t section_length:12;
@@ -250,7 +250,7 @@ typedef struct {
 /*infos in bat*/
 typedef struct {
 	uint8_t table_id;	/* 0x4A */
-	uint16 section_syntax_indicator:1;
+	uint16_t section_syntax_indicator:1;
 	uint16_t reserved_future_use:1;
 	uint16_t reserved:2;
 	uint16_t section_length:12;
@@ -269,6 +269,8 @@ typedef struct {
 	uint32_t crc32;
 }bat_t;
 
+
+
 /*infos in SDT*/
 struct service_info{
 	uint16_t service_id;
@@ -276,14 +278,14 @@ struct service_info{
 	uint8_t EIT_schedule_flag:1;
 	uint8_t EIT_present_following_flag:1;
 	uint16_t running_status:3;
-	uin16_t free_CA_mode:1;
+	uint16_t free_CA_mode:1;
 	uint16_t descriptors_loop_length:12;
 	struct descriptor * service_desriptor_list;
 };
 
 typedef struct {
 	uint8_t table_id;	/* 0x42,0x46 */
-	uint16 section_syntax_indicator:1;
+	uint16_t section_syntax_indicator:1;
 	uint16_t reserved_future_use:1;
 	uint16_t reserved:2;
 	uint16_t section_length:12;
@@ -297,8 +299,61 @@ typedef struct {
 	uint8_t reserved2;
 	struct service_info* service_list;
 	uint32_t crc32;
-}sdt_t;
+} sdt_t;
 
+typedef struct {
+	uint8_t time[5];
+}UTC_time_t;
+
+typedef struct {
+	uint8_t table_id;	/* 0x70 */
+	uint16_t section_syntax_indicator:1;
+	uint16_t reserved_future_use:1;
+	uint16_t reserved:2;
+	uint16_t section_length:12;
+	UTC_time_t utc_time;
+} tdt_t;
+
+typedef struct {
+	uint8_t table_id;	/* 0x73 */
+	uint16_t section_syntax_indicator:1;
+	uint16_t reserved_future_use:1;
+	uint16_t reserved:2;
+	uint16_t section_length:12;
+	UTC_time_t utc_time;
+	uint16_t reserved1:4;
+	uint16_t descriptors_loop_length:12;
+	struct descriptor * time_offset_descriptor_list;
+	uint32_t crc32;
+} tot_t;
+
+struct running_status{
+	uint16_t transport_stream_id;
+	uint16_t original_network_id;
+	uint16_t service_id;
+	uint16_t event_id;
+	uint8_t reserved_future_use:5;
+	uint8_t running_status:3;
+	struct running_status *next;
+};
+
+typedef struct {
+	uint8_t table_id;	/* 0x71 */
+	uint16_t section_syntax_indicator:1;
+	uint16_t reserved_future_use:1;
+	uint16_t reserved:2;
+	uint16_t section_length:12;
+	struct running_status * status_list;
+} rst_t;
+
+typedef struct {
+	uint8_t table_id;	
+	uint16_t section_syntax_indicator:1;
+	uint16_t reserved_future_use:1;
+	uint16_t reserved:2;
+	uint16_t section_length:12;
+	uint8_t data_byte[0];
+} st_t;
 
 typedef struct{
 	pat_t pat;
@@ -306,9 +361,8 @@ typedef struct{
 	int ca_num;
 	int pmt_num;
 	pmt_t pmt[4096];  /*maybe no necessary */
-	stats_t stats;
+	//stats_t stats;
 }mpeg_psi_t;
-
 
 typedef struct{
 	uint8_t table_id;

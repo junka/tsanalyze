@@ -5,6 +5,8 @@
 extern "C"{
 #endif
 
+#include "types.h"
+
 typedef struct descriptor{
 	uint8_t tag;
 	uint8_t length;
@@ -117,7 +119,9 @@ enum descriptor_e{
 
 
 /* see ISO/IEC 13818-1 chapter 2.6*/
-struct video_stream_descriptor_t{
+
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -136,10 +140,11 @@ struct video_stream_descriptor_t{
 			uint8_t reserved:5;
 		};
 	};
-};
+}video_stream_descriptor_t;
 
-struct audio_stream_descriptor_t{
-	union{
+typedef struct {
+	EXT_STD_C11
+	union {
 		descriptor_t descriptor;
 		struct {
 			uint8_t descriptor_tag;
@@ -152,7 +157,7 @@ struct audio_stream_descriptor_t{
 			uint8_t reserved:3;
 		};
 	};
-};
+} audio_stream_descriptor_t;
 
 enum hierarchy_type_e{
 	spatial_scalability = 1, /*ITU-T Rec. H.262 | ISO/IEC 13818-2 spatial_scalability*/
@@ -165,7 +170,8 @@ enum hierarchy_type_e{
 	base_layer = 15,
 };
 
-struct hierarchy_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -183,9 +189,10 @@ struct hierarchy_descriptor_t{
 		};
 	};
 
-};
+}hierarchy_descriptor_t;
 
-struct registration_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -196,7 +203,7 @@ struct registration_descriptor_t{
 			uint8_t* additional_identification_info;
 		};
 	};
-};
+} registration_descriptor_t;
 
 enum video_alignment_type_e{
 	slice_or_video_access_unit = 1,
@@ -206,7 +213,8 @@ enum video_alignment_type_e{
 	/* 0x05 - 0xFF reserved*/
 };
 
-struct data_stream_alignment_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -216,9 +224,10 @@ struct data_stream_alignment_descriptor_t{
 			uint8_t alignment_type; /* see definition in @video_alignment_type_e */
 		};
 	};
-};
+} data_stream_alignment_descriptor_t;
 
-struct target_background_grid_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -230,9 +239,10 @@ struct target_background_grid_descriptor_t{
 			uint32_t aspect_ratio_information:4;
 		};
 	};
-};
+} target_background_grid_descriptor_t;
 
-struct video_window_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -244,9 +254,10 @@ struct video_window_descriptor_t{
 			uint32_t window_priority:4;
 		};
 	};
-};
+} video_window_descriptor_t;
 
-struct CA_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -259,7 +270,7 @@ struct CA_descriptor_t{
 			uint8_t* private_data_byte;
 		};
 	};
-};
+} CA_descriptor_t;
 
 enum audio_type_e{
 	clean_effects = 0x1,
@@ -274,7 +285,8 @@ struct language_info{
 	struct language_info * next;
 };
 
-struct ISO_639_language_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -284,9 +296,10 @@ struct ISO_639_language_descriptor_t{
 			struct language_info* language_list;
 		};
 	};
-};
+} ISO_639_language_descriptor_t;
 
-struct system_clock_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -297,12 +310,13 @@ struct system_clock_descriptor_t{
 			uint8_t reserved:1;
 			uint8_t clock_accuracy_integer:6;
 			uint8_t clock_accuracy_exponent:3;
-			uint8_t reserved:5;
+			uint8_t reserved1:5;
 		};
 	};
-};
+}system_clock_descriptor_t;
 
-struct multiplex_buffer_utilization_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -312,12 +326,13 @@ struct multiplex_buffer_utilization_descriptor_t{
 			uint16_t bound_valid_flag:1;
 			uint16_t LTW_offset_lower_bound:15;
 			uint16_t reserved:1;
-			uint16_t LTW_offset_lower_bound:15;
+			uint16_t LTW_offset_upper_bound:15;
 		};
 	};
-};
+} multiplex_buffer_utilization_descriptor_t;
 
-struct copyright_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -328,22 +343,25 @@ struct copyright_descriptor_t{
 			uint8_t *additional_copyright_info;
 		};
 	};
-};
+} copyright_descriptor_t;
 
-struct maximum_bitrate_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			void *next;
-			uint24_t reserved:2;
-			uint24_t maximum_bitrate:22;
+			uint24_t maximum_bitrate;
+			//uint24_t reserved:2;
+			//uint24_t maximum_bitrate:22;
 		};
 	};
-};
+} maximum_bitrate_descriptor_t;
 
-struct private_data_indicator_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -353,24 +371,28 @@ struct private_data_indicator_descriptor_t{
 			uint32_t private_data_indicator;
 		};
 	};
-};
+}private_data_indicator_descriptor_t;
 
-struct smoothing_buffer_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			void *next;
-			uint24_t reserved:2;
-			uint24_t sb_leak_rate:22;
-			uint24_t reserved1:2;
-			uint24_t sb_size:22;
+			uint24_t sb_leak_rate;
+			uint24_t sb_size;
+			//uint24_t reserved:2;
+			//uint24_t sb_leak_rate:22;
+			//uint24_t reserved1:2;
+			//uint24_t sb_size:22;
 		};
 	};
-};
+}smoothing_buffer_descriptor_t;
 
-struct STD_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -381,9 +403,10 @@ struct STD_descriptor_t{
 			uint8_t leak_valid_flag:1;
 		};
 	};
-};
+}STD_descriptor_t;
 
-struct ibp_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -395,9 +418,10 @@ struct ibp_descriptor_t{
 			uint16_t max_gop_length:14;
 		};
 	};
-};
+}ibp_descriptor_t;
 
-struct MPEG4_video_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -407,7 +431,7 @@ struct MPEG4_video_descriptor_t{
 			uint8_t MPEG4_visual_profile_and_level;
 		};
 	};
-};
+}MPEG4_video_descriptor_t;
 
 enum MPEG4_audio_profile_and_level_e{
 	main_profile_lv1 = 0x10,
@@ -419,7 +443,8 @@ enum MPEG4_audio_profile_and_level_e{
 	
 };
 
-struct MPEG4_audio_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -429,9 +454,10 @@ struct MPEG4_audio_descriptor_t{
 			uint8_t MPEG4_audio_profile_and_level;
 		};
 	};
-};
+} MPEG4_audio_descriptor_t;
 
-struct IOD_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -442,9 +468,10 @@ struct IOD_descriptor_t{
 			uint8_t IOD_label;
 		};
 	};
-};
+} IOD_descriptor_t;
 
-struct SL_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -454,7 +481,7 @@ struct SL_descriptor_t{
 			uint16_t ES_ID;
 		};
 	};
-};
+} SL_descriptor_t;
 
 struct FMC_info{
 	uint16_t ES_ID;
@@ -462,7 +489,8 @@ struct FMC_info{
 	struct FMC_info*next;
 };
 
-struct FMC_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -472,9 +500,10 @@ struct FMC_descriptor_t{
 			struct FMC_info *FMC_info_list;
 		};
 	};
-};
+}FMC_descriptor_t;
 
-struct external_ES_ID_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -484,7 +513,7 @@ struct external_ES_ID_descriptor_t{
 			uint16_t external_ES_ID;
 		};
 	};
-};
+}external_ES_ID_descriptor_t;
 
 struct muxcode_descriptor_t{
 };
@@ -493,7 +522,8 @@ struct FmxBufferSize_descriptor_t{
 	
 };
 
-struct MultiplexBuffer_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -504,7 +534,7 @@ struct MultiplexBuffer_descriptor_t{
 			uint24_t TB_leak_rate;/* in units of 400 bits per second the rate at which data is transferred */
 		};
 	};
-};
+}MultiplexBuffer_descriptor_t;
 
 /*see EN_300 468 chapter 6*/
 
@@ -517,7 +547,9 @@ struct adaptation_field_data_identifier
 	uint8_t tsap_timeline:1;
 	uint8_t reserved:4;
 };
-struct adaptation_field_data_descriptor_t {
+
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -526,7 +558,8 @@ struct adaptation_field_data_descriptor_t {
 			void * next;
 			struct adaptation_field_data_identifier identifier;
 		};
-};
+	};
+}adaptation_field_data_descriptor_t;
 
 /*ancillary_data_descriptor*/
 struct ancillary_data_identifier
@@ -541,7 +574,8 @@ struct ancillary_data_identifier
 	uint8_t reserved:1;
 };
 
-struct ancillary_data_descriptor_t {
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -551,7 +585,7 @@ struct ancillary_data_descriptor_t {
 			struct ancillary_data_identifier identifier;
 		};
 	};
-};
+}ancillary_data_descriptor_t;
 
 
 /*Announcement support descriptor*/
@@ -582,7 +616,8 @@ struct announcement_info {
 	struct announcement_info * next;
 };
 
-struct announcement_support_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 	descriptor_t descriptor;
 	struct {
@@ -593,9 +628,10 @@ struct announcement_support_descriptor_t{
 		struct announcement_info *info;
 		};
 	};
-};
+}announcement_support_descriptor_t;
 
-struct bouquet_name_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -605,9 +641,10 @@ struct bouquet_name_descriptor_t{
 			char *sub_table;
 		};
 	};
-};
+}bouquet_name_descriptor_t;
 
-struct CA_identifier_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -617,7 +654,7 @@ struct CA_identifier_descriptor_t{
 			uint16_t *CA_system_id; /*ETSI TS 101 162 [i.1]*/
 		};
 	};
-};
+}CA_identifier_descriptor_t;
 
 struct subcell_info{
 	uint8_t cell_id_extension;
@@ -632,7 +669,8 @@ struct cell_frequency_info{
 	struct subcell_info *subcell_info_list;
 };
 
-struct cell_frequency_link_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -642,7 +680,7 @@ struct cell_frequency_link_descriptor_t{
 			struct cell_frequency_info *cell_info_list;
 		};
 	};
-};
+}cell_frequency_link_descriptor_t;
 
 struct subcell_list_info{
 	uint64_t cell_id_extension:8;
@@ -664,7 +702,8 @@ struct cell_list_info{
 	struct cell_list_info *next;
 };
 
-struct cell_list_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -674,10 +713,10 @@ struct cell_list_descriptor_t{
 			struct cell_list_info * cell_list;
 		};
 	};
+} cell_list_descriptor_t;
 
-};
-
-struct component_descriptor{ 
+typedef struct { 
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -692,7 +731,7 @@ struct component_descriptor{
 			uint8_t *text_char;
 		};
 	};
-};
+} component_descriptor_t;
 
 struct content_info{
 	uint8_t content_nibble_level_1:4;
@@ -701,7 +740,8 @@ struct content_info{
 	struct content_info * next;
 };
 
-struct content_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -711,6 +751,30 @@ struct content_descriptor_t{
 			struct content_info * content_list;
 		};
 	};
+}content_descriptor_t;
+
+enum country_code_e{
+	AFG,
+	ALA,
+	ALB,
+	DZA,
+	ASM,
+	AND,
+	AGO,
+	AIA,
+	ATA,
+	ATG,
+	ARG,
+	ARM,
+	ABW,
+	AUS,
+	AUT,
+	AZE,
+	BHS,
+	BHR,
+	BGD,
+	BRB,
+	BLR,
 };
 
 struct country_code{
@@ -718,7 +782,8 @@ struct country_code{
 	struct country_code * next;
 };
 
-struct country_availability_descriptor_t{
+typedef struct {
+	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
 		struct {
@@ -730,8 +795,8 @@ struct country_availability_descriptor_t{
 			struct country_code* country_list;
 		};
 	};
-};
-
+}country_availability_descriptor_t;
+#if 0
 struct data_broadcast_descriptor_t{
 
 };
@@ -818,7 +883,7 @@ struct service_availability_descriptor_t{
 struct service_list_descriptor_t{
 	
 };
-
+#endif
 
 #ifdef __cplusplus
 }

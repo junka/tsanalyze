@@ -1,5 +1,5 @@
 #include <stdint.h>
-
+#include <stdio.h>
 #include "ts.h"
 
 /*
@@ -59,11 +59,11 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 	* otherwise things will become messy sooner or later
 	*/
 	if (score > fec_score && score > dvhs_score && score > 6) 
-		return 100 + score - CHECK_COUNT;
+		return 0;//100 + score - CHECK_COUNT;
 	else if(dvhs_score > score && dvhs_score > fec_score && dvhs_score > 6) 
-		return 100 + dvhs_score - CHECK_COUNT;
+		return 1;//100 + dvhs_score - CHECK_COUNT;
 	else if(fec_score > 6) 
-		return 100 + fec_score - CHECK_COUNT;
+		return 2;//100 + fec_score - CHECK_COUNT;
 	else 
 		return -1;
 }
@@ -73,4 +73,9 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 
 static uint16_t tspid[MAX_TS_PID_NUM];
 
-static 
+int init_pid_processor()
+{
+	
+	return 0;
+}
+

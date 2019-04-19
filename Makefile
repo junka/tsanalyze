@@ -2,7 +2,7 @@
 DIR=$(shell pwd)
 INC=-I$(DIR)/include
 LIB=-L$(DIR)/lib
-MK_FLAGS = -O2 -static
+MK_FLAGS = -O2 
  
 CFLAGS = $(MK_FLAGS) 
 CFLAGS += $(INC)
@@ -40,4 +40,4 @@ $(MK_EXES):$(OBJ_O)
 
 clean:
 	rm -f $(MK_EXES)
-	rm -f *.o
+	rm -f $(OBJ_O)

@@ -34,14 +34,12 @@ static int ReadPacket( int i_fd, uint8_t* p_dst )
     return (i_rc <= 0) ? i_rc : 188;
 }
 
-
-
-
-
 int main(int argc,char *argv[])
 {
 
-
+	prog_parse_args(argc, argv);
+	init_pid_processor();
+#if 0
 
     uint8_t buf[188] = {0};
     int      i_old_cc = -1;
@@ -221,5 +219,6 @@ exit:
    if (dvbpsi_decoder_present(p_stream->sdt.handle))
        dvbpsi_DetachDemux(p_stream->sdt.handle);
    if( p_stream )  free( p_stream );
+#endif
   return 0;
 }

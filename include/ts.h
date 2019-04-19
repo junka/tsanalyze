@@ -66,8 +66,8 @@ enum PID_e{
 
 /*define helper for reading bits set*/
 #define TS_READ8(buff) (buff[0])
-#define TS_READ16(buff,offset,len) ((buff[0]<<8) | (buff[1]))
-#define TS_READ32(buff,offset,len) \
+#define TS_READ16(buff) ((buff[0]<<8) | (buff[1]))
+#define TS_READ32(buff) \
 	((buff[0]<<24) | (buff[1]<<16)|(buff[2]<<8)|(buff[3]))
 
 

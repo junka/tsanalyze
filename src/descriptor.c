@@ -21,6 +21,7 @@ int parse_video_stream_descriptor(uint8_t *buf, uint32_t len, video_stream_descr
 	vs->frame_rate_extension_flag = (buf[4]>>5)&0x01;
 	return 0;
 }
+
 int parse_audio_stream_descriptor(uint8_t *buf, uint32_t len, audio_stream_descriptor_t *as)
 {
 	if(buf[0]!=audio_stream_descriptor)
@@ -49,11 +50,14 @@ int parse_hierarchy_descriptor(uint8_t *buf, uint32_t len, hierarchy_descriptor_
 
 int parse_registration_descriptor(uint8_t *buf, uint32_t len, registration_descriptor_t *re)
 {
+	uint8_t *p = buf;
+
 	if(buf[0]!=registration_descriptor)
 		return -1;
 	re->descriptor_tag = registration_descriptor;
 	re->descriptor_length = buf[1];
-	re->format_identifier = TS_READ32(buf+2);
+	p += 2;
+	re->format_identifier = TS_READ32(p);
 	re->additional_identification_info = malloc(buf[1]-4);
 	memcpy(re->additional_identification_info,buf+6, buf[1]-4);
 	return 0;
@@ -71,25 +75,29 @@ int parse_data_stream_alignment_descriptor(uint8_t *buf, uint32_t len, data_stre
 
 int parse_target_background_grid_descriptor(uint8_t *buf, uint32_t len, target_background_grid_descriptor_t *tbg)
 {
+	uint8_t *p = buf;
 	if(buf[0]!=target_background_grid_descriptor)
 		return -1;
 	tbg->descriptor_tag = target_background_grid_descriptor;
 	tbg->descriptor_length = buf[1];
 	tbg->horizontal_size = (buf[2]<<6|buf[3]>>2);//TS_READ32(buf+2) >>18;
-	tbg->vertical_size = (TS_READ32(buf+2)>>4) &0x3FFF;
+	p += 2;
+	tbg->vertical_size = (TS_READ32(p)>>4) &0x3FFF;
 	tbg->aspect_ratio_information = buf[5]&0x0F;
 	return 0;
 }
 
 int parse_video_window_descriptor(uint8_t *buf, uint32_t len, video_window_descriptor_t *vw)
 {
+	uint8_t *p = buf;
 	if(buf[0]!=video_window_descriptor)
 		return -1;
 	vw->descriptor_tag = video_window_descriptor;
 	vw->descriptor_length = buf[1];
 	vw->next = NULL;
 	vw->horizontal_offset = (buf[2]<<6|buf[3]>>2);
-	vw->vertical_offset = (TS_READ32(buf+2)>>4) &0x3FFF;
+	p += 2;
+	vw->vertical_offset = (TS_READ32(p)>>4) &0x3FFF;
 	vw->window_priority = buf[5]&0x0F;
 	return 0;
 }
@@ -113,7 +121,7 @@ int parse_maximum_bitrate_descriptor(uint8_t *buf, uint32_t len, maximum_bitrate
 	mb->descriptor_tag = maximum_bitrate_descriptor;
 	mb->descriptor_length = buf[1];
 	mb->next = NULL;
-	mb->maximum_bitrate = (buf[2]<<16 |buf[3]<<8 |buf[4])&0x3FFFFF;
+	mb->maximum_bitrate.bits = ((buf[2]<<16 |buf[3]<<8 |buf[4])&0x3FFFFF);
 	return 0;
 }
 
@@ -140,16 +148,16 @@ static void dump_descriptors(const char* str, descriptor_t* p_descriptor)
         switch (p_descriptor->tag)
         {
             case system_clock_descriptor:
-                DumpSystemClockDescriptor(dvbpsi_DecodeSystemClockDr(p_descriptor));
+                //DumpSystemClockDescriptor(dvbpsi_DecodeSystemClockDr(p_descriptor));
                 break;
             case maximum_bitrate_descriptor:
-                DumpMaxBitrateDescriptor(dvbpsi_DecodeMaxBitrateDr(p_descriptor));         
+                //DumpMaxBitrateDescriptor(dvbpsi_DecodeMaxBitrateDr(p_descriptor));         
                 break;
             case stream_identifier_descriptor:
-                DumpStreamIdentifierDescriptor(dvbpsi_DecodeStreamIdentifierDr(p_descriptor));     
+                //DumpStreamIdentifierDescriptor(dvbpsi_DecodeStreamIdentifierDr(p_descriptor));     
                 break;
             case subtitling_descriptor:
-                DumpSubtitleDescriptor(dvbpsi_DecodeSubtitlingDr(p_descriptor));      
+                //DumpSubtitleDescriptor(dvbpsi_DecodeSubtitlingDr(p_descriptor));      
                 break;
             default:
                 printf(  "\"");

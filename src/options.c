@@ -29,22 +29,23 @@ void prog_usage(FILE *fp, char* pro_name)
 		fp = stderr;
 	fprintf(fp,"Usage: %s [optins]... <file>\n", pro_name);
 	fprintf(fp,"  Display infomations about mpeg ts.\n\n");
-	fprintf(fp,"%27s%s\n","  -"OPT_HELP_NUM", --"OPT_HELP,"Show this help");
-	fprintf(fp,"%27s%s\n","  -"OPT_BRIEF_LIST_NUM", --"OPT_BRIEF_LIST,"Show all infos in brief");
-	fprintf(fp,"%27s%s\n","  -"OPT_DETAIL_LIST_NUM", --"OPT_DETAIL_LIST,"Show all infos in detail");
-	fprintf(fp,"%27s%s\n","  -"OPT_VERSION_NUM", --"OPT_VERSION,"Show version");
-	fprintf(fp,"%27s%s\n","  -"OPT_MEMORY_NUM", --"OPT_MEMORY,"memory to use");
-	fprintf(fp,"%27s%s\n","  -"OPT_TABLE_NUM", --"OPT_TABLE,"Show select tables only");
+	fprintf(fp,"%17s%c%s\n","  -",OPT_HELP_NUM,", --"OPT_HELP,"Show this help");
+	fprintf(fp,"%17s%c%s\n","  -",OPT_BRIEF_LIST_NUM,", --"OPT_BRIEF_LIST,"Show all infos in brief");
+	fprintf(fp,"%17s%c%s\n","  -",OPT_DETAIL_LIST_NUM,", --"OPT_DETAIL_LIST,"Show all infos in detail");
+	fprintf(fp,"%17s%c%s\n","  -",OPT_VERSION_NUM,", --"OPT_VERSION,"Show version");
+	fprintf(fp,"%17s%c%s\n","  -",OPT_MEMORY_NUM,", --"OPT_MEMORY,"memory to use");
+	fprintf(fp,"%17s%c%s\n","  -",OPT_TABLE_NUM,", --"OPT_TABLE,"Show select tables only");
+	fprintf(fp,"\n\n");
 }
 
-static int 
+int 
 prog_parse_args(int argc, char**argv)
 {
 	int opt,ret;
 	int option_index;
 	const char *prgname = argv[0];
 
-	//make a copy of the dpdk options
+	//make a copy of the options
 	const char short_options[]=
 		"b:" /* brief */
 		"d:" /* details */
@@ -58,7 +59,7 @@ prog_parse_args(int argc, char**argv)
 	const struct option long_options[]={
 			{OPT_BRIEF_LIST, 1, NULL, OPT_BRIEF_LIST_NUM},
 			{OPT_DETAIL_LIST, 0, NULL, OPT_DETAIL_LIST_NUM },
-			{OPT_VERSION, 1, NULL, OPT_VERSION_NUM },
+			{OPT_VERSION, 0, NULL, OPT_VERSION_NUM },
 			{OPT_HELP, 0, NULL, OPT_HELP_NUM },
 			{OPT_MEMORY, 1, NULL, OPT_MEMORY_NUM},
 			{OPT_TABLE, 0, NULL, OPT_TABLE_NUM },
@@ -72,11 +73,17 @@ prog_parse_args(int argc, char**argv)
 			return -1;
 		}
 		switch(opt){
+		case 'h':
+			prog_usage(stdout,prgname);
+			break;
 		case 'b':
 			break;
 		case 'd':
 			break;
 		case 's':
+			break;
+		case 'v':
+			printf("version 1.0.0rc.\n");
 			break;
 		default:
 			break;
