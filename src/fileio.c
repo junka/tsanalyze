@@ -6,16 +6,18 @@
 #include <unistd.h>
 #include <error.h>
 
-struct io_ops{
-	int fd;
-	int block_size;
-	unsigned char *ptr;
-	int (*open)(char *filename);
-	int (*read)();
-	int (*close)();
-};
+#include "ts.h"
 
-static struct io_ops file_ops;
+static int fileio_open(char * filename);
+static int fileio_read(void **ptr,size_t *len);
+static int fileio_close();
+
+
+struct io_ops file_ops={
+	.open = fileio_open,
+	.close = fileio_close,
+	.read = fileio_read,
+};
 
 int fileio_open(char * filename)
 {
