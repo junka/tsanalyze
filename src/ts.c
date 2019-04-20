@@ -69,13 +69,96 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 }
 
 
+struct pid_ops{
+	uint16_t pid;
+	table_ops *tops;
+};
+
+
 #define MAX_TS_PID_NUM 8192
+struct pid_ops pid_dev[MAX_TS_PID_NUM];
+extern table_ops drop_ops;
+extern table_ops pat_ops;
+extern table_ops cat_ops;
 
-static uint16_t tspid[MAX_TS_PID_NUM];
 
-int init_pid_processor()
+int ts_proc(uint8_t *data,uint8_t len)
 {
+	ts_header head;
+	uint8_t *ptr = data;
+	if(data[0]!=0x47)
+		return -1;
+	ptr+=1;
+	head.PID = TS_READ16(ptr) & 0x1FFF;
+	//memcpy(&head,data,sizeof(ts_header));
+	//printf("receive PID 0x%x\n",head.PID);
 	
+	pid_dev[head.PID].tops->table_proc(head.PID,data+sizeof(ts_header),len-sizeof(ts_header));
 	return 0;
 }
 
+
+
+int init_pid_ops(void)
+{
+	int i =0;
+	for(i = 0; i < 8192; i++)
+	{
+		pid_dev[i].pid = i;
+		pid_dev[i].tops = &drop_ops;
+	}
+	
+	pid_dev[PAT_PID].tops = &pat_ops;
+	pid_dev[CAT_PID].tops = &cat_ops;
+
+	return 0;
+}
+
+
+extern struct ts_ana_configuration tsaconf;
+extern struct io_ops file_ops;
+
+int init_pid_processor()
+{
+	file_ops.open(tsaconf.name);
+	void * ptr = NULL;
+	size_t len;
+	int ts_pktlen = 0;
+	int start_index;
+	int typ;
+	
+	file_ops.read(&ptr,&len);
+	typ = mpegts_probe((uint8_t *)ptr,len);
+	if(typ==0)
+	{
+		ts_pktlen = TS_PACKET_SIZE;
+	}else if(typ == 1)
+	{
+		ts_pktlen = TS_DVHS_PACKET_SIZE;
+	}else if(typ == 2)
+	{
+		ts_pktlen = TS_FEC_PACKET_SIZE;
+	}else
+	{
+		printf("not a valid TS format file\n");
+		return -1;
+	}
+	//hexdump(ptr, 188);
+	analyze(ptr, ts_pktlen*2, ts_pktlen , &start_index);
+	printf("valid ts starting at %d\n",start_index);
+	hexdump(ptr+start_index, ts_pktlen);
+
+	init_pid_ops();
+
+	ptr += start_index;
+	len -= start_index;
+	while(len>ts_pktlen)
+	{
+		ts_proc(ptr,ts_pktlen);
+		len -= ts_pktlen;
+		ptr += ts_pktlen;
+	}
+	file_ops.close();
+
+	return 0;
+}
