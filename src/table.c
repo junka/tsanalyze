@@ -375,6 +375,16 @@ static int pmt_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 	return 0;
 }
 
+static int drop_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
+{
+	return 0;
+}
+
+table_ops drop_ops ={
+	.table_id = RESERVED_TID,
+	.table_proc = drop_proc,
+};
+
 static table_ops pat_ops = {
 	.table_id = PAT_TID,
 	.table_proc = pat_proc,
