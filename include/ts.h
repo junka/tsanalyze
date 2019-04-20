@@ -71,6 +71,23 @@ enum PID_e{
 	((buff[0]<<24) | (buff[1]<<16)|(buff[2]<<8)|(buff[3]))
 
 
+struct ts_ana_configuration{
+	char name[256];//filename
+	uint16_t pids[4096];
+	uint8_t tids[256];
+};
+
+struct io_ops{
+	int fd;
+	int block_size;
+	size_t offset;
+	unsigned char *ptr;
+	int (*open)(char *filename);
+	int (*read)(void **ptr,size_t *len);
+	int (*close)();
+};
+
+
 #ifdef __cplusplus
 }
 #endif
