@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "ts.h"
+#include "table.h"
 
 /*
 * port from ffmpeg for judging TS packet length
@@ -128,6 +129,7 @@ int init_pid_processor()
 	int typ;
 	
 	file_ops.read(&ptr,&len);
+
 	typ = mpegts_probe((uint8_t *)ptr,len);
 	if(typ==0)
 	{
@@ -143,10 +145,11 @@ int init_pid_processor()
 		printf("not a valid TS format file\n");
 		return -1;
 	}
+
 	//hexdump(ptr, 188);
 	analyze(ptr, ts_pktlen*2, ts_pktlen , &start_index);
 	printf("valid ts starting at %d\n",start_index);
-	hexdump(ptr+start_index, ts_pktlen);
+	//hexdump(ptr+start_index, ts_pktlen);
 
 	init_pid_ops();
 

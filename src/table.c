@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include "table.h"
 
+mpeg_psi_t psi;
+
 static char const* get_stream_type(uint8_t type)
 {
 	switch (type)
@@ -48,49 +50,22 @@ static void dump_PAT(void* p_data, pat_t* p_pat)
 {
 	struct program_list* p_program = p_pat->list;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
-	//if (p_stream->pmt)
-	{
-		//dvbpsi_pmt_detach(p_stream->pmt.handle);
-		//dvbpsi_delete(p_stream->pmt.handle);
-		//p_stream->pmt = NULL;
-	}
+	int num = p_stream->pmt_num;
+
 	p_stream->pat.version_number = p_pat->version_number;
 	p_stream->pat.transport_stream_id = p_pat->transport_stream_id;
-
 
 	printf(  "\n");
 	printf(  "PAT\n");
 	printf(  "  transport_stream_id : %d\n", p_pat->transport_stream_id);  
 	printf(  "  version_number      : %d\n", p_pat->version_number);  
 	printf(  "    | program_number @ PMT_PID\n");
-	while(p_program)  
+	while(p_program)
 	{
-		if (p_stream->pmt)
-		{
-			//dvbpsi_pmt_detach(p_stream->pmt.handle);
-			//dvbpsi_delete(p_stream->pmt.handle);
-			//p_stream->pmt.handle = NULL;
-		}
-		//p_stream->pmt_num++;
-		//p_stream->pmt.program_number = p_program->program_number;
-		//p_stream->pmt.es_list-> = &p_stream->pid[p_program->program_map_PID];
-		//p_stream->pmt->program_map_PID = p_program->program_map_PID;
-		//p_stream->pmt.handle = dvbpsi_new(&msg_callback, DVBPSI_MSG_DEBUG);
-		//if (p_stream->pmt.handle == NULL)
-		//{
-		//	printf( "could not allocate new dvbpsi_t handle\n");
-		//	break;
-		//}
-		//if (!dvbpsi_pmt_attach(p_stream->pmt.handle, p_program->i_number,DumpPMT, p_stream))   
-		//{
-			//dvbpsi_delete(p_stream->pmt.handle);
-		//	printf("could not attach PMT\n");      
-		//	break;
-		//}
 		printf("    | %14d @ 0x%x (%d)\n",p_program->program_number, p_program->program_map_PID, p_program->program_map_PID);
 		p_program = p_program->next;
 	}  
-	printf(  "  active              : %d\n", p_pat->current_next_indicator);
+	printf("  active              : %d\n", p_pat->current_next_indicator);
 
 }
 
@@ -111,12 +86,13 @@ static void dump_CAT(void* p_data, cat_t* p_cat)
 		p_descriptor = p_descriptor->next;
 	}
 }
+
 static void dump_TDT(void* p_data, tdt_t* p_tdt)
 {
 	//ts_stream_t* p_stream = (ts_stream_t*) p_data;
 
 	printf("\n");
-	printf("  TDT: Time and Date Table\n");
+	printf("TDT: Time and Date Table\n");
 
 	//printf("\tVersion number : %d\n", p_tot->version);
 	//printf("\tCurrent next   : %s\n", p_tot->b_current_next ? "yes" : "no");
@@ -130,7 +106,7 @@ static void dump_TOT(void* p_data, tot_t* p_tot)
 	//ts_stream_t* p_stream = (ts_stream_t*) p_data;
 
 	printf("\n");
-	printf("  TOT: Time Offset Table\n");
+	printf("TOT: Time Offset Table\n");
 
 	//printf("\tVersion number : %d\n", p_tot->version);
 	//printf("\tCurrent next   : %s\n", p_tot->b_current_next ? "yes" : "no");
@@ -180,6 +156,20 @@ static void dump_PMT(void* p_data, pmt_t* p_pmt)
 	}
 }
 
+void dump_tables(void)
+{
+	int i =0;
+	dump_PAT(&psi, &psi.pat);
+	dump_CAT(&psi, &psi.cat);
+	for(i = 0; i < 4096; i++){
+		if (psi.pmt_bitmap & 1<<i)
+		{
+			dump_PMT(&psi, &psi.pmt[i]);
+		}
+	}
+	dump_TDT(&psi, &psi.tdt);
+	dump_TOT(&psi, &psi.tdt);
+}
 
 
 
@@ -355,7 +345,7 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 	return 0;
 }
 
-mpeg_psi_t psi;
+
 
 static int pat_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
@@ -385,17 +375,17 @@ table_ops drop_ops ={
 	.table_proc = drop_proc,
 };
 
-static table_ops pat_ops = {
+table_ops pat_ops = {
 	.table_id = PAT_TID,
 	.table_proc = pat_proc,
 };
 
-static table_ops cat_ops = {
+table_ops cat_ops = {
 	.table_id = CAT_TID,
 	.table_proc = cat_proc,
 };
 
-static table_ops pmt_ops = {
+table_ops pmt_ops = {
 	.table_id = PMT_TID,
 	.table_proc = pmt_proc,
 };

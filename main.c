@@ -220,5 +220,6 @@ exit:
        dvbpsi_DetachDemux(p_stream->sdt.handle);
    if( p_stream )  free( p_stream );
 #endif
-  return 0;
+	dump_tables();
+	return 0;
 }

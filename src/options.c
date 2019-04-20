@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <getopt.h>
-
+#include "ts.h"
 
 
 #define OPT_HELP 		"help"
@@ -21,6 +22,19 @@ enum {
 	OPT_MEMORY_NUM       = 'm',
 	OPT_TABLE_NUM        = 's',
 };
+
+struct ts_ana_configuration tsaconf;
+
+int check_filepath_valid(char *filename)
+{
+	if(filename==NULL)
+		return -1;
+	int fd = open(filename,O_RDONLY);
+	if(fd<0)
+		return -1;
+	return 0;
+}
+
 
 
 void prog_usage(FILE *fp, char* pro_name)
@@ -89,6 +103,14 @@ prog_parse_args(int argc, char**argv)
 			break;
 		}
 	}
+
+	if(check_filepath_valid(argv[argc-1])<0)
+	{
+		printf("file not exsit or invalid filename\n");
+		return -1;
+	}
+	
+	strncpy(tsaconf.name,argv[argc-1],256);
 	return 0;
 }
 

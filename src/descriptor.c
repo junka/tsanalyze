@@ -139,7 +139,24 @@ static int parse_system_clock_descriptor(uint8_t *buf, uint32_t len, system_cloc
 	return 0;
 }
 
-static void dump_descriptors(const char* str, descriptor_t* p_descriptor)
+void dump_system_clock_descriptor(system_clock_descriptor_t* p_descriptor)
+{
+	fprintf(stdout,"external_clock_reference_indicator: %d",
+		p_descriptor->external_clock_reference_indicator);
+	fprintf(stdout,"clock_accuracy_integer: %d",
+		p_descriptor->clock_accuracy_exponent);
+	fprintf(stdout,"clock_accuracy_exponent: %d",
+		p_descriptor->clock_accuracy_exponent);
+}
+
+void dump_maxbitrate_descriptor(maximum_bitrate_descriptor_t *p_descriptor)
+{
+	fprintf(stdout,"maximum_bitrate: %d",
+		p_descriptor->maximum_bitrate);
+
+}
+
+void dump_descriptors(const char* str, descriptor_t* p_descriptor)
 {
     int i;
     while(p_descriptor)
@@ -148,10 +165,10 @@ static void dump_descriptors(const char* str, descriptor_t* p_descriptor)
         switch (p_descriptor->tag)
         {
             case system_clock_descriptor:
-                //DumpSystemClockDescriptor(dvbpsi_DecodeSystemClockDr(p_descriptor));
+                dump_system_clock_descriptor(p_descriptor);
                 break;
             case maximum_bitrate_descriptor:
-                //DumpMaxBitrateDescriptor(dvbpsi_DecodeMaxBitrateDr(p_descriptor));         
+                dump_maxbitrate_descriptor(p_descriptor);
                 break;
             case stream_identifier_descriptor:
                 //DumpStreamIdentifierDescriptor(dvbpsi_DecodeStreamIdentifierDr(p_descriptor));     

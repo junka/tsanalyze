@@ -9,13 +9,13 @@ enum stream_id {
 	EMM_stream = 3,
 	DSMCC_stream = 5,
 	ISO13522_stream = 2,
-	 H222_1_A = 6,
-	 H222_1_B = 6,
-	 H222_1_C = 6,
-	 H222_1_D = 6,
-	 H222_1_E = 6,
-	 ancillary_stream = 7,
-	 program_stream_directory = 4,
+	H222_1_A = 6,
+	H222_1_B = 6,
+	H222_1_C = 6,
+	H222_1_D = 6,
+	H222_1_E = 6,
+	ancillary_stream = 7,
+	program_stream_directory = 4,
 };
 
 

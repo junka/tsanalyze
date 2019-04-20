@@ -360,7 +360,10 @@ typedef struct{
 	cat_t cat;
 	int ca_num;
 	int pmt_num;
+	uint16_t pmt_bitmap;
 	pmt_t pmt[4096];  /*maybe no necessary */
+	tdt_t tdt;
+	tot_t tot;
 	//stats_t stats;
 }mpeg_psi_t;
 
