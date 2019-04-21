@@ -163,7 +163,7 @@ typedef struct {
 	uint8_t last_section_number;
 	struct program_list *list;
 	uint32_t crc32;
-} pat_t;
+}__attribute__((packed)) pat_t;
 
 /* INFO int CAT */
 typedef struct {
@@ -356,7 +356,7 @@ typedef struct {
 } st_t;
 
 typedef struct{
-	pat_t pat;
+	pat_t *pat;
 	cat_t cat;
 	int ca_num;
 	int pmt_num;

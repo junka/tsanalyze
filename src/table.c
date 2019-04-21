@@ -48,15 +48,18 @@ static char const* get_stream_type(uint8_t type)
 
 static void dump_PAT(void* p_data, pat_t* p_pat)
 {
+	if(p_pat == NULL ||p_data == NULL)
+		return ;
 	struct program_list* p_program = p_pat->list;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 	int num = p_stream->pmt_num;
 
-	p_stream->pat.version_number = p_pat->version_number;
-	p_stream->pat.transport_stream_id = p_pat->transport_stream_id;
+	//p_stream->pat->version_number = p_pat->version_number;
+	//p_stream->pat->transport_stream_id = p_pat->transport_stream_id;
 
 	printf(  "\n");
 	printf(  "PAT\n");
+	printf(  "  section_length: %d\n",p_pat->section_length);
 	printf(  "  transport_stream_id : %d\n", p_pat->transport_stream_id);  
 	printf(  "  version_number      : %d\n", p_pat->version_number);  
 	printf(  "    | program_number @ PMT_PID\n");
@@ -64,7 +67,7 @@ static void dump_PAT(void* p_data, pat_t* p_pat)
 	{
 		printf("    | %14d @ 0x%x (%d)\n",p_program->program_number, p_program->program_map_PID, p_program->program_map_PID);
 		p_program = p_program->next;
-	}  
+	}
 	printf("  active              : %d\n", p_pat->current_next_indicator);
 
 }
@@ -159,8 +162,11 @@ static void dump_PMT(void* p_data, pmt_t* p_pmt)
 void dump_tables(void)
 {
 	int i =0;
-	dump_PAT(&psi, &psi.pat);
-	dump_CAT(&psi, &psi.cat);
+	dump_PAT(&psi, psi.pat);
+	if(psi.ca_num>0)
+	{
+		dump_CAT(&psi, &psi.cat);
+	}
 	for(i = 0; i < 4096; i++){
 		if (psi.pmt_bitmap & 1<<i)
 		{
@@ -178,48 +184,55 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
+	//printf("buf_size %d\n",buf_size);
+
 	if (pbuf == NULL || pPAT == NULL)
 	{
 		return -1;
 	}
 
-	if (*pbuf != PAT_TID)
+	printf("buf_size %d\n",buf_size);
+
+	if (pbuf[0] != PAT_TID)
 	{
 		return -1;
 	}
 
 	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	if ((section_len + 3) != buf_size)
-	{
-		return -1;
-	}
-	pPAT->section_length = section_len;
-
-	//Transport Stream ID
-	pPAT->transport_stream_id = (pdata[3] << 8) | pdata[4];
-
-	pPAT->version_number = (pdata[5] >> 1) & 0x1F;
+	printf("section_len %d\n",section_len);
 
 	if (!(pdata[5] & 0x01)) //current_next_indicator
 	{
 		return -1;
 	}
 
+	//if ((section_len + 3) != buf_size)
+	//{
+	//	return -1;
+	//}
+	pPAT->section_length = section_len;
+
+	//Transport Stream ID
+	pPAT->transport_stream_id = (pdata[3] << 8) | pdata[4];
+	pPAT->version_number = (pdata[5] >> 1) & 0x1F;
+	pPAT->current_next_indicator = pdata[5] & 0x01;
 	pPAT->section_number = pdata[6];
 	pPAT->last_section_number = pdata[7];
 
-	section_len -= 5 + 4; 
+	section_len -= (5 + 4); // exclude crc 4bytes
 	pdata += 8;
 	
 	//TODO: limit program total length
 	pPAT->list = NULL;
 
+	printf("section_len %d\n",section_len);
+
 	while (section_len > 0)
 	{
 		struct program_list *pl = malloc(sizeof(struct program_list));
 		struct program_list *next = NULL;
-		pl->program_number = (pdata[0] << 8) + pdata[1]; 
-		pl->program_map_PID = ((pdata[2] << 8) + pdata[3]) & 0x1FFF;
+		pl->program_number = (pdata[0] << 8) | pdata[1]; 
+		pl->program_map_PID = ((pdata[2] << 8) | pdata[3]) & 0x1FFF;
 		next = pPAT->list;
 		pPAT->list = pl;
 		pl->next = next;
@@ -349,7 +362,11 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 
 static int pat_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
-	parse_pat(pkt,len,&psi.pat);
+	if(psi.pat == NULL)
+	{
+		psi.pat = malloc(sizeof(pat_t));
+	}
+	parse_pat(pkt,len,psi.pat);
 	return 0;
 }
 

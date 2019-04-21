@@ -93,7 +93,7 @@ int ts_proc(uint8_t *data,uint8_t len)
 	head.PID = TS_READ16(ptr) & 0x1FFF;
 	//memcpy(&head,data,sizeof(ts_header));
 	//printf("receive PID 0x%x\n",head.PID);
-	
+
 	pid_dev[head.PID].tops->table_proc(head.PID,data+sizeof(ts_header),len-sizeof(ts_header));
 	return 0;
 }

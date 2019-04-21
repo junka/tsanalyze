@@ -12,7 +12,7 @@ typedef struct descriptor{
 	uint8_t length;
 	struct descriptor * next;
 	uint8_t data[0];
-}descriptor_t;
+}__attribute__((packed)) descriptor_t;
 
 enum descriptor_e{
 	/* ISO/IEC 13818-1 */

@@ -26,7 +26,7 @@ typedef struct{
 	uint8_t transport_scrambling_control:2;
 	uint8_t adaptation_field_control:2;
 	uint8_t continuity_counter:4;
-}ts_header;
+}__attribute__((packed)) ts_header ;
 
 typedef struct{
 	uint8_t adaptation_field_length;
@@ -38,7 +38,7 @@ typedef struct{
 	uint8_t splicing_point_flag:1;
 	uint8_t transport_private_data_flag:1;
 	uint8_t adaptation_field_extension_flag:1;
-}ts_adaptation_field;
+}__attribute__((packed)) ts_adaptation_field;
 
 enum PID_e{
 	PAT_PID		= 0x0000,
