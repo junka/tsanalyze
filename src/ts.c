@@ -72,6 +72,9 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 
 struct pid_ops{
 	uint16_t pid;
+	uint64_t pkts_in;
+	uint64_t error_in;
+	uint64_t bits_in;
 	table_ops *tops;
 };
 
@@ -87,18 +90,39 @@ int ts_proc(uint8_t *data,uint8_t len)
 {
 	ts_header head;
 	uint8_t *ptr = data;
-	if(data[0]!=0x47)
+	if(ptr[0]!=0x47)
 		return -1;
 	ptr+=1;
 	head.PID = TS_READ16(ptr) & 0x1FFF;
+	head.transport_error_indicator = TS_READ8(ptr) >>7;
+	ptr += 1;
+	head.adaptation_field_control = (TS_READ8(ptr)>>4)&0x3;
 	//memcpy(&head,data,sizeof(ts_header));
-	//printf("receive PID 0x%x\n",head.PID);
-
-	pid_dev[head.PID].tops->table_proc(head.PID,data+sizeof(ts_header),len-sizeof(ts_header));
+	printf("receive PID 0x%x\n",head.PID);
+	if(head.adaptation_field_control ==ADAPT_ONLY||head.adaptation_field_control ==ADAPT_BOTH)
+	{
+		//TODO
+	}
+	
+	pid_dev[head.PID].pkts_in++;
+	if(head.transport_error_indicator == 1 )
+	{
+		pid_dev[head.PID].error_in++;
+	}
+	pid_dev[head.PID].tops->table_proc(head.PID,data+4 ,len-4);//sizeof(ts_header)
 	return 0;
 }
 
-
+void dump_TS_info()
+{
+	uint16_t pid=0;
+	printf("\n");
+	printf("TS bits statistics:\n");
+	for(pid = 0; pid <=NULL_PID ; pid++){
+		if(pid_dev[pid].pkts_in)
+			printf("  PID %13d(0x%x)  \t:  %d\t%10d\n",pid,pid,pid_dev[pid].pkts_in,pid_dev[pid].error_in );
+	}
+}
 
 int init_pid_ops(void)
 {

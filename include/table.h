@@ -8,6 +8,7 @@ extern "C"{
 #endif
 
 #include "descriptor.h"
+#include "statistics.h"
 
 /* table id */
 typedef enum {
@@ -145,7 +146,11 @@ typedef enum {
 struct program_list {
 	uint16_t program_number;
 	uint16_t reserved:3;
+	//union {
 	uint16_t program_map_PID:13;
+	//uint16_t network_PID:13;
+	//};
+	struct program_list * prev;
 	struct program_list * next;
 };
 
@@ -161,7 +166,8 @@ typedef struct {
 	uint8_t current_next_indicator:1;
 	uint8_t section_number;
 	uint8_t last_section_number;
-	struct program_list *list;
+	uint16_t program_bitmap;
+	struct program_list* list;
 	uint32_t crc32;
 }__attribute__((packed)) pat_t;
 
@@ -356,7 +362,7 @@ typedef struct {
 } st_t;
 
 typedef struct{
-	pat_t *pat;
+	pat_t pat;
 	cat_t cat;
 	int ca_num;
 	int pmt_num;
@@ -364,7 +370,7 @@ typedef struct{
 	pmt_t pmt[4096];  /*maybe no necessary */
 	tdt_t tdt;
 	tot_t tot;
-	//stats_t stats;
+	stats_t stats;
 }mpeg_psi_t;
 
 typedef struct{

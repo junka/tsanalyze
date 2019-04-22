@@ -2,7 +2,7 @@
 DIR=$(shell pwd)
 INC=-I$(DIR)/include
 LIB=-L$(DIR)/lib
-MK_FLAGS = -O2 
+MK_FLAGS = -O2 -g
  
 CFLAGS = $(MK_FLAGS) 
 CFLAGS += $(INC)

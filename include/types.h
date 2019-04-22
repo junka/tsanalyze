@@ -14,11 +14,9 @@ extern "C"{
 #endif
 
 
-#pragma pack(push, 1)
 typedef struct uint24 {
 	uint32_t bits:24;
-}uint24_t;
-#pragma pack(pop)
+}__attribute__((packed)) uint24_t;
 
 #ifdef __cplusplus
 }

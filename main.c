@@ -221,5 +221,6 @@ exit:
    if( p_stream )  free( p_stream );
 #endif
 	dump_tables();
+	dump_TS_info();
 	return 0;
 }

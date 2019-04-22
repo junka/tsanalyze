@@ -28,6 +28,14 @@ typedef struct{
 	uint8_t continuity_counter:4;
 }__attribute__((packed)) ts_header ;
 
+enum adaptation_field_e{
+	ADAPT_RESERVED = 0,
+	ADAPT_NO_FIELD = 1,
+	ADAPT_ONLY = 2,
+	ADAPT_BOTH = 3,
+};
+
+
 typedef struct{
 	uint8_t adaptation_field_length;
 	uint8_t discontinuity_indicator:1;

@@ -162,7 +162,7 @@ static void dump_PMT(void* p_data, pmt_t* p_pmt)
 void dump_tables(void)
 {
 	int i =0;
-	dump_PAT(&psi, psi.pat);
+	dump_PAT(&psi, &psi.pat);
 	if(psi.ca_num>0)
 	{
 		dump_CAT(&psi, &psi.cat);
@@ -177,11 +177,47 @@ void dump_tables(void)
 	dump_TOT(&psi, &psi.tdt);
 }
 
+static inline void list_modify(pat_t *  pPAT, uint16_t program_number, uint16_t pid)
+{
+	struct program_list* pl = pPAT->list;
+	while(pl->program_number!= program_number)
+	{
+		pl = pl->next ;
+	}
+	if(pl->program_map_PID != pid)
+		pl->program_map_PID = pid;
+}
 
+static inline void list_insert(pat_t *  pPAT, struct program_list *n)
+{
+	if(pPAT->list == NULL)
+	{
+		pPAT->list = n;
+		return ;
+	}
+	struct program_list *h = pPAT->list;
+	if(n->program_number < h->program_number)
+	{
+		n->next = h;
+		h->prev = n;
+		pPAT->list = n;
+		return ;
+		
+	}
+	while(h->next && h->program_number < n->program_number)
+	{
+		h = h->next;
+	}
+	n->prev = h;
+	n->next = h->next;
+	h->next = n;
+	return ;
+}
 
 int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 {
 	uint16_t section_len = 0;
+	uint16_t program_num,program_map_PID;
 	uint8_t *pdata = pbuf;
 
 	//printf("buf_size %d\n",buf_size);
@@ -199,12 +235,17 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 	}
 
 	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
+	if(section_len > 0x3FD)
+	{
+		return -1;
+	}
 	printf("section_len %d\n",section_len);
 
 	if (!(pdata[5] & 0x01)) //current_next_indicator
 	{
 		return -1;
 	}
+	//hexdump(pdata, section_len+4);
 
 	//if ((section_len + 3) != buf_size)
 	//{
@@ -219,23 +260,39 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 	pPAT->section_number = pdata[6];
 	pPAT->last_section_number = pdata[7];
 
-	section_len -= (5 + 4); // exclude crc 4bytes
+	section_len -= (3 + 4); // exclude crc 4bytes
 	pdata += 8;
 	
 	//TODO: limit program total length
-	pPAT->list = NULL;
-
-	printf("section_len %d\n",section_len);
+	
+	//printf("section_len %d\n",section_len);
 
 	while (section_len > 0)
 	{
-		struct program_list *pl = malloc(sizeof(struct program_list));
-		struct program_list *next = NULL;
-		pl->program_number = (pdata[0] << 8) | pdata[1]; 
-		pl->program_map_PID = ((pdata[2] << 8) | pdata[3]) & 0x1FFF;
-		next = pPAT->list;
-		pPAT->list = pl;
-		pl->next = next;
+		struct program_list * pl, *next;
+		program_num= (pdata[0] << 8) | pdata[1];
+		program_map_PID = ((pdata[2] << 8) | pdata[3]) & 0x1FFF;
+		if(program_num == 0xFFFF)
+		{
+			break;
+		}
+		if(pPAT->program_bitmap & (1<<program_num) )
+		{
+			//printf("teset\n");
+			list_modify(pPAT,program_num,program_map_PID);
+		}
+		else
+		{
+			//printf("teset1 program_num %x\n",program_num);
+			pl = malloc(sizeof(struct program_list));
+			pl ->program_number = program_num;
+			pl->prev = pl;
+			pl->next = NULL;
+			pl->program_map_PID = program_map_PID;
+			pPAT->program_bitmap|= (1<<program_num);
+			list_insert(pPAT,pl);
+		}
+		
 		pdata += 4;
 		section_len -= 4;
 	}
@@ -344,13 +401,12 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 
 	while (section_len > 0)
 	{
-		struct program_list *pl = malloc(sizeof(struct program_list));
-		struct program_list *next = NULL;
-		pl->program_number = (pdata[0] << 8) + pdata[1]; 
-		pl->program_map_PID = ((pdata[2] << 8) + pdata[3]) & 0x1FFF;
-		next = pPMT->desriptor_list;
-		pPMT->desriptor_list = pl;
-		pl->next = next;
+		//struct program_list *next = NULL;
+		//pl->program_number = (pdata[0] << 8) + pdata[1]; 
+		//pl->program_map_PID = ((pdata[2] << 8) + pdata[3]) & 0x1FFF;
+		//next = pPMT->desriptor_list;
+		//pPMT->desriptor_list = pl;
+		//pl->next = next;
 		pdata += 4;
 		section_len -= 4;
 	}
@@ -362,11 +418,8 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 
 static int pat_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
-	if(psi.pat == NULL)
-	{
-		psi.pat = malloc(sizeof(pat_t));
-	}
-	parse_pat(pkt,len,psi.pat);
+	psi.stats.pat_sections ++;
+	parse_pat(pkt,len,&psi.pat);
 	return 0;
 }
 
