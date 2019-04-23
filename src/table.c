@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdint.h>
+#include "ts.h"
 #include "table.h"
 
-mpeg_psi_t psi;
+mpeg_psi_t psi = {0};
 
 static char const* get_stream_type(uint8_t type)
 {
@@ -135,27 +136,29 @@ static void handle_subtable(void *p_psi, uint8_t i_table_id, uint16_t i_extensio
 #endif
 
 
-static void dump_PMT(void* p_data, pmt_t* p_pmt)
+static void dump_PMT(void* p_data, pmt_t* p_pmt, uint16_t pid)
 {
 	struct es_info* p_es = p_pmt->es_list;
 	descriptor_t* des;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
-	//p_stream->pmt.version_number = p_pmt->version_number;
-	//p_stream->pmt.PCR_PID = &p_stream->pid[p_pmt->PCR_PID];
-	//p_stream->pid[p_pmt->PCR_PID].b_pcr = VLC_TRUE;    
+	
 	printf("\n" );
 	printf( "active PMT\n" );
-	printf( "  program_number : %d\n", p_pmt->program_number );
+	printf( "  program_number : %d  => pmt pid 0x%x\n", p_pmt->program_number,pid );
 	printf( "  version_number : %d\n", p_pmt->version_number );
 	printf( "  PCR_PID        : 0x%x (%d)\n", p_pmt->PCR_PID, p_pmt->PCR_PID);
 	dump_descriptors("    ]", p_pmt->desriptor_list);
 	printf( "    | type @ elementary_PID\n");
-	des = p_es->descriptor_list;
-	while(des)
-	{
-		printf( "    | 0x%02x (%s) @ 0x%x (%d)\n", p_es->stream_type, get_stream_type(p_es->stream_type),p_es->elementary_PID, p_es->elementary_PID);
-		dump_descriptors("    |  ]", des);
-		des = des->next;
+	while(p_es){
+		printf( "    | 0x%02x @ 0x%x\n",p_es->stream_type,p_es->elementary_PID);
+		des = p_es->descriptor_list;
+		while(des)
+		{
+			printf( "    | 0x%02x (%s) @ 0x%x (%d)\n", p_es->stream_type, get_stream_type(p_es->stream_type),p_es->elementary_PID, p_es->elementary_PID);
+			dump_descriptors("    |  ]", des);
+			des = des->next;
+		}
+		p_es = p_es->next;
 	}
 }
 
@@ -167,10 +170,11 @@ void dump_tables(void)
 	{
 		dump_CAT(&psi, &psi.cat);
 	}
-	for(i = 0; i < 4096; i++){
-		if (psi.pmt_bitmap & 1<<i)
+	//pid 
+	for(i = 0x10; i < 0x2000 ; i++){
+		if (psi.pmt_bitmap[i/64] & (1<<(i%64)))
 		{
-			dump_PMT(&psi, &psi.pmt[i]);
+			dump_PMT(&psi, &psi.pmt[i],i);
 		}
 	}
 	dump_TDT(&psi, &psi.tdt);
@@ -186,6 +190,21 @@ static inline void list_modify(pat_t *  pPAT, uint16_t program_number, uint16_t 
 	}
 	if(pl->program_map_PID != pid)
 		pl->program_map_PID = pid;
+}
+extern void unregister_pmt_ops(uint16_t pid);
+
+static inline void list_remove(pat_t *  pPAT)
+{
+	struct program_list *p = pPAT->list;
+	struct program_list *n ;
+	while(p)
+	{
+		n = p->next;
+		unregister_pmt_ops(p->program_map_PID);
+		free(p);
+		p = n;
+	}
+	pPAT->list = NULL;
 }
 
 static inline void list_insert(pat_t *  pPAT, struct program_list *n)
@@ -208,28 +227,31 @@ static inline void list_insert(pat_t *  pPAT, struct program_list *n)
 	{
 		h = h->next;
 	}
+	if(h->program_number ==n->program_number)
+	{
+		return;
+	}
 	n->prev = h;
 	n->next = h->next;
 	h->next = n;
 	return ;
 }
 
+extern void register_pmt_ops(uint16_t pid);
+
 int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 {
 	uint16_t section_len = 0;
+	uint8_t version_num;
 	uint16_t program_num,program_map_PID;
 	uint8_t *pdata = pbuf;
-
-	//printf("buf_size %d\n",buf_size);
 
 	if (pbuf == NULL || pPAT == NULL)
 	{
 		return -1;
 	}
 
-	printf("buf_size %d\n",buf_size);
-
-	if (pbuf[0] != PAT_TID)
+	if (pdata[0] != PAT_TID)
 	{
 		return -1;
 	}
@@ -239,12 +261,17 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 	{
 		return -1;
 	}
-	printf("section_len %d\n",section_len);
 
 	if (!(pdata[5] & 0x01)) //current_next_indicator
 	{
 		return -1;
 	}
+	version_num = (pdata[5] >> 1) & 0x1F;
+	if(version_num == pPAT->version_number && pPAT->list !=NULL)
+	{
+		return -1;
+	}
+	list_remove(pPAT);
 	//hexdump(pdata, section_len+4);
 
 	//if ((section_len + 3) != buf_size)
@@ -255,17 +282,16 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 
 	//Transport Stream ID
 	pPAT->transport_stream_id = (pdata[3] << 8) | pdata[4];
-	pPAT->version_number = (pdata[5] >> 1) & 0x1F;
+	pPAT->version_number = version_num;
 	pPAT->current_next_indicator = pdata[5] & 0x01;
 	pPAT->section_number = pdata[6];
 	pPAT->last_section_number = pdata[7];
 
-	section_len -= (3 + 4); // exclude crc 4bytes
+	section_len -= (5 + 4); // exclude crc 4bytes
 	pdata += 8;
 	
 	//TODO: limit program total length
 	
-	//printf("section_len %d\n",section_len);
 
 	while (section_len > 0)
 	{
@@ -274,9 +300,11 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 		program_map_PID = ((pdata[2] << 8) | pdata[3]) & 0x1FFF;
 		if(program_num == 0xFFFF)
 		{
+			pdata += 4;
+			section_len -= 4;
 			break;
 		}
-		if(pPAT->program_bitmap & (1<<program_num) )
+		if(pPAT->program_bitmap[program_num/64] & (1<<(program_num%64)) )
 		{
 			//printf("teset\n");
 			list_modify(pPAT,program_num,program_map_PID);
@@ -284,12 +312,13 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 		else
 		{
 			//printf("teset1 program_num %x\n",program_num);
+			register_pmt_ops(program_map_PID);
 			pl = malloc(sizeof(struct program_list));
 			pl ->program_number = program_num;
 			pl->prev = pl;
 			pl->next = NULL;
 			pl->program_map_PID = program_map_PID;
-			pPAT->program_bitmap|= (1<<program_num);
+			pPAT->program_bitmap[program_num/64] |= (1<<(program_num%64));
 			list_insert(pPAT,pl);
 		}
 		
@@ -357,11 +386,55 @@ int parse_cat(uint8_t * pbuf, uint16_t buf_size, cat_t * pCAT)
 
 	return 0;
 }
+static inline void pmt_list_remove(pmt_t *  pPMT)
+{
+	struct es_info *p = pPMT->es_list;
+	struct es_info *n ;
+	while(p)
+	{
+		n = p->next;
+		free(p);
+		p = n;
+	}
+	pPMT->es_list = NULL;
+}
 
+static inline void pmt_list_insert(pmt_t *  pPMT, struct es_info *n)
+{
+	if(pPMT->es_list == NULL)
+	{
+		pPMT->es_list = n;
+		return ;
+	}
+	struct es_info *h = pPMT->es_list;
+	if(n->elementary_PID < h->elementary_PID)
+	{
+		n->next = h;
+		h->prev = n;
+		pPMT->es_list = n;
+		return ;
+		
+	}
+	while(h->next && h->elementary_PID < n->elementary_PID)
+	{
+		h = h->next;
+	}
+	
+	if(h->elementary_PID ==n->elementary_PID)
+	{
+		//NOT enter here
+		return;
+	}
+	n->prev = h;
+	n->next = h->next;
+	h->next = n;
+	return ;
+}
 
 int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 {
 	uint16_t section_len = 0;
+	uint8_t version_num;
 	uint8_t *pdata = pbuf;
 
 	if (pbuf == NULL || pPMT == NULL)
@@ -375,16 +448,20 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 	}
 
 	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	if ((section_len + 3) != buf_size)
+	version_num = (pdata[5] >> 1) & 0x1F;
+	if(version_num == pPMT->version_number && pPMT->es_list!=NULL)
 	{
 		return -1;
 	}
+
+	pmt_list_remove(pPMT);
+	
 	pPMT->section_length = section_len;
 
 	//Transport Stream ID
 	pPMT->program_number = (pdata[3] << 8) | pdata[4];
 
-	pPMT->version_number = (pdata[5] >> 1) & 0x1F;
+	pPMT->version_number = version_num;
 
 	if (!(pdata[5] & 0x01)) //current_next_indicator
 	{
@@ -393,22 +470,35 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 
 	pPMT->section_number = pdata[6];
 	pPMT->last_section_number = pdata[7];
-
+	
 	section_len -= 5 + 4; 
 	pdata += 8;
 	
+	pPMT->PCR_PID = TS_READ16(pdata) & 0x1FFF;
+	section_len -= 2; 
+	pdata += 2;
+	pPMT->program_info_length = TS_READ16(pdata)&0x0FFF;
+
+	pPMT->es_list = NULL;
 	pPMT->desriptor_list = NULL;
+	//TODO: descriptor process
+	section_len -= 2+ pPMT->program_info_length; 
+	pdata += 2+ pPMT->program_info_length;
 
 	while (section_len > 0)
 	{
-		//struct program_list *next = NULL;
-		//pl->program_number = (pdata[0] << 8) + pdata[1]; 
-		//pl->program_map_PID = ((pdata[2] << 8) + pdata[3]) & 0x1FFF;
-		//next = pPMT->desriptor_list;
-		//pPMT->desriptor_list = pl;
-		//pl->next = next;
-		pdata += 4;
-		section_len -= 4;
+		struct es_info *el = malloc(sizeof(struct es_info));
+		el->stream_type = TS_READ8(pdata);
+		pdata+= 1;
+		el->elementary_PID = TS_READ16(pdata)&0x1FFF;
+		pdata+= 2;
+		el->ES_info_length = TS_READ16(pdata)&0x0FFF;
+		el->next = NULL;
+		el->prev = el;
+		pdata += 2+el->ES_info_length ;
+		section_len -= (5+el->ES_info_length);
+		//TODO: descriptor process
+		pmt_list_insert(pPMT, el);
 	}
 
 	return 0;
@@ -431,6 +521,8 @@ static int cat_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 
 static int pmt_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
+	psi.pmt_bitmap[pid/64] |= (1<<(pid%64));
+	//printf("pid %d pmt bit map %d\n",pid ,psi.pmt_bitmap[pid/64] );
 	parse_pmt(pkt,len,&(psi.pmt[pid]));
 	return 0;
 }

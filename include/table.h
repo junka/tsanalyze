@@ -166,7 +166,7 @@ typedef struct {
 	uint8_t current_next_indicator:1;
 	uint8_t section_number;
 	uint8_t last_section_number;
-	uint16_t program_bitmap;
+	uint64_t program_bitmap[1024];
 	struct program_list* list;
 	uint32_t crc32;
 }__attribute__((packed)) pat_t;
@@ -198,7 +198,9 @@ struct es_info{
 	uint16_t reserved1:4;
 	uint16_t ES_info_length:12;
 	struct descriptor * descriptor_list;
-};
+	struct es_info * prev;
+	struct es_info * next;
+}__attribute__((packed));
 
 typedef struct {
 	uint8_t table_id;	/* 0x02 */
@@ -366,8 +368,8 @@ typedef struct{
 	cat_t cat;
 	int ca_num;
 	int pmt_num;
-	uint16_t pmt_bitmap;
-	pmt_t pmt[4096];  /*maybe no necessary */
+	uint64_t pmt_bitmap[128];
+	pmt_t pmt[8192];  /*maybe no necessary */
 	tdt_t tdt;
 	tot_t tot;
 	stats_t stats;

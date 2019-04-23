@@ -84,23 +84,31 @@ struct pid_ops pid_dev[MAX_TS_PID_NUM];
 extern table_ops drop_ops;
 extern table_ops pat_ops;
 extern table_ops cat_ops;
-
+extern table_ops pmt_ops;
 
 int ts_proc(uint8_t *data,uint8_t len)
 {
 	ts_header head;
 	uint8_t *ptr = data;
-	if(ptr[0]!=0x47)
+	if(ptr[0]!=TS_SYNC_BYTE)
 		return -1;
 	ptr+=1;
 	head.PID = TS_READ16(ptr) & 0x1FFF;
 	head.transport_error_indicator = TS_READ8(ptr) >>7;
-	ptr += 1;
+	ptr += 2;
 	head.adaptation_field_control = (TS_READ8(ptr)>>4)&0x3;
 	//memcpy(&head,data,sizeof(ts_header));
-	printf("receive PID 0x%x\n",head.PID);
+	//printf("receive PID 0x%x\n",head.PID);
+	ptr+=1;
+	len-=4;
 	if(head.adaptation_field_control ==ADAPT_ONLY||head.adaptation_field_control ==ADAPT_BOTH)
 	{
+		ts_adaptation_field adapt;
+		adapt.adaptation_field_length = TS_READ8(ptr);
+		ptr += 1;
+		ptr += adapt.adaptation_field_length;
+		len -=1;
+		len -= adapt.adaptation_field_length;
 		//TODO
 	}
 	
@@ -109,8 +117,22 @@ int ts_proc(uint8_t *data,uint8_t len)
 	{
 		pid_dev[head.PID].error_in++;
 	}
-	pid_dev[head.PID].tops->table_proc(head.PID,data+4 ,len-4);//sizeof(ts_header)
+	
+	//pointer_field
+	ptr+= 1;
+	len -=1;
+	pid_dev[head.PID].tops->table_proc(head.PID,ptr ,len);//sizeof(ts_header)
 	return 0;
+}
+
+
+void register_pmt_ops(uint16_t pid)
+{
+	pid_dev[pid].tops = &pmt_ops;
+}
+void unregister_pmt_ops(uint16_t pid)
+{
+	pid_dev[pid].tops = &drop_ops;
 }
 
 void dump_TS_info()
