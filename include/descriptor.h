@@ -14,6 +14,9 @@ typedef struct descriptor{
 	uint8_t data[0];
 }__attribute__((packed)) descriptor_t;
 
+
+
+#if 0
 enum descriptor_e{
 	/* ISO/IEC 13818-1 */
 	video_stream_descriptor		= 0x02,
@@ -114,9 +117,113 @@ enum descriptor_e{
 
 	/*0x80 to 0xFE user defined */
 	/*0xFF forbidden */
-	
 };
+#endif
 
+/* ISO/IEC 13818-1 */
+#define foreach_enum_descriptor \
+	_(video_stream, 0x02)\
+	_(audio_stream,	0x03)\
+	_(hierarchy,		0x04)\
+	_(registration,	0x05)\
+	_(data_stream_alignment,	0x06)\
+	_(target_background_grid,	0x07)\
+	_(video_window,			0x08)\
+	_(CA,			0x09)\
+	_(ISO_639_language,	0x0A)\
+	_(system_clock,		0x0B)\
+	_(multiplex_buffer_utilization,	0x0C)\
+	_(copyright,			0x0D)\
+	_(maximum_bitrate,	0x0E)\
+	_(private_data_indicator,	0x0F)\
+	_(smoothing_buffer,	0x10)\
+	_(STD,				0x11)\
+	_(ibp,				0x12)\
+	/* 0x12 - 0x1A Defined in ISO/IEC 13818-6*/\
+	\
+	_(MPEG4_video,		0x1B)\
+	_(MPEG4_audio,		0x1C)\
+	_(IOD,				0x1D)\
+	_(SL,				0x1E)\
+	_(FMC,				0x1F)\
+	_(external_ES_ID,	0x20)\
+	_(muxcode,			0x21)\
+	_(FmxBufferSize,	0x22)\
+	_(MultiplexBuffer,	0x23)\
+	/* 0x24 - 0x3F reserved */\
+	/* EN 300 468*/\
+	_(network_name,		0x40)\
+	_(service_list,		0x41)\
+	_(stuffing,			0x42)\
+	_(satellite_delivery_system, 0x43)\
+	_(cable_delivery_system,	0x44)\
+	_(VBI_data,			0x45)\
+	_(VBI_teletext,		0x46)\
+	_(bouquet_name,		0x47)\
+	_(service,			0x48)\
+	_(country_availability,	0x49)\
+	_(linkage,			0x4A)\
+	_(NVOD_reference,	0x4B)\
+	_(time_shifted_service,	0x4C)\
+	_(short_event,		0x4D)\
+	_(extended_event,	0x4E)\
+	_(time_shifted_event,	0x4F)\
+	_(component,			0x50)\
+	_(mosaic,			0x51)\
+	_(stream_identifier,	0x52)\
+	_(CA_identifier,		0x53)\
+	_(content,			0x54)\
+	_(parental_rating,	0x55)\
+	_(teletext,			0x56)\
+	_(telephone,			0x57)\
+	_(local_time_offset,	0x58)\
+	_(subtitling,		0x59)\
+	_(terrestrial_delivery_system,	0x5A)\
+	_(multilingual_network_name,	0x5B)\
+	_(multilingual_bouquet_name,	0x5C)\
+	_(multilingual_service_name,	0x5D)\
+	_(multilingual_component,	0x5E)\
+	_(private_data_specifier,	0x5F)\
+	_(service_move,		0x60)\
+	_(short_smoothing_buffer, 0x61)\
+	_(frequency_list,	0x62)\
+	_(partial_transport_stream, 0x63)\
+	_(data_broadcast,	0x64)\
+	_(scrambling,		0x65)\
+	_(data_broadcast_id,	0x66)\
+	_(transport_stream,	0x67)\
+	_(DSNG,			0x68)\
+	_(PDC,				0x69)\
+	_(AC3,				0x6A)\
+	_(ancillary_data,	0x6B)\
+	_(cell_list,			0x6C)\
+	_(cell_frequency_link,	0x6D)\
+	_(announcement_support,	0x6E)\
+	_(application_signalling,	0x6F)\
+	_(adaptation_field_data,	0x70)\
+	_(service_identifier,	0x71)\
+	_(service_availability,	0x72)\
+	_(default_authority,	0x73)\
+	_(related_content,	0x74)\
+	_(TVA_id,			0x75)\
+	_(content_identifier,	0x76)\
+	_(time_slice_fec_identifier, 0x77)\
+	_(ECM_repetition_rate, 0x78)\
+	_(S2_satellite_delivery_system, 0x79)\
+	_(enhanced_AC3,		0x7A)\
+	_(DTS,				0x7B)\
+	_(AAC,				0x7C)\
+	_(XAIT_location,	0x7D)\
+	_(FTA_content_management,0x7E)\
+	_(extension,		0x7F)
+	/*0x80 to 0xFE user defined */
+	/*0xFF forbidden */
+
+enum descriptor_e{
+#define _(a,b)  dr_##a = b,
+	foreach_enum_descriptor
+#undef _
+};
 
 /* see ISO/IEC 13818-1 chapter 2.6*/
 
@@ -515,12 +622,12 @@ typedef struct {
 	};
 }external_ES_ID_descriptor_t;
 
-struct muxcode_descriptor_t{
-};
+typedef struct {
+}muxcode_descriptor_t;
 
-struct FmxBufferSize_descriptor_t{
+typedef struct {
 	
-};
+}FmxBufferSize_descriptor_t;
 
 typedef struct {
 	EXT_STD_C11
@@ -538,97 +645,29 @@ typedef struct {
 
 /*see EN_300 468 chapter 6*/
 
-/*adaptation_field_data_descriptor*/
-struct adaptation_field_data_identifier
-{
-	uint8_t announcement_switching_data:1;
-	uint8_t AU_information_data:1;
-	uint8_t PVR_assist_information_data:1;
-	uint8_t tsap_timeline:1;
-	uint8_t reserved:4;
-};
+typedef struct {
+}network_name_descriptor_t;
 
 typedef struct {
-	EXT_STD_C11
-	union{
-		descriptor_t descriptor;
-		struct {
-			uint8_t descriptor_tag;
-			uint8_t descriptor_length;
-			void * next;
-			struct adaptation_field_data_identifier identifier;
-		};
-	};
-}adaptation_field_data_descriptor_t;
+	
+}service_list_descriptor_t;
 
-/*ancillary_data_descriptor*/
-struct ancillary_data_identifier
-{
-	uint8_t DVD_video_ancillary_data:1;
-	uint8_t extended_ancillary_data:1;
-	uint8_t announcement_switching_data:1;
-	uint8_t DAB_ancillary_data:1;
-	uint8_t scale_factor_error_check:1;
-	uint8_t MPEG4_ancillary_data:1;
-	uint8_t RDS_via_UECP:1;
-	uint8_t reserved:1;
-};
+typedef struct{}stuffing_descriptor_t;
 
 typedef struct {
-	EXT_STD_C11
-	union{
-		descriptor_t descriptor;
-		struct {
-			uint8_t descriptor_tag;
-			uint8_t descriptor_length;
-			void * next;
-			struct ancillary_data_identifier identifier;
-		};
-	};
-}ancillary_data_descriptor_t;
 
-
-/*Announcement support descriptor*/
-struct announcement_support_indicator {
-	uint16_t emergency_alarm:1;
-	uint16_t road_traffic_flash:1;
-	uint16_t public_transport_flash:1;
-	uint16_t warning_message:1;
-	uint16_t news_flash:1;
-	uint16_t weather_flash:1;
-	uint16_t event_announcement:1;
-	uint16_t personal_call:1;
-	uint16_t reserved:8;
-};
-
-struct reference{
-	uint16_t original_network_id;
-	uint16_t transport_stream_id;
-	uint16_t service_id;
-	uint8_t component_tag;
-};
-
-struct announcement_info {
-	uint8_t announcement_type:4;
-	uint8_t reserved_future_use:1;
-	uint8_t reference_type:3;
-	struct reference ref;
-	struct announcement_info * next;
-};
+}satellite_delivery_system_descriptor_t;
 
 typedef struct {
-	EXT_STD_C11
-	union{
-	descriptor_t descriptor;
-	struct {
-		uint8_t descriptor_tag;
-		uint8_t descriptor_length;
-		void *next;
-		struct announcement_support_indicator indicator;
-		struct announcement_info *info;
-		};
-	};
-}announcement_support_descriptor_t;
+
+}cable_delivery_system_descriptor_t;
+
+typedef struct {
+
+}VBI_data_descriptor_t;
+typedef struct {
+
+}VBI_teletext_descriptor_t;
 
 typedef struct {
 	EXT_STD_C11
@@ -644,114 +683,9 @@ typedef struct {
 }bouquet_name_descriptor_t;
 
 typedef struct {
-	EXT_STD_C11
-	union{
-		descriptor_t descriptor;
-		struct {
-			uint8_t descriptor_tag;
-			uint8_t descriptor_length;
-			void * next;
-			uint16_t *CA_system_id; /*ETSI TS 101 162 [i.1]*/
-		};
-	};
-}CA_identifier_descriptor_t;
+	
+}service_descriptor_t;
 
-struct subcell_info{
-	uint8_t cell_id_extension;
-	uint32_t transposer_frequency;
-	struct subcell_info *next;
-};
-
-struct cell_frequency_info{
-	uint16_t cell_id;
-	uint32_t frequency;
-	uint8_t subcell_info_loop_length;
-	struct subcell_info *subcell_info_list;
-};
-
-typedef struct {
-	EXT_STD_C11
-	union{
-		descriptor_t descriptor;
-		struct {
-			uint8_t descriptor_tag;
-			uint8_t descriptor_length;
-			void * next;
-			struct cell_frequency_info *cell_info_list;
-		};
-	};
-}cell_frequency_link_descriptor_t;
-
-struct subcell_list_info{
-	uint64_t cell_id_extension:8;
-	uint64_t subcell_latitude:16;
-	uint64_t subcell_longitude:16;
-	uint64_t subcell_extent_of_latitude:12;
-	uint64_t subcell_extent_of_longitude:12;
-	struct subcell_list_info *next;
-};
-
-struct cell_list_info{
-	uint16_t cell_id;
-	uint16_t cell_latitude;
-	uint16_t cell_longitude;
-	uint32_t cell_extent_of_latitude:12;
-	uint32_t cell_extent_of_longitude:12;
-	uint32_t subcell_info_loop_length:8;
-	struct subcell_list_info *subcell_list;
-	struct cell_list_info *next;
-};
-
-typedef struct {
-	EXT_STD_C11
-	union{
-		descriptor_t descriptor;
-		struct {
-			uint8_t descriptor_tag;
-			uint8_t descriptor_length;
-			void * next;
-			struct cell_list_info * cell_list;
-		};
-	};
-} cell_list_descriptor_t;
-
-typedef struct { 
-	EXT_STD_C11
-	union{
-		descriptor_t descriptor;
-		struct {
-			uint8_t descriptor_tag;
-			uint8_t descriptor_length;
-			void * next;
-			uint8_t stream_content_ext:4; 
-			uint8_t stream_content:4;
-			uint8_t component_type;
-			uint32_t component_tag:8; 
-			uint32_t ISO_639_language_code:24; 
-			uint8_t *text_char;
-		};
-	};
-} component_descriptor_t;
-
-struct content_info{
-	uint8_t content_nibble_level_1:4;
-	uint8_t content_nibble_level_2:4;
-	uint8_t byte;
-	struct content_info * next;
-};
-
-typedef struct {
-	EXT_STD_C11
-	union{
-		descriptor_t descriptor;
-		struct {
-			uint8_t descriptor_tag;
-			uint8_t descriptor_length;
-			void * next;
-			struct content_info * content_list;
-		};
-	};
-}content_descriptor_t;
 
 enum country_code_e{
 	AFG,
@@ -796,94 +730,360 @@ typedef struct {
 		};
 	};
 }country_availability_descriptor_t;
-#if 0
-struct data_broadcast_descriptor_t{
 
+typedef struct {
+}linkage_descriptor_t;
+
+typedef struct {
+}NVOD_reference_descriptor_t;
+
+typedef struct{
+}time_shifted_service_descriptor_t;
+
+typedef struct{
+
+}short_event_descriptor_t;
+
+typedef struct {
+}extended_event_descriptor_t;
+
+typedef struct{
+
+}time_shifted_event_descriptor_t;
+
+typedef struct { 
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t stream_content_ext:4; 
+			uint8_t stream_content:4;
+			uint8_t component_type;
+			uint32_t component_tag:8; 
+			uint32_t ISO_639_language_code:24; 
+			uint8_t *text_char;
+		};
+	};
+} component_descriptor_t;
+
+typedef struct {
+}mosaic_descriptor_t;
+
+typedef struct{
+}stream_identifier_descriptor_t;
+
+typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint16_t *CA_system_id; /*ETSI TS 101 162 [i.1]*/
+		};
+	};
+}CA_identifier_descriptor_t;
+
+struct content_info{
+	uint8_t content_nibble_level_1:4;
+	uint8_t content_nibble_level_2:4;
+	uint8_t byte;
+	struct content_info * next;
 };
 
-struct data_broadcast_id_descriptor_t{
+typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct content_info * content_list;
+		};
+	};
+}content_descriptor_t;
 
+
+typedef struct {
+}parental_rating_descriptor_t;
+
+typedef struct{
+}teletext_descriptor_t;
+
+typedef struct{
+
+}telephone_descriptor_t;
+
+typedef struct {
+}local_time_offset_descriptor_t;
+
+typedef struct{
+}subtitling_descriptor_t;
+
+typedef struct {
+}terrestrial_delivery_system_descriptor_t;
+
+typedef struct {
+}multilingual_network_name_descriptor_t;
+
+typedef struct {
+}multilingual_bouquet_name_descriptor_t;
+
+typedef struct {
+}multilingual_service_name_descriptor_t;
+typedef struct {
+}multilingual_component_descriptor_t;
+
+typedef struct {
+}private_data_specifier_descriptor_t;
+
+typedef struct{}service_move_descriptor_t;
+
+typedef struct{}short_smoothing_buffer_descriptor_t;
+
+typedef struct {
+}frequency_list_descriptor_t;
+
+typedef struct {}partial_transport_stream_descriptor_t;
+
+typedef struct {
+
+}data_broadcast_descriptor_t;
+
+typedef struct {
+}scrambling_descriptor_t;
+
+typedef struct {
+
+}data_broadcast_id_descriptor_t;
+
+
+typedef struct{ }transport_stream_descriptor_t;
+
+typedef struct {
+}DSNG_descriptor_t;
+
+typedef struct {
+}PDC_descriptor_t;
+
+
+typedef struct {
+}AC3_descriptor_t;
+
+/*ancillary_data_descriptor*/
+struct ancillary_data_identifier
+{
+	uint8_t DVD_video_ancillary_data:1;
+	uint8_t extended_ancillary_data:1;
+	uint8_t announcement_switching_data:1;
+	uint8_t DAB_ancillary_data:1;
+	uint8_t scale_factor_error_check:1;
+	uint8_t MPEG4_ancillary_data:1;
+	uint8_t RDS_via_UECP:1;
+	uint8_t reserved:1;
 };
 
-struct cable_delivery_system_descriptor_t{
+typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct ancillary_data_identifier identifier;
+		};
+	};
+}ancillary_data_descriptor_t;
 
+
+struct subcell_list_info{
+	uint64_t cell_id_extension:8;
+	uint64_t subcell_latitude:16;
+	uint64_t subcell_longitude:16;
+	uint64_t subcell_extent_of_latitude:12;
+	uint64_t subcell_extent_of_longitude:12;
+	struct subcell_list_info *next;
 };
 
-struct satellite_delivery_system_descriptor_t{
-
+struct cell_list_info{
+	uint16_t cell_id;
+	uint16_t cell_latitude;
+	uint16_t cell_longitude;
+	uint32_t cell_extent_of_latitude:12;
+	uint32_t cell_extent_of_longitude:12;
+	uint32_t subcell_info_loop_length:8;
+	struct subcell_list_info *subcell_list;
+	struct cell_list_info *next;
 };
 
-struct S2_satellite_delivery_system_descriptor_t{
+typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct cell_list_info * cell_list;
+		};
+	};
+} cell_list_descriptor_t;
+
+struct subcell_info{
+	uint8_t cell_id_extension;
+	uint32_t transposer_frequency;
+	struct subcell_info *next;
 };
 
-struct terrestrial_delivery_system_descriptor_t{
+struct cell_frequency_info{
+	uint16_t cell_id;
+	uint32_t frequency;
+	uint8_t subcell_info_loop_length;
+	struct subcell_info *subcell_info_list;
 };
 
-struct DSNG_descriptor_t{
+typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct cell_frequency_info *cell_info_list;
+		};
+	};
+}cell_frequency_link_descriptor_t;
+
+
+/*Announcement support descriptor*/
+struct announcement_support_indicator {
+	uint16_t emergency_alarm:1;
+	uint16_t road_traffic_flash:1;
+	uint16_t public_transport_flash:1;
+	uint16_t warning_message:1;
+	uint16_t news_flash:1;
+	uint16_t weather_flash:1;
+	uint16_t event_announcement:1;
+	uint16_t personal_call:1;
+	uint16_t reserved:8;
 };
 
-struct extended_event_descriptor_t{
+struct reference{
+	uint16_t original_network_id;
+	uint16_t transport_stream_id;
+	uint16_t service_id;
+	uint8_t component_tag;
 };
 
-struct extension_descriptor_t{
+struct announcement_info {
+	uint8_t announcement_type:4;
+	uint8_t reserved_future_use:1;
+	uint8_t reference_type:3;
+	struct reference ref;
+	struct announcement_info * next;
 };
 
-struct frequency_list_descriptor_t{
+typedef struct {
+	EXT_STD_C11
+	union{
+	descriptor_t descriptor;
+	struct {
+		uint8_t descriptor_tag;
+		uint8_t descriptor_length;
+		void *next;
+		struct announcement_support_indicator indicator;
+		struct announcement_info *info;
+		};
+	};
+}announcement_support_descriptor_t;
+
+
+typedef struct{}application_signalling_descriptor_t;
+
+/*adaptation_field_data_descriptor*/
+struct adaptation_field_data_identifier
+{
+	uint8_t announcement_switching_data:1;
+	uint8_t AU_information_data:1;
+	uint8_t PVR_assist_information_data:1;
+	uint8_t tsap_timeline:1;
+	uint8_t reserved:4;
 };
 
-struct FTA_content_management_descriptor_t{ /*0x7E*/
+typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct adaptation_field_data_identifier identifier;
+		};
+	};
+}adaptation_field_data_descriptor_t;
+
+typedef struct{}service_identifier_descriptor_t;
+
+typedef struct {
+}service_availability_descriptor_t;
+
+typedef struct {}default_authority_descriptor_t;
+typedef struct {} related_content_descriptor_t;
+typedef struct{}TVA_id_descriptor_t;
+
+
+typedef struct {
+
+}content_identifier_descriptor_t;
+
+typedef struct{
+
+}time_slice_fec_identifier_descriptor_t;
+
+typedef struct{
+
+}ECM_repetition_rate_descriptor_t;
+
+typedef struct {
+}S2_satellite_delivery_system_descriptor_t;
+
+typedef struct {
+}enhanced_AC3_descriptor_t;
+
+
+typedef struct{
+
+}DTS_descriptor_t;
+
+
+typedef struct{
+
+}AAC_descriptor_t;
+
+typedef struct{
+
+}XAIT_location_descriptor_t;
+
+typedef struct { /*0x7E*/
+}FTA_content_management_descriptor_t;
+
+typedef struct {
+}extension_descriptor_t;
+
+struct descriptor_ops{
+	uint8_t tag;
+	int ( *descriptor_parse)(uint8_t *data, uint32_t len,void *ptr);
+	void* (*descriptor_alloc)(void);
 };
 
-struct linkage_descriptor_t{
-};
-
-struct local_time_offset_descriptor_t{
-};
-
-struct mosaic_descriptor_t{
-};
-
-struct multilingual_bouquet_name_descriptor_t{
-};
-
-struct multilingual_component_descriptor_t{
-};
-
-struct multilingual_network_name_descriptor_t{
-};
-
-struct multilingual_service_name_descriptor_t{
-};
-
-struct NVOD_reference_descriptor_t{
-};
-
-struct network_name_descriptor_t{
-};
-
-struct parental_rating_descriptor_t{
-};
-
-struct PDC_descriptor_t{
-};
-
-struct private_data_specifier_descriptor_t{
-};
-
-struct scrambling_descriptor_t{
-};
-
-struct service_descriptor_t{
-	
-};
-
-struct service_availability_descriptor_t{
-};
-
-struct service_list_descriptor_t{
-	
-};
-#endif
 
 #ifdef __cplusplus
 }
