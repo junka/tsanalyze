@@ -126,6 +126,13 @@ int parse_CA_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 }
 int parse_ISO_639_language_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
+	if(buf[0]!=dr_ISO_639_language)
+		return -1;
+	ISO_639_language_descriptor_t *lang = (ISO_639_language_descriptor_t*)ptr;
+	lang ->descriptor_tag = dr_ISO_639_language;
+	lang->descriptor_length = buf[1];
+	lang->language_list = NULL;
+	//lang->lang_num = 0;
 	return 0;
 }
 
@@ -495,27 +502,39 @@ void init_descriptor_parsers()
 	for(i=0;i<0xFF;i++)
 	{
 		des_ops[i].tag = i;
+		strncpy(des_ops[i].tag_name,"reserved",sizeof("reserved"));
 		des_ops[i].descriptor_parse = parse_reserved_descriptor;
 		des_ops[i].descriptor_alloc = alloc_reserved;
 	}
 
-#define _(a,b) des_ops[b].tag = b;des_ops[b].descriptor_parse = FUNC(a); des_ops[b].descriptor_alloc = alloc_##a ;
-	foreach_enum_descriptor
+//	char* names[0xFF] ={
+//#define _(a,b) 
+//		foreach_enum_descriptor
+//#undef _
+//	};
+#define _(a,b) des_ops[b].tag = b;\
+	des_ops[b].descriptor_parse = FUNC(a); \
+	des_ops[b].descriptor_alloc = alloc_##a ;\
+	snprintf(des_ops[b].tag_name,64, # a"_descriptor");
+		foreach_enum_descriptor
 #undef _
 
 }
 
-
+#define ALLOC_DES(tag)  des_ops[tag].descriptor_alloc()
+#define PARSE_DES(ptr,des)  do{ des_ops[ptr[0]].descriptor_parse(ptr,ptr[1]+2,des);}while(0)
 descriptor_t* parse_descriptors(uint8_t *buf, uint32_t len)
 {
+	hexdump(buf,len);
 	uint32_t l = len;
 	uint8_t* ptr = buf;
 	descriptor_t* h = NULL, *more;
 	while( l )
 	{
-		void* des = des_ops[ptr[0]].descriptor_alloc();
+		//printf("%s\n",des_ops[ptr[0]].tag_name);
+		void* des = ALLOC_DES(ptr[0]);
 		descriptor_t *more = (descriptor_t*) des;
-		des_ops[ptr[0]].descriptor_parse(buf,ptr[1]+2,des);
+		PARSE_DES(ptr,des);
 		more->next = h;
 		more->tag = ptr[0];
 		more->length = ptr[1];
@@ -553,12 +572,23 @@ void dump_maxbitrate_descriptor(maximum_bitrate_descriptor_t *p_descriptor)
 		p_descriptor->maximum_bitrate);
 
 }
+
+void dump_stream_identifier_descriptor(stream_identifier_descriptor_t *p_descriptor)
+{
+
+}
+void dump_subtitling_descriptor(subtitling_descriptor_t *p_descriptor)
+{
+
+}
+
+
 void dump_descriptors(const char* str, descriptor_t* p_descriptor)
 {
     int i;
     while(p_descriptor)
     {
-        printf( "%s 0x%02x : ", str, p_descriptor->tag);
+        printf( "%s 0x%02x (%s) : ", str, p_descriptor->tag,des_ops[p_descriptor->tag].tag_name);
         switch (p_descriptor->tag)
         {
             case dr_system_clock:
@@ -568,10 +598,10 @@ void dump_descriptors(const char* str, descriptor_t* p_descriptor)
                 dump_maxbitrate_descriptor(p_descriptor);
                 break;
             case dr_stream_identifier:
-                //DumpStreamIdentifierDescriptor(dvbpsi_DecodeStreamIdentifierDr(p_descriptor));     
+                dump_stream_identifier_descriptor(p_descriptor);
                 break;
             case dr_subtitling:
-                //DumpSubtitleDescriptor(dvbpsi_DecodeSubtitlingDr(p_descriptor));      
+                dump_subtitling_descriptor(p_descriptor);
                 break;
             default:
                 printf(  "\"");

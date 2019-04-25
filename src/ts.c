@@ -85,6 +85,7 @@ extern table_ops drop_ops;
 extern table_ops pat_ops;
 extern table_ops cat_ops;
 extern table_ops pmt_ops;
+extern table_ops sdt_ops;
 
 int ts_proc(uint8_t *data,uint8_t len)
 {
@@ -157,6 +158,7 @@ int init_pid_ops(void)
 	
 	pid_dev[PAT_PID].tops = &pat_ops;
 	pid_dev[CAT_PID].tops = &cat_ops;
+	pid_dev[SDT_PID].tops = &sdt_ops;
 
 	return 0;
 }
@@ -198,6 +200,7 @@ int init_pid_processor()
 	//hexdump(ptr+start_index, ts_pktlen);
 
 	init_pid_ops();
+	init_descriptor_parsers();
 
 	ptr += start_index;
 	len -= start_index;

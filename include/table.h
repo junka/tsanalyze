@@ -230,6 +230,7 @@ struct transport_stream_info{
 	uint16_t reserved_future_use:4;
 	uint16_t transport_descriptors_length:12;
 	struct descriptor * transport_stream_desriptor_list;
+	struct transport_stream_info * prev;
 	struct transport_stream_info * next;
 };
 
@@ -289,6 +290,8 @@ struct service_info{
 	uint16_t free_CA_mode:1;
 	uint16_t descriptors_loop_length:12;
 	struct descriptor * service_desriptor_list;
+	struct service_info * prev;
+	struct service_info * next;
 };
 
 typedef struct {
@@ -370,6 +373,8 @@ typedef struct{
 	int pmt_num;
 	uint64_t pmt_bitmap[128];
 	pmt_t pmt[8192];  /*maybe no necessary */
+	sdt_t sdt;
+	bat_t bat;
 	tdt_t tdt;
 	tot_t tot;
 	stats_t stats;

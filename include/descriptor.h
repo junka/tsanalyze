@@ -380,6 +380,7 @@ typedef struct {
 } CA_descriptor_t;
 
 enum audio_type_e{
+	undefined = 0x0,
 	clean_effects = 0x1,
 	hearing_impaired = 0x2,
 	visual_impaired_commentary = 0x3,
@@ -400,6 +401,7 @@ typedef struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			void *next;
+			//uint32_t lang_num;
 			struct language_info* language_list;
 		};
 	};
@@ -1080,6 +1082,7 @@ typedef struct {
 
 struct descriptor_ops{
 	uint8_t tag;
+	char tag_name[64];
 	int ( *descriptor_parse)(uint8_t *data, uint32_t len,void *ptr);
 	void* (*descriptor_alloc)(void);
 };
