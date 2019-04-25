@@ -1,14 +1,18 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "ts.h"
 #include "descriptor.h"
 
-int parse_video_stream_descriptor(uint8_t *buf, uint32_t len, video_stream_descriptor_t *vs)
+
+int parse_video_stream_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
-	if(buf[0]!=video_stream_descriptor)
+	if(buf[0]!=dr_video_stream)
 		return -1;
-	vs->descriptor_tag = video_stream_descriptor;
+	video_stream_descriptor_t * vs = (video_stream_descriptor_t*)ptr;
+	vs->descriptor_tag = dr_video_stream;
 	vs->descriptor_length = buf[1];
 	vs->next = NULL;
 	vs->multiple_frame_rate_flag = (buf[2]>>7)&0x01;
@@ -22,11 +26,12 @@ int parse_video_stream_descriptor(uint8_t *buf, uint32_t len, video_stream_descr
 	return 0;
 }
 
-int parse_audio_stream_descriptor(uint8_t *buf, uint32_t len, audio_stream_descriptor_t *as)
+int parse_audio_stream_descriptor(uint8_t *buf, uint32_t len,void *ptr )
 {
-	if(buf[0]!=audio_stream_descriptor)
+	if(buf[0]!= dr_audio_stream)
 		return -1;
-	as->descriptor_tag = audio_stream_descriptor;
+	audio_stream_descriptor_t *as = (audio_stream_descriptor_t *)ptr;
+	as->descriptor_tag = dr_audio_stream;
 	as->descriptor_length = buf[1];
 	as->free_format_flag = buf[2]>>7;
 	as->ID = (buf[2]>>6)&0x01;
@@ -35,11 +40,12 @@ int parse_audio_stream_descriptor(uint8_t *buf, uint32_t len, audio_stream_descr
 	return 0;
 }
 
-int parse_hierarchy_descriptor(uint8_t *buf, uint32_t len, hierarchy_descriptor_t *hi)
+int parse_hierarchy_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
-	if(buf[0]!=hierarchy_descriptor)
+	if(buf[0]!=dr_hierarchy)
 		return -1;
-	hi->descriptor_tag = hierarchy_descriptor;
+	hierarchy_descriptor_t *hi = (hierarchy_descriptor_t *)ptr;
+	hi->descriptor_tag = dr_hierarchy;
 	hi->descriptor_length = buf[1];
 	hi->hierarchy_type = buf[2] &0x0F;
 	hi->hierarchy_layer_index = (buf[3])&0x03F;
@@ -48,13 +54,14 @@ int parse_hierarchy_descriptor(uint8_t *buf, uint32_t len, hierarchy_descriptor_
 	return 0;
 }
 
-int parse_registration_descriptor(uint8_t *buf, uint32_t len, registration_descriptor_t *re)
+int parse_registration_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	uint8_t *p = buf;
 
-	if(buf[0]!=registration_descriptor)
+	if(buf[0]!=dr_registration)
 		return -1;
-	re->descriptor_tag = registration_descriptor;
+	registration_descriptor_t *re = (registration_descriptor_t *)ptr;
+	re->descriptor_tag = dr_registration;
 	re->descriptor_length = buf[1];
 	p += 2;
 	re->format_identifier = TS_READ32(p);
@@ -63,22 +70,24 @@ int parse_registration_descriptor(uint8_t *buf, uint32_t len, registration_descr
 	return 0;
 }
 
-int parse_data_stream_alignment_descriptor(uint8_t *buf, uint32_t len, data_stream_alignment_descriptor_t *dsa)
+int parse_data_stream_alignment_descriptor(uint8_t *buf, uint32_t len,  void* ptr)
 {
-	if(buf[0]!=data_stream_alignment_descriptor)
+	if(buf[0]!=dr_data_stream_alignment)
 		return -1;
-	dsa->descriptor_tag = data_stream_alignment_descriptor;
+	data_stream_alignment_descriptor_t *dsa = (data_stream_alignment_descriptor_t*)ptr;
+	dsa->descriptor_tag = dr_data_stream_alignment;
 	dsa->descriptor_length = buf[1];
 	dsa->alignment_type = buf[2];
 	return 0;
 }
 
-int parse_target_background_grid_descriptor(uint8_t *buf, uint32_t len, target_background_grid_descriptor_t *tbg)
+int parse_target_background_grid_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	uint8_t *p = buf;
-	if(buf[0]!=target_background_grid_descriptor)
+	if(buf[0]!=dr_target_background_grid)
 		return -1;
-	tbg->descriptor_tag = target_background_grid_descriptor;
+	target_background_grid_descriptor_t * tbg = (target_background_grid_descriptor_t*)ptr;
+	tbg->descriptor_tag = dr_target_background_grid;
 	tbg->descriptor_length = buf[1];
 	tbg->horizontal_size = (buf[2]<<6|buf[3]>>2);//TS_READ32(buf+2) >>18;
 	p += 2;
@@ -87,12 +96,13 @@ int parse_target_background_grid_descriptor(uint8_t *buf, uint32_t len, target_b
 	return 0;
 }
 
-int parse_video_window_descriptor(uint8_t *buf, uint32_t len, video_window_descriptor_t *vw)
+int parse_video_window_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	uint8_t *p = buf;
-	if(buf[0]!=video_window_descriptor)
+	if(buf[0]!=dr_video_window)
 		return -1;
-	vw->descriptor_tag = video_window_descriptor;
+	video_window_descriptor_t *vw = (video_window_descriptor_t *)ptr;
+	vw->descriptor_tag = dr_video_window;
 	vw->descriptor_length = buf[1];
 	vw->next = NULL;
 	vw->horizontal_offset = (buf[2]<<6|buf[3]>>2);
@@ -102,41 +112,429 @@ int parse_video_window_descriptor(uint8_t *buf, uint32_t len, video_window_descr
 	return 0;
 }
 
-int parse_ca_descriptor(uint8_t *buf, uint32_t len, CA_descriptor_t *ca)
+int parse_CA_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
-	if(buf[0]!=CA_descriptor)
+	if(buf[0]!=dr_CA)
 		return -1;
-	ca->descriptor_tag = CA_descriptor;
+	CA_descriptor_t *ca = (CA_descriptor_t *)ptr;
+	ca->descriptor_tag = dr_CA;
 	ca->descriptor_length = buf[1];
 	ca->next = NULL;
 	ca->CA_system_ID = buf[2]<<8 |buf[3];
 	ca->CA_PID = (buf[5]<<8 |buf[6]) & 0x1FFF ;
 	return 0;
 }
-
-int parse_maximum_bitrate_descriptor(uint8_t *buf, uint32_t len, maximum_bitrate_descriptor_t *mb)
+int parse_ISO_639_language_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
-	if(buf[0]!=maximum_bitrate_descriptor)
-		return -1;
-	mb->descriptor_tag = maximum_bitrate_descriptor;
-	mb->descriptor_length = buf[1];
-	mb->next = NULL;
-	mb->maximum_bitrate.bits = ((buf[2]<<16 |buf[3]<<8 |buf[4])&0x3FFFFF);
 	return 0;
 }
 
-
-static int parse_system_clock_descriptor(uint8_t *buf, uint32_t len, system_clock_descriptor_t *sc)
+static int parse_system_clock_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
-	if(buf[0]!=system_clock_descriptor)
+	if(buf[0]!=dr_system_clock)
 		return -1;
-	sc->descriptor_tag = maximum_bitrate_descriptor;
+	system_clock_descriptor_t *sc = (system_clock_descriptor_t *)ptr;
+	sc->descriptor_tag = dr_maximum_bitrate;
 	sc->descriptor_length = buf[1];
 	sc->next = NULL;
 	sc->external_clock_reference_indicator = buf[2]>>7;
 	sc->clock_accuracy_integer = buf[2]&0x3F;
 	sc->clock_accuracy_exponent = buf[3]>>5;
 	return 0;
+}
+
+int parse_multiplex_buffer_utilization_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
+int parse_copyright_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
+int parse_maximum_bitrate_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	if(buf[0]!=dr_maximum_bitrate)
+		return -1;
+	maximum_bitrate_descriptor_t *mb = (maximum_bitrate_descriptor_t *)ptr;
+	mb->descriptor_tag = dr_maximum_bitrate;
+	mb->descriptor_length = buf[1];
+	mb->next = NULL;
+	mb->maximum_bitrate.bits = ((buf[2]<<16 |buf[3]<<8 |buf[4])&0x3FFFFF);
+	return 0;
+}
+
+int parse_private_data_indicator_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
+int parse_smoothing_buffer_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_STD_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_ibp_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_MPEG4_video_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_MPEG4_audio_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_IOD_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
+int parse_SL_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_FMC_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_external_ES_ID_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_muxcode_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_FmxBufferSize_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_MultiplexBuffer_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_network_name_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}int parse_service_list_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_stuffing_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_satellite_delivery_system_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_cable_delivery_system_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_VBI_data_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_VBI_teletext_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_bouquet_name_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_service_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_country_availability_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_linkage_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_NVOD_reference_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}int parse_time_shifted_service_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}int parse_short_event_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}int parse_extended_event_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}int parse_time_shifted_event_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}int parse_component_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}int parse_mosaic_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}int parse_stream_identifier_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}int parse_CA_identifier_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}int parse_content_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_parental_rating_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_teletext_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_telephone_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_local_time_offset_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_subtitling_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_terrestrial_delivery_system_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_multilingual_network_name_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_multilingual_bouquet_name_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_multilingual_service_name_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_multilingual_component_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_private_data_specifier_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_service_move_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_short_smoothing_buffer_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_frequency_list_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_partial_transport_stream_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_data_broadcast_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_scrambling_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_data_broadcast_id_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_transport_stream_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_DSNG_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_PDC_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_AC3_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_ancillary_data_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_cell_list_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_cell_frequency_link_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_announcement_support_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_application_signalling_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_adaptation_field_data_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_service_identifier_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_service_availability_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_default_authority_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_related_content_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
+int parse_TVA_id_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
+int parse_content_identifier_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
+int parse_time_slice_fec_identifier_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_ECM_repetition_rate_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_S2_satellite_delivery_system_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_enhanced_AC3_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_DTS_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_AAC_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_XAIT_location_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+int parse_FTA_content_management_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
+int parse_extension_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
+int parse_reserved_descriptor(uint8_t *buf,uint32_t len,void *ptr)
+{
+	return 0;
+}
+void *alloc_reserved()
+{
+	return malloc(sizeof(descriptor_t));
+}
+
+
+#define FUNC(descriptor) parse_##descriptor##_descriptor
+
+#define ALLOC(descriptor) void *alloc_##descriptor(){ return malloc(sizeof(descriptor##_descriptor_t));}
+#define _(a,b) ALLOC(a)
+	foreach_enum_descriptor
+#undef _
+
+static struct descriptor_ops des_ops[255];
+
+void init_descriptor_parsers()
+{
+	uint8_t i=0;
+	for(i=0;i<0xFF;i++)
+	{
+		des_ops[i].tag = i;
+		des_ops[i].descriptor_parse = parse_reserved_descriptor;
+		des_ops[i].descriptor_alloc = alloc_reserved;
+	}
+
+#define _(a,b) des_ops[b].tag = b;des_ops[b].descriptor_parse = FUNC(a); des_ops[b].descriptor_alloc = alloc_##a ;
+	foreach_enum_descriptor
+#undef _
+
+}
+
+
+descriptor_t* parse_descriptors(uint8_t *buf, uint32_t len)
+{
+	uint32_t l = len;
+	uint8_t* ptr = buf;
+	descriptor_t* h = NULL, *more;
+	while( l )
+	{
+		void* des = des_ops[ptr[0]].descriptor_alloc();
+		descriptor_t *more = (descriptor_t*) des;
+		des_ops[ptr[0]].descriptor_parse(buf,ptr[1]+2,des);
+		more->next = h;
+		more->tag = ptr[0];
+		more->length = ptr[1];
+		l -= more->length+ 2;
+		ptr += more->length+ 2;
+		h = more;
+	}
+	return h;
+}
+
+void free_descriptors(descriptor_t *des)
+{
+	descriptor_t* t = des,*n;
+	while(t)
+	{
+		n = t->next;
+		free(t);
+		t = n;
+	}
 }
 
 void dump_system_clock_descriptor(system_clock_descriptor_t* p_descriptor)
@@ -155,7 +553,6 @@ void dump_maxbitrate_descriptor(maximum_bitrate_descriptor_t *p_descriptor)
 		p_descriptor->maximum_bitrate);
 
 }
-
 void dump_descriptors(const char* str, descriptor_t* p_descriptor)
 {
     int i;
@@ -164,16 +561,16 @@ void dump_descriptors(const char* str, descriptor_t* p_descriptor)
         printf( "%s 0x%02x : ", str, p_descriptor->tag);
         switch (p_descriptor->tag)
         {
-            case system_clock_descriptor:
+            case dr_system_clock:
                 dump_system_clock_descriptor(p_descriptor);
                 break;
-            case maximum_bitrate_descriptor:
+            case dr_maximum_bitrate:
                 dump_maxbitrate_descriptor(p_descriptor);
                 break;
-            case stream_identifier_descriptor:
+            case dr_stream_identifier:
                 //DumpStreamIdentifierDescriptor(dvbpsi_DecodeStreamIdentifierDr(p_descriptor));     
                 break;
-            case subtitling_descriptor:
+            case dr_subtitling:
                 //DumpSubtitleDescriptor(dvbpsi_DecodeSubtitlingDr(p_descriptor));      
                 break;
             default:
@@ -185,4 +582,3 @@ void dump_descriptors(const char* str, descriptor_t* p_descriptor)
         p_descriptor = p_descriptor->next;
     }
 }
-
