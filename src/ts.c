@@ -175,6 +175,8 @@ int init_pid_processor()
 	int ts_pktlen = 0;
 	int start_index;
 	int typ;
+	uint8_t pkt_con[TS_FEC_PACKET_SIZE];
+	int pkt_con_len = 0;
 	
 	file_ops.read(&ptr,&len);
 
@@ -204,11 +206,26 @@ int init_pid_processor()
 
 	ptr += start_index;
 	len -= start_index;
-	while(len>ts_pktlen)
-	{
-		ts_proc(ptr,ts_pktlen);
-		len -= ts_pktlen;
-		ptr += ts_pktlen;
+	
+	while(file_ops.end()){
+		if(pkt_con_len == ts_pktlen){
+			ts_proc(pkt_con,ts_pktlen);
+			pkt_con_len = 0;
+		}
+		while(len>ts_pktlen)
+		{
+			ts_proc(ptr,ts_pktlen);
+			len -= ts_pktlen;
+			ptr += ts_pktlen;
+		}
+		memcpy(pkt_con,ptr,len);
+		pkt_con_len = len;
+		if(file_ops.read(&ptr,&len) < 0)
+			break;
+		memcpy(pkt_con + pkt_con_len, ptr , ts_pktlen - pkt_con_len);
+		ptr += ts_pktlen - pkt_con_len;
+		len -= (ts_pktlen - pkt_con_len);
+		pkt_con_len = ts_pkt_len;
 	}
 	file_ops.close();
 
