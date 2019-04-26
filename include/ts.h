@@ -88,11 +88,13 @@ struct ts_ana_configuration{
 struct io_ops{
 	int fd;
 	int block_size;
+	size_t total_size;
 	size_t offset;
 	unsigned char *ptr;
 	int (*open)(char *filename);
 	int (*read)(void **ptr,size_t *len);
 	int (*close)();
+	int (*end)();
 };
 
 
