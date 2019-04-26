@@ -207,25 +207,31 @@ int init_pid_processor()
 	ptr += start_index;
 	len -= start_index;
 	
-	while(file_ops.end()){
+	while (file_ops.end())
+	{
 		if(pkt_con_len == ts_pktlen){
 			ts_proc(pkt_con,ts_pktlen);
 			pkt_con_len = 0;
 		}
-		while(len>ts_pktlen)
+		while(len >= ts_pktlen)
 		{
+			//hexdump(ptr,ts_pktlen);
 			ts_proc(ptr,ts_pktlen);
 			len -= ts_pktlen;
 			ptr += ts_pktlen;
 		}
-		memcpy(pkt_con,ptr,len);
-		pkt_con_len = len;
+		if(len){
+			memcpy(pkt_con, ptr, len);
+			pkt_con_len = len;
+		}
 		if(file_ops.read(&ptr,&len) < 0)
 			break;
-		memcpy(pkt_con + pkt_con_len, ptr , ts_pktlen - pkt_con_len);
-		ptr += ts_pktlen - pkt_con_len;
-		len -= (ts_pktlen - pkt_con_len);
-		pkt_con_len = ts_pkt_len;
+		if(pkt_con_len){
+			memcpy(pkt_con + pkt_con_len, ptr , ts_pktlen - pkt_con_len);
+			ptr += ts_pktlen - pkt_con_len;
+			len -= (ts_pktlen - pkt_con_len);
+			pkt_con_len = ts_pktlen;
+		}
 	}
 	file_ops.close();
 

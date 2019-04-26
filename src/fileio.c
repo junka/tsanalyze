@@ -19,6 +19,7 @@ struct io_ops file_ops={
 	.open = fileio_open,
 	.close = fileio_close,
 	.read = fileio_read,
+	.end = fileio_end,
 };
 
 int fileio_open(char * filename)
@@ -54,6 +55,8 @@ int fileio_read(void **ptr,size_t *len)
 		*len = 0;
 		return -1;
 	}
+	if(file_ops.total_size -file_ops.offset < size)
+		size = file_ops.total_size -file_ops.offset;
 	file_ops.offset += size;
 	*ptr = file_ops.ptr;
 	*len = size;

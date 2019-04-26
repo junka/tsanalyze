@@ -525,7 +525,7 @@ void init_descriptor_parsers()
 #define PARSE_DES(ptr,des)  do{ des_ops[ptr[0]].descriptor_parse(ptr,ptr[1]+2,des);}while(0)
 descriptor_t* parse_descriptors(uint8_t *buf, uint32_t len)
 {
-	hexdump(buf,len);
+	//hexdump(buf,len);
 	uint32_t l = len;
 	uint8_t* ptr = buf;
 	descriptor_t* h = NULL, *more;
