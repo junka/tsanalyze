@@ -278,8 +278,6 @@ typedef struct {
 	uint32_t crc32;
 }bat_t;
 
-
-
 /*infos in SDT*/
 struct service_info{
 	uint16_t service_id;
@@ -312,9 +310,41 @@ typedef struct {
 	uint32_t crc32;
 } sdt_t;
 
+struct event_info{
+	uint16_t event_id;
+	uint64_t start_time:40;
+	uint64_t duration:24;
+	uint16_t running_status:3;
+	uint16_t free_CA_mode:1;
+	uint16_t descriptors_loop_length:12;
+	struct descriptor * event_desriptor_list;
+	struct event_info *prev;
+	struct event_info *next;
+};
+
+typedef struct{
+	uint8_t table_id; /* 0x4E,0x4F,0x50-0x5F,0x60-0x6F */
+	uint16_t section_syntax_indicator:1;
+	uint16_t reserved_future_use:1;
+	uint16_t reserved:2;
+	uint16_t section_length:12;
+	uint16_t service_id;
+	uint8_t reserved1:2;
+	uint8_t version_number:5;
+	uint8_t current_next_indicator:1;
+	uint8_t section_number;
+	uint8_t last_section_number;
+	uint16_t transport_stream_id;
+	uint16_t original_network_id;
+	uint8_t segment_last_section_number;
+	uint8_t last_table_id;
+	struct event_info* event_list;
+	uint32_t crc32;
+}eit_t;
+
 typedef struct {
 	uint8_t time[5];
-}UTC_time_t;
+}__attribute__((packed)) UTC_time_t;
 
 typedef struct {
 	uint8_t table_id;	/* 0x70 */
@@ -373,6 +403,7 @@ typedef struct{
 	int pmt_num;
 	uint64_t pmt_bitmap[128];
 	pmt_t pmt[8192];  /*maybe no necessary */
+	nit_t nit;
 	sdt_t sdt;
 	bat_t bat;
 	tdt_t tdt;

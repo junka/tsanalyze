@@ -85,7 +85,11 @@ extern table_ops drop_ops;
 extern table_ops pat_ops;
 extern table_ops cat_ops;
 extern table_ops pmt_ops;
+extern table_ops nit_ops;
 extern table_ops sdt_ops;
+extern table_ops eit_ops;
+extern table_ops tdt_ops;
+extern table_ops tot_ops;
 
 int ts_proc(uint8_t *data,uint8_t len)
 {
@@ -129,6 +133,8 @@ int ts_proc(uint8_t *data,uint8_t len)
 
 void register_pmt_ops(uint16_t pid)
 {
+	if(pid == NIT_PID )
+		return;
 	pid_dev[pid].tops = &pmt_ops;
 }
 void unregister_pmt_ops(uint16_t pid)
@@ -141,9 +147,10 @@ void dump_TS_info()
 	uint16_t pid=0;
 	printf("\n");
 	printf("TS bits statistics:\n");
+	printf("%7s%21s%11s\n","PID","In","Err");
 	for(pid = 0; pid <=NULL_PID ; pid++){
 		if(pid_dev[pid].pkts_in)
-			printf("  PID %13d(0x%x)  \t:  %d\t%10d\n",pid,pid,pid_dev[pid].pkts_in,pid_dev[pid].error_in );
+			printf("%04d(0x%04x)  %2c  %10d%10d\n",pid,pid,':',pid_dev[pid].pkts_in,pid_dev[pid].error_in );
 	}
 }
 
@@ -158,7 +165,11 @@ int init_pid_ops(void)
 	
 	pid_dev[PAT_PID].tops = &pat_ops;
 	pid_dev[CAT_PID].tops = &cat_ops;
+	pid_dev[NIT_PID].tops = &nit_ops;
 	pid_dev[SDT_PID].tops = &sdt_ops;
+	pid_dev[EIT_PID].tops = &eit_ops;
+	pid_dev[TDT_PID].tops = &tdt_ops;
+	pid_dev[TOT_PID].tops = &tot_ops;
 
 	return 0;
 }
@@ -177,7 +188,7 @@ int init_pid_processor()
 	int typ;
 	uint8_t pkt_con[TS_FEC_PACKET_SIZE];
 	int pkt_con_len = 0;
-	
+
 	file_ops.read(&ptr,&len);
 
 	typ = mpegts_probe((uint8_t *)ptr,len);

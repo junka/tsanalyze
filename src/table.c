@@ -426,6 +426,59 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 	return 0;
 }
 
+int parse_nit(uint8_t * pbuf, uint16_t buf_size, nit_t * pNIT)
+{
+	uint16_t section_len = 0;
+	uint8_t version_num;
+	uint8_t *pdata = pbuf;
+
+	if (pbuf == NULL || pNIT == NULL)
+	{
+		return -1;
+	}
+
+	if (unlikely(pdata[0] != BAT_TID))
+	{
+		return -1;
+	}
+
+	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
+	version_num = (pdata[5] >> 1) & 0x1F;
+	if(version_num == pNIT->version_number && pNIT->stream_list != NULL)
+	{
+		return -1;
+	}
+	pNIT->section_length = section_len;
+	pNIT->version_number = version_num;
+	pNIT->network_id = (pdata[3] << 8) | pdata[4];
+	pdata += 8;
+	pNIT->network_descriptors_length = TS_READ16(pdata) &0xFFF;
+	if(pNIT->network_desriptor_list)
+		free_descriptors(pNIT->network_desriptor_list);
+	list_remove(pNIT, stream_list , struct transport_stream_info );
+	pdata += 2 +pNIT->network_descriptors_length;
+	pNIT->transport_stream_loop_length = TS_READ16(pdata) &0xFFF;
+	section_len -= 10;
+	section_len -= pNIT->network_descriptors_length;
+	section_len -=4;
+	pdata += 2 ;
+	while(section_len) {
+		struct transport_stream_info * more = malloc(sizeof(struct transport_stream_info));
+		more->next = NULL;
+		more->prev = more;
+		more->transport_stream_id = TS_READ16(pdata);
+		pdata+=2;
+		more->original_network_id = TS_READ16(pdata);
+		pdata+=2;
+		more->transport_descriptors_length =TS_READ16(pdata);
+		pdata+=2;
+		more->transport_stream_desriptor_list = parse_descriptors(pdata, more->transport_descriptors_length);
+		pdata+= more->transport_descriptors_length;
+		section_len -= 6+more->transport_descriptors_length;
+		list_insert(pNIT,stream_list,struct transport_stream_info, transport_stream_id, more);
+	}
+	return 0;
+}
 
 int parse_bat(uint8_t * pbuf, uint16_t buf_size, bat_t * pBAT)
 {
@@ -437,7 +490,6 @@ int parse_bat(uint8_t * pbuf, uint16_t buf_size, bat_t * pBAT)
 	{
 		return -1;
 	}
-
 
 	if (unlikely(pdata[0] != BAT_TID))
 	{
@@ -468,6 +520,7 @@ int parse_bat(uint8_t * pbuf, uint16_t buf_size, bat_t * pBAT)
 	pBAT->transport_stream_loop_length = TS_READ16(pdata)&0xFFF;
 	pdata += 2;
 	section_len -=2;
+	section_len -=4;
 	while(section_len)
 	{
 		struct transport_stream_info* si = malloc(sizeof(struct transport_stream_info));
@@ -544,6 +597,61 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 	return 0;
 }
 
+static int parse_eit(uint8_t * pbuf, uint16_t buf_size, eit_t * pEIT)
+{
+	return 0;
+}
+
+static int parse_tdt(uint8_t * pbuf, uint16_t buf_size, tdt_t * pTDT)
+{
+	uint16_t section_len = 0;
+	uint8_t *pdata = pbuf;
+	
+	if (pbuf == NULL || pTDT == NULL)
+	{
+		return -1;
+	}
+
+	if (unlikely(pdata[0] != TDT_TID))
+	{
+		return -1;
+	}
+
+	pdata += 1;
+	pTDT->section_length = TS_READ16(pdata)&0xFFF;
+	pdata+=2;
+	memcpy(&pTDT->utc_time,pdata, 5);
+	return 0;
+}
+
+static int parse_tot(uint8_t * pbuf, uint16_t buf_size, tot_t * pTOT)
+{
+	uint16_t section_len = 0;
+	uint8_t *pdata = pbuf;
+	
+	if (pbuf == NULL || pTOT == NULL)
+	{
+		return -1;
+	}
+
+	if (unlikely(pdata[0] != TOT_TID))
+	{
+		return -1;
+	}
+
+	pdata += 1;
+	pTOT->section_length = TS_READ16(pdata)&0xFFF;
+	pdata+=2;
+	memcpy(&pTOT->utc_time,pdata, 5);
+	pdata+= 5;
+	pTOT->descriptors_loop_length = TS_READ16(pdata)&0xFFF;
+	pdata+=2;
+	if(pTOT->time_offset_descriptor_list)
+		free_descriptors(pTOT->time_offset_descriptor_list);
+	pTOT->time_offset_descriptor_list = parse_descriptors(pdata,pTOT->descriptors_loop_length );
+	return 0;
+}
+
 static int pat_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
 	psi.stats.pat_sections ++;
@@ -564,6 +672,11 @@ static int pmt_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 	return 0;
 }
 
+static int nit_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
+{
+	parse_nit(pkt, len, &(psi.nit));
+}
+
 static int sdt_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
 	if(pkt[0]==BAT_TID)
@@ -574,6 +687,18 @@ static int sdt_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 	{
 		parse_sdt(pkt,len,&(psi.sdt));
 	}
+	return 0;
+}
+
+static int tdt_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
+{
+	parse_tdt(pkt, len, &psi.tdt);
+	return 0;
+}
+
+static int tot_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
+{
+	parse_tdt(pkt, len, &psi.tot);
 	return 0;
 }
 
@@ -601,9 +726,29 @@ table_ops pmt_ops = {
 	.table_id = PMT_TID,
 	.table_proc = pmt_proc,
 };
+
+table_ops nit_ops = {
+	.table_id = NIT_ACTUAL_TID,
+	.table_proc = nit_proc,
+};
+
 table_ops sdt_ops = {
 	.table_id = SDT_TID,
 	.table_proc = sdt_proc,
 };
 
+table_ops eit_ops = {
+	.table_id = EIT_ACTUAL_TID,
+	.table_proc = sdt_proc,
+};
+
+table_ops tdt_ops = {
+	.table_id = TDT_TID,
+	.table_proc = tdt_proc,
+};
+
+table_ops tot_ops = {
+	.table_id = TOT_TID,
+	.table_proc = tot_proc,
+};
 

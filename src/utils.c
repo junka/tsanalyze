@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <time.h>
 #include "utils.h"
 
 #define LINE_LEN 128
@@ -29,3 +30,4 @@ void hexdump(uint8_t *buf, uint32_t len)
     fflush(stdout);
 
 }
+
