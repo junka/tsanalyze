@@ -698,7 +698,7 @@ static int tdt_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 
 static int tot_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
-	parse_tdt(pkt, len, &psi.tot);
+	parse_tot(pkt, len, &psi.tot);
 	return 0;
 }
 

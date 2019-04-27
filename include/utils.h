@@ -58,6 +58,10 @@ extern "C"{
 
 void hexdump(uint8_t *buf, uint32_t len);
 
+#define contain_of(item, type, member) \
+		((type *)((char *)item - (char *)(&((type *)0)->member)))
+
+
 
 #ifdef __cplusplus
 }

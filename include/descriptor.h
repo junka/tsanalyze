@@ -14,112 +14,6 @@ typedef struct descriptor{
 	uint8_t data[0];
 }__attribute__((packed)) descriptor_t;
 
-
-
-#if 0
-enum descriptor_e{
-	/* ISO/IEC 13818-1 */
-	video_stream_descriptor		= 0x02,
-	audio_stream_descriptor		= 0x03,
-	hierarchy_descriptor		= 0x04,
-	registration_descriptor		= 0x05,
-	data_stream_alignment_descriptor = 0x06,
-	target_background_grid_descriptor = 0x07,
-	video_window_descriptor		= 0x08,
-	CA_descriptor				= 0x09,
-	ISO_639_language_descriptor	= 0x0A,
-	system_clock_descriptor		= 0x0B,
-	multiplex_buffer_utilization_descriptor = 0x0C,
-	copyright_descriptor		= 0x0D,
-	maximum_bitrate_descriptor	= 0x0E,
-	private_data_indicator_descriptor = 0x0F,
-	smoothing_buffer_descriptor	= 0x10,
-	STD_descriptor				= 0x11,
-	ibp_descriptor				= 0x12,
-	/* 0x12 - 0x1A Defined in ISO/IEC 13818-6*/
-	
-	MPEG4_video_descriptor		= 0x1B,
-	MPEG4_audio_descriptor		= 0x1C,
-	IOD_descriptor				= 0x1D,
-	SL_descriptor				= 0x1E,
-	FMC_descriptor				= 0x1F,
-	external_ES_ID_descriptor	= 0x20,
-	muxcode_descriptor			= 0x21,
-	FmxBufferSize_descriptor	= 0x22,
-	MultiplexBuffer_descriptor	= 0x23,
-	/* 0x24 - 0x3F reserved */
-
-	/* EN 300 468*/
-	network_name_descriptor		= 0x40,
-	service_list_descriptor 	= 0x41,
-	stuffing_descriptor			= 0x42,
-	satellite_delivery_system_descriptor = 0x43,
-	cable_delivery_system_descriptor = 0x44,
-	VBI_data_descriptor			= 0x45,
-	VBI_teletext_descripto		= 0x46,
-	bouquet_name_descriptor		= 0x47,
-	service_descriptor			= 0x48,
-	country_availability_descriptor = 0x49,
-	linkage_descriptor			= 0x4A,
-	NVOD_reference_descriptor	= 0x4B,
-	time_shifted_service_descriptor = 0x4C,
-	short_event_descriptor		= 0x4D,
-	extended_event_descriptor	= 0x4E,
-	time_shifted_event_descriptor = 0x4F,
-	component_descriptor		= 0x50,
-	mosaic_descriptor			= 0x51,
-	stream_identifier_descriptor	= 0x52,
-	CA_identifier_descriptor	= 0x53,
-	content_descriptor			= 0x54,
-	parental_rating_descriptor	= 0x55,
-	teletext_descriptor			= 0x56,
-	telephone_descriptor		= 0x57,
-	local_time_offset_descriptor	= 0x58,
-	subtitling_descriptor		= 0x59,
-	terrestrial_delivery_system_descriptor = 0x5A,
-	multilingual_network_name_descriptor =0x5B,
-	multilingual_bouquet_name_descriptor = 0x5C,
-	multilingual_service_name_descriptor = 0x5D,
-	multilingual_component_descriptor = 0x5E,
-	private_data_specifier_descriptor = 0x5F,
-	service_move_descriptor		= 0x60,
-	short_smoothing_buffer_descriptor = 0x61,
-	frequency_list_descriptor	= 0x62,
-	partial_transport_stream_descriptor = 0x63,
-	data_broadcast_descriptor	= 0x64,
-	scrambling_descriptor		= 0x65,
-	data_broadcast_id_descriptor	= 0x66,
-	transport_stream_descriptor	= 0x67,
-	DSNG_descriptor 			= 0x68,
-	PDC_descriptor				= 0x69,
-	AC3_descriptor				= 0x6A,
-	ancillary_data_descriptor	= 0x6B,
-	cell_list_descriptor		= 0x6C,
-	cell_frequency_link_descriptor	= 0x6D,
-	announcement_support_descriptor	= 0x6E,
-	application_signalling_descriptor = 0x6F,
-	adaptation_field_data_descriptor = 0x70,
-	service_identifier_descriptor	= 0x71,
-	service_availability_descriptor = 0x72,
-	default_authority_descriptor 	= 0x73,
-	related_content_descriptor	= 0x74,
-	TVA_id_descriptor			= 0x75,
-	content_identifier_descriptor	= 0x76,
-	time_slice_fec_identifier_descriptor = 0x77,
-	ECM_repetition_rate_descriptor = 0x78,
-	S2_satellite_delivery_system_descriptor = 0x79,
-	enhanced_AC3_descriptor		= 0x7A,
-	DTS_descriptor				= 0x7B,
-	AAC_descriptor				= 0x7C,
-	XAIT_location_descriptor	= 0x7D,
-	FTA_content_management_descriptor = 0x7E,
-	extension_descriptor		= 0x7F,
-
-	/*0x80 to 0xFE user defined */
-	/*0xFF forbidden */
-};
-#endif
-
 /* ISO/IEC 13818-1 */
 #define foreach_enum_descriptor \
 	_(video_stream, 0x02)\
@@ -226,7 +120,6 @@ enum descriptor_e{
 };
 
 /* see ISO/IEC 13818-1 chapter 2.6*/
-
 typedef struct {
 	EXT_STD_C11
 	union{
@@ -462,9 +355,7 @@ typedef struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			void *next;
-			uint24_t maximum_bitrate;
-			//uint24_t reserved:2;
-			//uint24_t maximum_bitrate:22;
+			uint24_t maximum_bitrate;//22bit
 		};
 	};
 } maximum_bitrate_descriptor_t;
@@ -648,27 +539,115 @@ typedef struct {
 /*see EN_300 468 chapter 6*/
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			char *text_byte;
+		};
+	};
 }network_name_descriptor_t;
 
 typedef struct {
 	
 }service_list_descriptor_t;
 
-typedef struct{}stuffing_descriptor_t;
+typedef struct{
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			char *stuffing_byte;
+		};
+	};
+}stuffing_descriptor_t;
 
 typedef struct {
-
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint32_t frequency;
+			uint16_t orbital_position;
+			uint8_t west_east_flag:1;
+			uint8_t polarization:2;
+			uint8_t roll_off:2;
+			uint8_t modulation_system:1;
+			uint8_t modulation_type:2;
+			uint32_t symbol_rate:28;
+			uint32_t FEC_inner:4;
+		};
+	};
 }satellite_delivery_system_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint32_t frequency;
+			uint16_t reserved_future_use:12;
+			uint16_t FEC_outer:4;
+			uint8_t modulation;
+			uint32_t symbol_rate:28;
+			uint32_t FEC_inner:4;
+		};
+	};
+} cable_delivery_system_descriptor_t;
 
-}cable_delivery_system_descriptor_t;
+struct VBI_data_info {
+	uint8_t data_service_id;
+	uint8_t data_service_descriptor_length;
+	uint8_t *reserved;
+	struct VBI_data_info * prev;
+	struct VBI_data_info * next;
+};
 
 typedef struct {
-
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct VBI_data_info *list;
+		};
+	};
 }VBI_data_descriptor_t;
-typedef struct {
 
+struct VBI_teletext_info {
+	uint32_t ISO_639_language_code:24;
+	uint32_t teletext_type:5;
+	uint32_t teletext_magazine_number:3;
+	uint8_t teletext_page_number;
+	struct VBI_teletext_info * prev;
+	struct VBI_teletext_info * next;
+};
+
+typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct VBI_teletext_info* list;
+		};
+	};
 }VBI_teletext_descriptor_t;
 
 typedef struct {
@@ -685,7 +664,20 @@ typedef struct {
 }bouquet_name_descriptor_t;
 
 typedef struct {
-	
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void *next;
+			uint8_t service_type;
+			uint8_t service_provider_name_length;
+			uint8_t *text_char;
+			uint8_t service_name_length;
+			uint8_t *service_char;
+		};
+	};
 }service_descriptor_t;
 
 
@@ -734,19 +726,102 @@ typedef struct {
 }country_availability_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint16_t transport_stream_id;
+			uint16_t original_network_id;
+			uint16_t service_id;
+			uint8_t linkage_type;
+			//TODO
+			uint8_t*private_data_byte;
+		};
+	};
 }linkage_descriptor_t;
 
+struct NVOD_reference{
+	uint16_t transport_stream_id;
+	uint16_t original_network_id;
+	uint16_t service_id;
+	struct NVOD_reference *prev;
+	struct NVOD_reference *next;
+};
+
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct NVOD_reference *nvod_list;
+		};
+	};
 }NVOD_reference_descriptor_t;
 
 typedef struct{
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t reference_service_id;
+		};
+	};
 }time_shifted_service_descriptor_t;
 
 typedef struct{
-
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint32_t ISO_639_language_code:24;
+			uint32_t event_name_length:8;
+			uint8_t *event_name_char;
+			uint8_t text_length;
+			uint8_t *text_char;
+		};
+	};
 }short_event_descriptor_t;
 
+
+struct event_item{
+	uint8_t item_description_length;
+	uint8_t* item_description_char;
+	uint8_t item_length;
+	uint8_t *item_char;
+	struct event_item *prev;
+	struct event_item *next;
+};
+
+
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t descriptor_number:4;
+			uint8_t last_descriptor_number:4;
+			uint32_t ISO_639_language_code:24;
+			uint32_t length_of_items:8;
+			struct event_item item_list;
+			uint8_t text_length;
+			uint8_t *text_char;
+		};
+	};
 }extended_event_descriptor_t;
 
 typedef struct{
@@ -775,6 +850,16 @@ typedef struct {
 }mosaic_descriptor_t;
 
 typedef struct{
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t component_tag;
+		};
+	};
 }stream_identifier_descriptor_t;
 
 typedef struct {
@@ -812,65 +897,384 @@ typedef struct {
 
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint32_t *countrycode_and_rating;
+		};
+	};
 }parental_rating_descriptor_t;
 
+enum teletext_type{
+	teletext_reserved = 0x0,
+	teletext_initial_page = 0x1,
+	teletext_subtitle_page = 0x2,
+	additional_information_page = 0x3,
+	programme_schedule_page = 0x4,
+	hearing_impaired_page = 0x5,
+	/*0x06 to 0x1F reserved*/
+};
+
+struct teletext_info{
+	uint32_t ISO_639_language_code:24;
+	uint32_t teletext_type:5;
+	uint32_t teletext_magazine_number:3;
+	uint8_t teletext_page_number;
+	struct teletext_info *prev;
+	struct teletext_info *next;
+};
+
 typedef struct{
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct teletext_info *teletext_list;
+		};
+	};
 }teletext_descriptor_t;
 
 typedef struct{
-
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t reserved_future_use:2;
+			uint8_t foreign_availability:1;
+			uint8_t connection_type:5;
+			uint8_t reserved_future_use1:1;
+			uint8_t country_prefix_length:2;
+			uint8_t international_area_code_length:3;
+			uint8_t operator_code_length:2;
+			uint8_t reserved_future_use2:1;
+			uint8_t national_area_code_length:3;
+			uint8_t core_number_length:4;
+			uint8_t *country_prefix_char;
+			uint8_t *international_area_code_char;
+			uint8_t *operator_code_char;
+			uint8_t *national_area_code_char;
+			uint8_t *core_number_char;
+		};
+	};
 }telephone_descriptor_t;
 
+struct local_time_info{
+	uint32_t country_code:24;
+	uint32_t country_region_id:6;
+	uint32_t reserved:1;
+	uint32_t local_time_offset_polarity:1;
+	uint16_t local_time_offset;
+	uint40_t time_of_change;
+	uint16_t next_time_offset;
+	struct local_time_info *prev;
+	struct local_time_info *next;
+};
+
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct local_time_info* time_list;
+		};
+	};
 }local_time_offset_descriptor_t;
 
+struct subtitling_info{
+	uint32_t ISO_639_language_code:24;
+	uint32_t subtitling_type:8;
+	uint16_t composition_page_id;
+	uint16_t ancillary_page_id;
+	struct subtitling_info *prev;
+	struct subtitling_info *next;
+};
+
 typedef struct{
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct subtitling_info* subtitle_list;
+		};
+	};
 }subtitling_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint32_t centre_frequency;
+			uint8_t bandwidth:3;
+			uint8_t priority:1;
+			uint8_t time_slicing_indicator:1;
+			uint8_t MPE_FEC_indicator:1;
+			uint8_t reserved_future_use:2;
+			uint8_t constellation:2;
+			uint8_t hierarchy_information:3;
+			uint8_t code_rate_HP_stream:3;
+			uint8_t code_rate_LP_stream:3;
+			uint8_t guard_interval:2;
+			uint8_t transmission_mode:2;
+			uint8_t other_frequency_flag:1;
+			uint32_t reserved_future_use1;
+		};
+	};
 }terrestrial_delivery_system_descriptor_t;
 
+struct multilingual_info{
+	uint32_t ISO_639_language_code:24;
+	uint32_t name_length:8;
+	uint8_t *text_char;
+	struct multilingual_info*prev;
+	struct multilingual_info*next;
+};
+
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct multilingual_info* time_list;
+		};
+	};
+
 }multilingual_network_name_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct multilingual_info* time_list;
+		};
+	};
 }multilingual_bouquet_name_descriptor_t;
 
+struct multilingual_service_info{
+	uint32_t ISO_639_language_code:24;
+	uint32_t name_length:8;
+	uint8_t *text_char;
+	uint8_t service_name_length;
+	uint8_t *service_char;
+	struct multilingual_info*prev;
+	struct multilingual_info*next;
+};
+
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			struct multilingual_service_info* time_list;
+		};
+	};
+
 }multilingual_service_name_descriptor_t;
+
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t component_tag;
+			struct multilingual_info* time_list;
+		};
+	};
+
 }multilingual_component_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint32_t private_data_specifier;
+		};
+	};
 }private_data_specifier_descriptor_t;
 
-typedef struct{}service_move_descriptor_t;
+typedef struct{
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint16_t new_original_network_id;
+			uint16_t new_transport_stream_id;
+			uint16_t new_service_id;
+		};
+	};
+}service_move_descriptor_t;
 
-typedef struct{}short_smoothing_buffer_descriptor_t;
+typedef struct{
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t sb_size:2;
+			uint8_t sb_leak_rate:6;
+			uint8_t *DVB_reserved;
+		};
+	};
+}short_smoothing_buffer_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t reserved_future_use:6;
+			uint8_t coding_type:2;
+			uint32_t * centre_frequency;
+		};
+	};
 }frequency_list_descriptor_t;
 
-typedef struct {}partial_transport_stream_descriptor_t;
+typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void *next;
+			uint64_t DVB_reserved_future_use:2;
+			uint64_t peak_rate:22;
+			uint64_t DVB_reserved_future_use1:2;
+			uint64_t minimum_overall_smoothing_rate:22;
+			uint64_t DVB_reserved_future_use2:2;
+			uint64_t maximum_overall_smoothing_buffer:14;
+		};
+	};
+}partial_transport_stream_descriptor_t;
 
 typedef struct {
-
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void *next;
+			uint16_t data_broadcast_id;
+			uint8_t component_tag;
+			uint8_t selector_length;
+			uint8_t *selector_byte;
+			uint32_t ISO_639_language_code:24;
+			uint32_t text_length:8;
+			uint8_t *text_char;
+		};
+	};
 }data_broadcast_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void *next;
+			uint8_t scrambling_mode;
+		};
+	};
 }scrambling_descriptor_t;
 
 typedef struct {
-
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void *next;
+			uint16_t data_broadcast_id;
+			uint8_t *id_selector_byte;
+		};
+	};
 }data_broadcast_id_descriptor_t;
 
 
-typedef struct{ }transport_stream_descriptor_t;
+typedef struct{ 
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t *byte;
+		};
+	};
+}transport_stream_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t * byte;
+		};
+	};
 }DSNG_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint24_t programme_identification_label;//20bit
+		};
+	};
 }PDC_descriptor_t;
 
 
@@ -1035,6 +1439,18 @@ typedef struct {
 typedef struct{}service_identifier_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void *next;
+			uint8_t availability_flag:1;
+			uint8_t reserved:7;
+			uint16_t *cell_id;
+		};
+	};
 }service_availability_descriptor_t;
 
 typedef struct {}default_authority_descriptor_t;
@@ -1055,6 +1471,22 @@ typedef struct{
 }ECM_repetition_rate_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t scrambling_sequence_selector:1;
+			uint8_t multiple_input_stream_flag:1;
+			uint8_t backwards_compatibility_indicator:1;
+			uint8_t reserved_future_use:5;
+			uint32_t reserved:6;
+			uint32_t scrambling_sequence_index:18;
+			uint32_t input_stream_identifier:8;
+		};
+	};
 }S2_satellite_delivery_system_descriptor_t;
 
 typedef struct {
@@ -1062,23 +1494,109 @@ typedef struct {
 
 
 typedef struct{
-
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			//40bits
+			uint64_t sample_rate_code:4;
+			uint64_t bit_rate_code:6;
+			uint64_t nblks:7;
+			uint64_t fsize:14;
+			uint64_t surround_mode:6;
+			uint64_t lfe_flag:1;
+			uint64_t extended_surround_flag:2;
+			uint8_t *additional_info_byte;
+		};
+	};
 }DTS_descriptor_t;
 
 
 typedef struct{
 
 }AAC_descriptor_t;
-
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t profile_and_level;
+			//valid when descriptor_length >1
+			uint8_t AAC_type_flag:1;
+			uint8_t SAOC_DE_flag:1;
+			uint8_t reserved_future_use:6;
+			uint8_t AAC_type;
+			uint8_t *additional_info_byte;
+		};
+	};
 typedef struct{
 
 }XAIT_location_descriptor_t;
 
 typedef struct { /*0x7E*/
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t user_defined:1;
+			uint8_t reserved_future_use:3;
+			uint8_t do_not_scramble:1;
+			uint8_t control_remote_access_over_internet:2;
+			uint8_t do_not_apply_revocation:1;
+		};
+	};
 }FTA_content_management_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+			uint8_t descriptor_tag_extension;
+			uint8_t *selector_byte;
+		};
+	};
 }extension_descriptor_t;
+/*externsion_descriptors */
+enum extension_tag{
+	image_icon = 0x0,
+	cpcm_delivery_signalling= 0x1,
+	CP = 0x2,
+	CP_identifier = 0x3,
+	T2_delivery_system = 0x4,
+	SH_delivery_system = 0x5,
+	supplementary_audio = 0x6,
+	network_change_notify = 0x7,
+	message = 0x8,
+	target_region = 0x9,
+	target_region_name = 0xA,
+	service_relocated = 0xB,
+	XAIT_PID = 0xC,
+	C2_delivery_system = 0xD,
+	DTS_HD_audio_stream = 0xE,
+	DTS_Neural = 0xF,
+	video_depth_range = 0x10,
+	T2MI = 0x11,
+	/* 0x12 reserved*/
+	URI_linkage = 0x13,
+	CI_ancillary_data = 0x14,
+	AC_4 = 0x15,
+	C2_bundle_delivery_system = 0x16,
+	/*0x17 - 0x7F  reserved*/
+	/*0x80 - 0xFF  user defined */
+};
+
 
 struct descriptor_ops{
 	uint8_t tag;
