@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
+#include "types.h"
 #include "utils.h"
 
 #define LINE_LEN 128
@@ -31,3 +32,28 @@ void hexdump(uint8_t *buf, uint32_t len)
 
 }
 
+void dumpUTC(UTC_time_t *t)
+{
+	/*16bits lsb MJB + 24 bits BCD*/
+	uint16_t mjd = (((uint16_t)t->time[0]<<8) |(t->time[1]));
+	uint8_t hour = t->time[2];
+	uint8_t min =t->time[3];
+	uint8_t sec = t->time[4];
+
+	int Y,M,D;
+	int K;
+	int Y1 = (int)((mjd - 15078.2) / 365.25) ;
+	int M1 = (int) (( mjd - 14956.1 - (int)(Y1 *365.25) ) / 30.6001 );
+	D = mjd - 14956 - (int) (Y1 * 365.25) - (int )(M1* 30.6001);
+	if( M1 == 14 || M1 == 15)
+		K = 1; 
+	else
+		K = 0;
+	Y = Y1 + K;
+	M = M1 - 1 - K *12;
+
+	
+	printf("%d-%d-%d ",Y,M,D);
+	printf("%02x:%02x:%02x",hour,min,sec);
+	
+}
