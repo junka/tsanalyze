@@ -12,11 +12,12 @@ extern "C"{
 	if(A->member == NULL) \
 	{ \
 		A->member = elem; \
+		break;\
 	} \
 	type * h = A->member; \
 	if(elem->m < h->m) { \
 		elem->next = h; \
-		h->next = elem; \
+		h->prev = elem; \
 		A->member = elem; \
 		break; \
 	} \
@@ -24,13 +25,19 @@ extern "C"{
 	{ \
 		h = h->next; \
 	} \
-	if(h->m ==elem->m)\
+	if(h->m < elem->m)\
 	{\
-		return;\
+		elem->prev = h;\
+		elem->next = h->next;\
+		h->next = elem;\
 	}\
-	elem->prev = h;\
-	elem->next = h->next;\
-	h->next = elem;\
+	else if(h->m>elem->m)\
+	{\
+		elem->next = h; \
+		elem->prev = h->prev;\
+		h->prev = elem; \
+		A->member = elem; \
+	}\
 }while(0)
 
 

@@ -343,10 +343,6 @@ typedef struct{
 }eit_t;
 
 typedef struct {
-	uint8_t time[5];
-}__attribute__((packed)) UTC_time_t;
-
-typedef struct {
 	uint8_t table_id;	/* 0x70 */
 	uint16_t section_syntax_indicator:1;
 	uint16_t reserved_future_use:1;
@@ -403,9 +399,16 @@ typedef struct{
 	int pmt_num;
 	uint64_t pmt_bitmap[128];
 	pmt_t pmt[8192];  /*maybe no necessary */
+	uint8_t has_nit:1;
+	uint8_t has_sdt:1;
+	uint8_t has_bat:1;
+	uint8_t has_eit:1;
+	uint8_t has_tdt:1;
+	uint8_t has_tot:1;
 	nit_t nit;
 	sdt_t sdt;
 	bat_t bat;
+	eit_t eit;
 	tdt_t tdt;
 	tot_t tot;
 	stats_t stats;
@@ -413,6 +416,7 @@ typedef struct{
 
 typedef struct{
 	uint8_t table_id;
+	uint8_t mask;
 	int (*table_proc)(uint16_t pid,uint8_t *pkt,uint16_t len);
 }table_ops;
 

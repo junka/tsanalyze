@@ -17,8 +17,11 @@
 
 int main(int argc,char *argv[])
 {
+
 	prog_parse_args(argc, argv);
+
 	init_pid_processor();
+	
 	dump_tables();
 	dump_TS_info();
 	return 0;

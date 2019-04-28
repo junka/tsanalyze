@@ -508,11 +508,6 @@ void init_descriptor_parsers()
 		des_ops[i].descriptor_alloc = alloc_reserved;
 	}
 
-//	char* names[0xFF] ={
-//#define _(a,b) 
-//		foreach_enum_descriptor
-//#undef _
-//	};
 #define _(a,b) des_ops[b].tag = b;\
 	des_ops[b].descriptor_parse = FUNC(a); \
 	des_ops[b].descriptor_alloc = alloc_##a ;\
@@ -524,15 +519,16 @@ void init_descriptor_parsers()
 
 #define ALLOC_DES(tag)  des_ops[tag].descriptor_alloc()
 #define PARSE_DES(ptr,des)  do{ des_ops[ptr[0]].descriptor_parse(ptr,ptr[1]+2,des);}while(0)
-descriptor_t* parse_descriptors(uint8_t *buf, uint32_t len)
+descriptor_t* parse_descriptors(uint8_t *buf, int len)
 {
 	//hexdump(buf,len);
-	uint32_t l = len;
+	int l = len;
 	uint8_t* ptr = buf;
 	descriptor_t* h = NULL, *more;
-	while( l )
+	while(l>0)
 	{
-		//printf("%s\n",des_ops[ptr[0]].tag_name);
+		//hexdump( ptr, l);
+		//printf("%s : %d, %d\n",des_ops[ptr[0]].tag_name,l,ptr[1]);
 		void* des = ALLOC_DES(ptr[0]);
 		descriptor_t *more = (descriptor_t*) des;
 		PARSE_DES(ptr,des);

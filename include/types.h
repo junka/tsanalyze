@@ -22,6 +22,11 @@ typedef struct uint40 {
 	uint64_t bits:40;
 }__attribute__((packed)) uint40_t;
 
+typedef struct {
+	uint8_t time[5];
+}__attribute__((packed)) UTC_time_t;
+
+
 #ifdef __cplusplus
 }
 #endif

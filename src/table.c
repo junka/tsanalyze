@@ -69,7 +69,7 @@ static void dump_PAT(void* p_data, pat_t* p_pat)
 		printf("    | %14d @ 0x%x (%d)\n",p_program->program_number, p_program->program_map_PID, p_program->program_map_PID);
 		p_program = p_program->next;
 	}
-	printf("  active              : %d\n", p_pat->current_next_indicator);
+	printf("  active              : 0x%x\n", p_pat->current_next_indicator);
 
 }
 
@@ -93,28 +93,17 @@ static void dump_CAT(void* p_data, cat_t* p_cat)
 
 static void dump_TDT(void* p_data, tdt_t* p_tdt)
 {
-	//ts_stream_t* p_stream = (ts_stream_t*) p_data;
-
 	printf("\n");
 	printf("TDT: Time and Date Table\n");
+	printf("\tUTC time       : %s\n", convert_UTC(&p_tdt->utc_time));
 
-	//printf("\tVersion number : %d\n", p_tot->version);
-	//printf("\tCurrent next   : %s\n", p_tot->b_current_next ? "yes" : "no");
-	printf("\tUTC time       : %lu\n", p_tdt->utc_time);
-
-	//dump_descriptors("\t  |  ]", p_tot->time_offset_descriptor_list);
 }
 
 static void dump_TOT(void* p_data, tot_t* p_tot)
 {
-	//ts_stream_t* p_stream = (ts_stream_t*) p_data;
-
 	printf("\n");
 	printf("TOT: Time Offset Table\n");
-
-	//printf("\tVersion number : %d\n", p_tot->version);
-	//printf("\tCurrent next   : %s\n", p_tot->b_current_next ? "yes" : "no");
-	printf("\tUTC time       : %lu\n", p_tot->utc_time);
+	printf("\tUTC time       : %s\n", convert_UTC(&p_tot->utc_time));
 
 	dump_descriptors("\t  |  ]", p_tot->time_offset_descriptor_list);
 }
@@ -131,6 +120,7 @@ static void dump_PMT(void* p_data, pmt_t* p_pmt, uint16_t pid)
 	printf( "  version_number : %d\n", p_pmt->version_number );
 	printf( "  PCR_PID        : 0x%x (%d)\n", p_pmt->PCR_PID, p_pmt->PCR_PID);
 	dump_descriptors("    ]", p_pmt->desriptor_list);
+	printf( "  components\n");
 	printf( "    | type @ elementary_PID\n");
 	while(p_es){
 		printf( "    | 0x%02x (%s) @ 0x%x\n",p_es->stream_type,get_stream_type(p_es->stream_type),p_es->elementary_PID);
@@ -152,25 +142,44 @@ static void dump_SDT(void* p_data, sdt_t* p_sdt)
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 
 	printf(  "\n");
-	printf(  "SDT\n");
+	printf(  "SDT\n");	
 	printf(  "  section_length: %d\n",p_sdt->section_length);
-	printf(  "  transport_stream_id : %d\n", p_sdt->transport_stream_id);  
+	printf(  "  transport_stream_id : 0x%x\n", p_sdt->transport_stream_id);  
 	printf(  "  version_number      : %d\n", p_sdt->version_number);  
+	printf(  "  Current next   : %s\n", p_sdt->current_next_indicator ? "yes" : "no");
+	printf(  "  original_network_id : 0x%x\n", p_sdt->original_network_id);  
 	printf(  "    | service_id \n");
 	while(p_service)
 	{
-		printf("    | %14d \n",p_service->service_id);
+		printf("    | 0x%04x(%d) \n",p_service->service_id,p_service->service_id);
+		printf("        | EIT_schedule_flag 0x%x \n",p_service->EIT_schedule_flag);
+		printf("        | EIT_present_following_flag 0x%x \n",p_service->EIT_present_following_flag);
+		printf("        | running_status 0x%x \n",p_service->running_status);
+		printf("        | free_CA_mode 0x%x \n",p_service->free_CA_mode);
 		p_service = p_service->next;
 	}
-	printf("  active              : %d\n", p_sdt->current_next_indicator);
+	printf("  active              : 0x%x\n", p_sdt->current_next_indicator);
 
 }
 
 void dump_tables(void)
 {
 	int i =0;
+	if(psi.stats.sdt_sections>0)
+		psi.has_sdt = 1;
+	if(psi.stats.bat_sections>0)
+		psi.has_bat = 1;
+	if(psi.stats.nit_sections>0)
+		psi.has_nit = 1;
+	if(psi.stats.tdt_sections>0)
+		psi.has_tdt = 1;
+	if(psi.stats.tot_sections>0)
+		psi.has_tot = 1;
+	
+	
 	dump_PAT(&psi, &psi.pat);
-	dump_SDT(&psi,&psi.sdt);
+	if(psi.has_sdt)
+		dump_SDT(&psi,&psi.sdt);
 	if(psi.ca_num>0)
 	{
 		dump_CAT(&psi, &psi.cat);
@@ -182,8 +191,10 @@ void dump_tables(void)
 			dump_PMT(&psi, &psi.pmt[i],i);
 		}
 	}
-	dump_TDT(&psi, &psi.tdt);
-	dump_TOT(&psi, &psi.tdt);
+	if(psi.has_tdt)
+		dump_TDT(&psi, &psi.tdt);
+	if(psi.has_tot)
+		dump_TOT(&psi, &psi.tot);
 }
 
 
@@ -405,6 +416,8 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 	pPMT->desriptor_list = parse_descriptors(pdata, pPMT->program_info_length);
 	section_len -= 2+ pPMT->program_info_length;
 	pdata += pPMT->program_info_length;
+	
+	printf("section_len %d\n",section_len);
 
 	while (section_len > 0)
 	{
@@ -415,12 +428,13 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 		pdata+= 2;
 		el->ES_info_length = TS_READ16(pdata)&0x0FFF;
 		el->next = NULL;
-		el->prev = el;
+		el->prev = NULL;
 		pdata += 2;
 		el->descriptor_list = parse_descriptors(pdata,el->ES_info_length);
 		pdata += el->ES_info_length;
 		section_len -= (5+el->ES_info_length);
 		list_insert(pPMT,es_list,struct es_info, elementary_PID, el);
+		printf("insert 0x%x\n",el->elementary_PID);
 	}
 
 	return 0;
@@ -472,7 +486,7 @@ int parse_nit(uint8_t * pbuf, uint16_t buf_size, nit_t * pNIT)
 		pdata+=2;
 		more->transport_descriptors_length =TS_READ16(pdata);
 		pdata+=2;
-		more->transport_stream_desriptor_list = parse_descriptors(pdata, more->transport_descriptors_length);
+		more->transport_stream_desriptor_list = parse_descriptors(pdata, (int)more->transport_descriptors_length);
 		pdata+= more->transport_descriptors_length;
 		section_len -= 6+more->transport_descriptors_length;
 		list_insert(pNIT,stream_list,struct transport_stream_info, transport_stream_id, more);
@@ -552,7 +566,6 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 		return -1;
 	}
 
-
 	if (unlikely(pdata[0] != SDT_ACTUAL_TID && pdata[0]!=SDT_OTHER_TID))
 	{
 		return -1;
@@ -575,6 +588,7 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 	pSDT->original_network_id = TS_READ16(pdata);
 	pdata += 3;
 	section_len -= 8;
+	section_len -= 4; //crc
 	
 	while(section_len)
 	{
@@ -586,9 +600,9 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 		si->free_CA_mode = (TS_READ16(pdata)>>12)&0x1;
 		si->descriptors_loop_length = TS_READ16(pdata)&0x0FFF;
 		si->next = NULL;
-		si->prev = si;
+		si->prev = NULL;
 		pdata += 2;
-		si->service_desriptor_list = parse_descriptors(pdata,si->descriptors_loop_length);
+		si->service_desriptor_list = parse_descriptors(pdata,(uint32_t)(si->descriptors_loop_length));
 		pdata += si->descriptors_loop_length;
 		section_len -= (5+si->descriptors_loop_length);
 		list_insert(pSDT,service_list,struct service_info, service_id, si);
@@ -661,6 +675,7 @@ static int pat_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 
 static int cat_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
+	psi.stats.cat_sections ++;
 	parse_cat(pkt,len,&psi.cat);
 	return 0;
 }
@@ -674,31 +689,43 @@ static int pmt_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 
 static int nit_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
 {
+	psi.stats.nit_sections ++;
 	parse_nit(pkt, len, &(psi.nit));
 }
 
-static int sdt_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
+static int sdt_bat_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
 	if(pkt[0]==BAT_TID)
 	{
+		psi.stats.bat_sections ++;
 		parse_bat(pkt,len,&(psi.bat));
 	}
-	else
+	else if(pkt[0] == SDT_ACTUAL_TID)
 	{
+		psi.stats.sdt_sections ++;
 		parse_sdt(pkt,len,&(psi.sdt));
 	}
 	return 0;
 }
-
-static int tdt_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
+static int eit_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
-	parse_tdt(pkt, len, &psi.tdt);
+	psi.stats.eit_sections ++;
+	parse_eit(pkt, len, &psi.eit);
 	return 0;
 }
 
-static int tot_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
+static int tdt_tot_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
-	parse_tot(pkt, len, &psi.tot);
+	if(TDT_TID ==pkt[0])
+	{
+		psi.stats.tdt_sections ++;
+		parse_tdt(pkt, len, &psi.tdt);
+	}
+	else if(TOT_TID == pkt[0])
+	{
+		psi.stats.tot_sections ++;
+		parse_tot(pkt, len, &psi.tot);
+	}
 	return 0;
 }
 
@@ -709,46 +736,50 @@ static int drop_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 
 table_ops drop_ops ={
 	.table_id = RESERVED_TID,
+	.mask = 0x00,
 	.table_proc = drop_proc,
 };
 
 table_ops pat_ops = {
 	.table_id = PAT_TID,
+	.mask = 0xFF,
 	.table_proc = pat_proc,
 };
 
 table_ops cat_ops = {
 	.table_id = CAT_TID,
+	.mask = 0xFF,
 	.table_proc = cat_proc,
 };
 
 table_ops pmt_ops = {
 	.table_id = PMT_TID,
+	.mask = 0xFF,
 	.table_proc = pmt_proc,
 };
 
 table_ops nit_ops = {
 	.table_id = NIT_ACTUAL_TID,
+	.mask = 0xFF,
 	.table_proc = nit_proc,
 };
 
-table_ops sdt_ops = {
-	.table_id = SDT_TID,
-	.table_proc = sdt_proc,
+table_ops sdt_bat_ops = {
+	.table_id = BAT_TID,
+	.mask = 0xFF,
+	.table_proc = sdt_bat_proc,
 };
 
 table_ops eit_ops = {
 	.table_id = EIT_ACTUAL_TID,
-	.table_proc = sdt_proc,
+	.mask = 0xFF,
+	.table_proc = eit_proc,
 };
 
-table_ops tdt_ops = {
+table_ops tdt_tot_ops = {
 	.table_id = TDT_TID,
-	.table_proc = tdt_proc,
+	.mask = 0xFE,
+	.table_proc = tdt_tot_proc,
 };
 
-table_ops tot_ops = {
-	.table_id = TOT_TID,
-	.table_proc = tot_proc,
-};
 

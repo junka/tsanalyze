@@ -87,10 +87,9 @@ extern table_ops pat_ops;
 extern table_ops cat_ops;
 extern table_ops pmt_ops;
 extern table_ops nit_ops;
-extern table_ops sdt_ops;
+extern table_ops sdt_bat_ops;
 extern table_ops eit_ops;
-extern table_ops tdt_ops;
-extern table_ops tot_ops;
+extern table_ops tdt_tot_ops;
 
 int ts_proc(uint8_t *data,uint8_t len)
 {
@@ -167,10 +166,9 @@ int init_pid_ops(void)
 	pid_dev[PAT_PID].tops = &pat_ops;
 	pid_dev[CAT_PID].tops = &cat_ops;
 	pid_dev[NIT_PID].tops = &nit_ops;
-	pid_dev[SDT_PID].tops = &sdt_ops;
+	pid_dev[SDT_PID].tops = &sdt_bat_ops;
 	pid_dev[EIT_PID].tops = &eit_ops;
-	pid_dev[TDT_PID].tops = &tdt_ops;
-	pid_dev[TOT_PID].tops = &tot_ops;
+	pid_dev[TDT_PID].tops = &tdt_tot_ops;
 
 	return 0;
 }

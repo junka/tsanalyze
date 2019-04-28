@@ -32,14 +32,16 @@ void hexdump(uint8_t *buf, uint32_t len)
 
 }
 
-void dumpUTC(UTC_time_t *t)
+char* convert_UTC(UTC_time_t *t)
 {
+	static char str[18] = {0};
 	/*16bits lsb MJB + 24 bits BCD*/
 	uint16_t mjd = (((uint16_t)t->time[0]<<8) |(t->time[1]));
 	uint8_t hour = t->time[2];
 	uint8_t min =t->time[3];
 	uint8_t sec = t->time[4];
 
+	/*see en300_468 Annex C*/
 	int Y,M,D;
 	int K;
 	int Y1 = (int)((mjd - 15078.2) / 365.25) ;
@@ -51,9 +53,7 @@ void dumpUTC(UTC_time_t *t)
 		K = 0;
 	Y = Y1 + K;
 	M = M1 - 1 - K *12;
-
 	
-	printf("%d-%d-%d ",Y,M,D);
-	printf("%02x:%02x:%02x",hour,min,sec);
-	
+	snprintf(str,18,"%d/%d/%d %02x:%02x:%02x",Y,M,D,hour,min,sec);
+	return str;
 }

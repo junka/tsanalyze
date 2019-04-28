@@ -13,6 +13,8 @@ typedef struct stats{
 	uint64_t sdt_sections;
 	uint64_t eit_sections;
 	uint64_t bat_sections;
+	uint64_t tdt_sections;
+	uint64_t tot_sections;
 	
 	uint64_t ecm_sections;
 	uint64_t emm_sections;
