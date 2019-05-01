@@ -361,7 +361,7 @@ int parse_cat(uint8_t * pbuf, uint16_t buf_size, cat_t * pCAT)
 
 int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 {
-	uint16_t section_len = 0;
+	int16_t section_len = 0;
 	uint8_t version_num;
 	uint8_t *pdata = pbuf;
 
@@ -375,7 +375,7 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 		return -1;
 	}
 
-	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
+	section_len = (int16_t)((pdata[1] << 8) | pdata[2])  & 0x0FFF;
 	version_num = (pdata[5] >> 1) & 0x1F;
 	if(version_num == pPMT->version_number && pPMT->es_list!=NULL)
 	{
@@ -442,7 +442,7 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 
 int parse_nit(uint8_t * pbuf, uint16_t buf_size, nit_t * pNIT)
 {
-	uint16_t section_len = 0;
+	int16_t section_len = 0;
 	uint8_t version_num;
 	uint8_t *pdata = pbuf;
 
@@ -456,7 +456,7 @@ int parse_nit(uint8_t * pbuf, uint16_t buf_size, nit_t * pNIT)
 		return -1;
 	}
 
-	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
+	section_len = (int16_t)((pdata[1] << 8) | pdata[2])  & 0x0FFF;
 	version_num = (pdata[5] >> 1) & 0x1F;
 	if(version_num == pNIT->version_number && pNIT->stream_list != NULL)
 	{
@@ -476,7 +476,7 @@ int parse_nit(uint8_t * pbuf, uint16_t buf_size, nit_t * pNIT)
 	section_len -= pNIT->network_descriptors_length;
 	section_len -=4;
 	pdata += 2 ;
-	while(section_len) {
+	while(section_len>0) {
 		struct transport_stream_info * more = malloc(sizeof(struct transport_stream_info));
 		more->next = NULL;
 		more->prev = more;
@@ -496,7 +496,7 @@ int parse_nit(uint8_t * pbuf, uint16_t buf_size, nit_t * pNIT)
 
 int parse_bat(uint8_t * pbuf, uint16_t buf_size, bat_t * pBAT)
 {
-	uint16_t section_len = 0;
+	int16_t section_len = 0;
 	uint8_t version_num;
 	uint8_t *pdata = pbuf;
 
@@ -510,7 +510,7 @@ int parse_bat(uint8_t * pbuf, uint16_t buf_size, bat_t * pBAT)
 		return -1;
 	}
 
-	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
+	section_len = (int16_t)((pdata[1] << 8) | pdata[2])  & 0x0FFF;
 	version_num = (pdata[5] >> 1) & 0x1F;
 	if(version_num == pBAT->version_number && pBAT->stream_list != NULL )
 	{
@@ -535,7 +535,7 @@ int parse_bat(uint8_t * pbuf, uint16_t buf_size, bat_t * pBAT)
 	pdata += 2;
 	section_len -=2;
 	section_len -=4;
-	while(section_len)
+	while(section_len>0)
 	{
 		struct transport_stream_info* si = malloc(sizeof(struct transport_stream_info));
 		si->transport_stream_id = TS_READ16(pdata);
@@ -557,7 +557,7 @@ int parse_bat(uint8_t * pbuf, uint16_t buf_size, bat_t * pBAT)
 
 int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 {
-	uint16_t section_len = 0;
+	int16_t section_len = 0;
 	uint8_t version_num;
 	uint8_t *pdata = pbuf;
 
@@ -565,13 +565,14 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 	{
 		return -1;
 	}
-	//hexdump(pbuf, buf_size);
+	hexdump(pbuf, buf_size);
 	if (unlikely(pdata[0] != SDT_ACTUAL_TID && pdata[0]!=SDT_OTHER_TID))
 	{
 		return -1;
 	}
 
-	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
+	section_len = (int16_t)((pdata[1] << 8) | pdata[2])  & 0x0FFF;
+	printf("original section_len %d\n",section_len);
 	version_num = (pdata[5] >> 1) & 0x1F;
 	if(version_num == pSDT->version_number && pSDT->service_list != NULL )
 	{
@@ -589,13 +590,15 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 	section_len -= 8;
 	section_len -= 4; //crc
 	
-	while(section_len)
+	while(section_len>0)
 	{
 
-		printf("section len %d\n",section_len);
+		printf("ptr %x section len %d\n",pdata,section_len);
 		struct service_info* si = malloc(sizeof(struct service_info));
 		si->service_id = TS_READ16(pdata);
 		pdata+= 2;
+		si->EIT_schedule_flag = (TS_READ8(pdata)>>1)&0x1;
+		si->EIT_present_following_flag = (TS_READ8(pdata))&0x1;
 		pdata+= 1;
 		si->running_status = (TS_READ16(pdata)>>13)&0x7;
 		si->free_CA_mode = (TS_READ16(pdata)>>12)&0x1;
@@ -603,10 +606,11 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 		si->next = NULL;
 		si->prev = NULL;
 		pdata += 2;
-		si->service_desriptor_list = parse_descriptors(pdata,(uint32_t)(si->descriptors_loop_length));
+		si->service_desriptor_list = parse_descriptors(pdata,(int)(si->descriptors_loop_length));
 		pdata += si->descriptors_loop_length;
-		//printf("desc len %d\n",si->descriptors_loop_length);
-		section_len -= (5+si->descriptors_loop_length);
+		printf("desc len %d\n",si->descriptors_loop_length);
+		section_len -=5;
+		section_len -= (si->descriptors_loop_length);
 		list_insert(pSDT,service_list,struct service_info, service_id, si);
 	}
 	

@@ -74,9 +74,9 @@ enum PID_e{
 
 /*define helper for reading bits set*/
 #define TS_READ8(buff) (buff[0])
-#define TS_READ16(buff) ((buff[0]<<8) | (buff[1]))
+#define TS_READ16(buff) (uint16_t)((((uint16_t)buff[0])<<8) | ((uint16_t)buff[1]))
 #define TS_READ32(buff) \
-	((buff[0]<<24) | (buff[1]<<16)|(buff[2]<<8)|(buff[3]))
+	(uint32_t)(((uint32_t)buff[0]<<24) | ((uint32_t)buff[1]<<16)|((uint32_t)buff[2]<<8)|((uint32_t)buff[3]))
 
 
 struct ts_ana_configuration{
