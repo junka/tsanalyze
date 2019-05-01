@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <error.h>
+//#include <error.h>
 
 #include "ts.h"
 

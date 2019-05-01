@@ -417,7 +417,7 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 	section_len -= 2+ pPMT->program_info_length;
 	pdata += pPMT->program_info_length;
 	
-	printf("section_len %d\n",section_len);
+	//printf("section_len %d\n",section_len);
 
 	while (section_len > 0)
 	{
@@ -434,7 +434,7 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 		pdata += el->ES_info_length;
 		section_len -= (5+el->ES_info_length);
 		list_insert(pPMT,es_list,struct es_info, elementary_PID, el);
-		printf("insert 0x%x\n",el->elementary_PID);
+		//printf("insert 0x%x\n",el->elementary_PID);
 	}
 
 	return 0;
@@ -565,7 +565,7 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 	{
 		return -1;
 	}
-
+	//hexdump(pbuf, buf_size);
 	if (unlikely(pdata[0] != SDT_ACTUAL_TID && pdata[0]!=SDT_OTHER_TID))
 	{
 		return -1;
@@ -578,7 +578,6 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 		return -1;
 	}
 	list_remove(pSDT, service_list, struct service_info);
-	
 	pdata += 3;
 	pSDT->transport_stream_id = TS_READ16(pdata);
 	pdata += 2;
@@ -592,6 +591,8 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 	
 	while(section_len)
 	{
+
+		printf("section len %d\n",section_len);
 		struct service_info* si = malloc(sizeof(struct service_info));
 		si->service_id = TS_READ16(pdata);
 		pdata+= 2;
@@ -604,6 +605,7 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 		pdata += 2;
 		si->service_desriptor_list = parse_descriptors(pdata,(uint32_t)(si->descriptors_loop_length));
 		pdata += si->descriptors_loop_length;
+		//printf("desc len %d\n",si->descriptors_loop_length);
 		section_len -= (5+si->descriptors_loop_length);
 		list_insert(pSDT,service_list,struct service_info, service_id, si);
 	}
@@ -691,6 +693,7 @@ static int nit_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	psi.stats.nit_sections ++;
 	parse_nit(pkt, len, &(psi.nit));
+	return 0;
 }
 
 static int sdt_bat_proc(uint16_t pid,uint8_t *pkt,uint16_t len)

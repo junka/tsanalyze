@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <getopt.h>

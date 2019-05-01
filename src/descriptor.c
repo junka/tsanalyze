@@ -491,6 +491,10 @@ void *alloc_reserved()
 #define FUNC(descriptor) parse_##descriptor##_descriptor
 
 #define ALLOC(descriptor) void *alloc_##descriptor(){ return malloc(sizeof(descriptor##_descriptor_t));}
+
+#define FREE(descriptor) void free_##descriptor(descriptor##_descriptor_t * ptr) \
+	{ free(ptr); }
+
 #define _(a,b) ALLOC(a)
 	foreach_enum_descriptor
 #undef _

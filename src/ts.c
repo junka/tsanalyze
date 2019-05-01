@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 #include "ts.h"
 #include "table.h"
 
@@ -97,6 +98,7 @@ int ts_proc(uint8_t *data,uint8_t len)
 	uint8_t *ptr = data;
 	if(ptr[0]!=TS_SYNC_BYTE)
 		return -1;
+	
 	ptr+=1;
 	head.PID = TS_READ16(ptr) & 0x1FFF;
 	head.transport_error_indicator = TS_READ8(ptr) >>7;
@@ -126,6 +128,7 @@ int ts_proc(uint8_t *data,uint8_t len)
 	//pointer_field
 	ptr+= 1;
 	len -=1;
+	//printf("pid 0x%x 0x%x\n",head.PID,*ptr);
 	pid_dev[head.PID].tops->table_proc(head.PID,ptr ,len);//sizeof(ts_header)
 	return 0;
 }
@@ -150,7 +153,7 @@ void dump_TS_info()
 	printf("%7s%21s%11s\n","PID","In","Err");
 	for(pid = 0; pid <=NULL_PID ; pid++){
 		if(pid_dev[pid].pkts_in)
-			printf("%04d(0x%04x)  %2c  %10d%10d\n",pid,pid,':',pid_dev[pid].pkts_in,pid_dev[pid].error_in );
+			printf("%04d(0x%04x)  %2c  %10" PRIu64 "%10" PRIu64 "\n",pid,pid,':',pid_dev[pid].pkts_in,pid_dev[pid].error_in );
 	}
 }
 

@@ -738,7 +738,7 @@ typedef struct {
 			uint16_t service_id;
 			uint8_t linkage_type;
 			//TODO
-			uint8_t*private_data_byte;
+			uint8_t *private_data_byte;
 		};
 	};
 }linkage_descriptor_t;
@@ -1605,6 +1605,11 @@ struct descriptor_ops{
 	void* (*descriptor_alloc)(void);
 };
 
+void init_descriptor_parsers();
+
+void free_descriptors(descriptor_t *des);
+
+void dump_descriptors(const char* str, descriptor_t* p_descriptor);
 
 #ifdef __cplusplus
 }

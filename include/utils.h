@@ -5,6 +5,8 @@
 extern "C"{
 #endif
 
+#include "types.h"
+
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
@@ -68,7 +70,7 @@ void hexdump(uint8_t *buf, uint32_t len);
 #define contain_of(item, type, member) \
 		((type *)((char *)item - (char *)(&((type *)0)->member)))
 
-
+char* convert_UTC(UTC_time_t *t);
 
 #ifdef __cplusplus
 }
