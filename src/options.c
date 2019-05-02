@@ -38,7 +38,7 @@ int check_filepath_valid(char *filename)
 
 
 
-void prog_usage(FILE *fp, char* pro_name)
+void prog_usage(FILE *fp,const char* pro_name)
 {
 	if(fp == NULL)
 		fp = stderr;

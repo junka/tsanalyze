@@ -33,12 +33,12 @@ extern "C"{
 		elem->next = h->next;\
 		h->next = elem;\
 	}\
-	else if(h->m>elem->m)\
+	else if(h->m > elem->m)\
 	{\
 		elem->next = h; \
 		elem->prev = h->prev;\
+		h->prev->next = elem;\
 		h->prev = elem; \
-		A->member = elem; \
 	}\
 }while(0)
 

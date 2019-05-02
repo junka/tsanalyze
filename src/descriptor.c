@@ -523,6 +523,7 @@ void init_descriptor_parsers()
 
 #define ALLOC_DES(tag)  des_ops[tag].descriptor_alloc()
 #define PARSE_DES(ptr,des)  do{ des_ops[ptr[0]].descriptor_parse(ptr,ptr[1]+2,des);}while(0)
+
 descriptor_t* parse_descriptors(uint8_t *buf, int len)
 {
 	//hexdump(buf,len);

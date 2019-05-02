@@ -302,6 +302,7 @@ typedef struct {
 	uint8_t reserved1:2;
 	uint8_t version_number:5;
 	uint8_t current_next_indicator:1;
+	uint64_t section_bitmap[4];
 	uint8_t section_number;
 	uint8_t last_section_number;
 	uint16_t original_network_id;

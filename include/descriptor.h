@@ -1279,6 +1279,16 @@ typedef struct {
 
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
+
 }AC3_descriptor_t;
 
 /*ancillary_data_descriptor*/
@@ -1411,7 +1421,18 @@ typedef struct {
 }announcement_support_descriptor_t;
 
 
-typedef struct{}application_signalling_descriptor_t;
+typedef struct{
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
+
+}application_signalling_descriptor_t;
 
 /*adaptation_field_data_descriptor*/
 struct adaptation_field_data_identifier
@@ -1436,7 +1457,17 @@ typedef struct {
 	};
 }adaptation_field_data_descriptor_t;
 
-typedef struct{}service_identifier_descriptor_t;
+typedef struct{
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
+}service_identifier_descriptor_t;
 
 typedef struct {
 	EXT_STD_C11
@@ -1453,20 +1484,80 @@ typedef struct {
 	};
 }service_availability_descriptor_t;
 
-typedef struct {}default_authority_descriptor_t;
-typedef struct {} related_content_descriptor_t;
-typedef struct{}TVA_id_descriptor_t;
+typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
+
+}default_authority_descriptor_t;
+typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
+
+} related_content_descriptor_t;
+typedef struct{
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
+
+}TVA_id_descriptor_t;
 
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
 
 }content_identifier_descriptor_t;
 
 typedef struct{
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
 
 }time_slice_fec_identifier_descriptor_t;
 
 typedef struct{
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
 
 }ECM_repetition_rate_descriptor_t;
 
@@ -1490,6 +1581,15 @@ typedef struct {
 }S2_satellite_delivery_system_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
 }enhanced_AC3_descriptor_t;
 
 
@@ -1516,8 +1616,25 @@ typedef struct{
 
 
 typedef struct{
-
+	EXT_STD_C11
+		union{
+			descriptor_t descriptor;
+			struct {
+				uint8_t descriptor_tag;
+				uint8_t descriptor_length;
+				void * next;
+				uint8_t profile_and_level;
+				//valid when descriptor_length >1
+				uint8_t AAC_type_flag:1;
+				uint8_t SAOC_DE_flag:1;
+				uint8_t reserved_future_use:6;
+				uint8_t AAC_type;
+				uint8_t *additional_info_byte;
+			};
+		};
 }AAC_descriptor_t;
+	
+typedef struct{
 	EXT_STD_C11
 	union{
 		descriptor_t descriptor;
@@ -1525,17 +1642,8 @@ typedef struct{
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			void * next;
-			uint8_t profile_and_level;
-			//valid when descriptor_length >1
-			uint8_t AAC_type_flag:1;
-			uint8_t SAOC_DE_flag:1;
-			uint8_t reserved_future_use:6;
-			uint8_t AAC_type;
-			uint8_t *additional_info_byte;
 		};
 	};
-typedef struct{
-
 }XAIT_location_descriptor_t;
 
 typedef struct { /*0x7E*/
@@ -1610,6 +1718,9 @@ void init_descriptor_parsers();
 void free_descriptors(descriptor_t *des);
 
 void dump_descriptors(const char* str, descriptor_t* p_descriptor);
+
+descriptor_t* parse_descriptors(uint8_t *buf, int len);
+
 
 #ifdef __cplusplus
 }

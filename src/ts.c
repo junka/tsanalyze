@@ -71,6 +71,20 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 		return -1;
 }
 
+int section_preproc(uint16_t pid,uint8_t *pkt,uint16_t len,
+		uint8_t payload_unit_start_indicator,uint8_t continuity_counter)
+{
+	static int total_len[8192] ={0} ;
+	static uint8_t cc[8192] = {0};
+	if(payload_unit_start_indicator==1){
+		total_len[pid] = len;
+		cc[pid] = continuity_counter;
+	}else{
+		total_len[pid] += len;
+	}
+
+	return 0;
+}
 
 struct pid_ops{
 	uint16_t pid;
@@ -102,8 +116,10 @@ int ts_proc(uint8_t *data,uint8_t len)
 	ptr+=1;
 	head.PID = TS_READ16(ptr) & 0x1FFF;
 	head.transport_error_indicator = TS_READ8(ptr) >>7;
+	head.payload_unit_start_indicator = TS_READ8(ptr) >>6;
 	ptr += 2;
 	head.adaptation_field_control = (TS_READ8(ptr)>>4)&0x3;
+	head.continuity_counter = TS_READ8(ptr) & 0x3;
 	//memcpy(&head,data,sizeof(ts_header));
 	//printf("receive PID 0x%x\n",head.PID);
 	ptr+=1;
@@ -125,7 +141,7 @@ int ts_proc(uint8_t *data,uint8_t len)
 		pid_dev[head.PID].error_in++;
 	}
 	
-	//pointer_field
+	//pointer_field, valid for PSI/SI
 	ptr+= 1;
 	len -=1;
 	//printf("pid 0x%x 0x%x\n",head.PID,*ptr);

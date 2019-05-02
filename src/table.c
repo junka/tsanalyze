@@ -75,7 +75,7 @@ static void dump_PAT(void* p_data, pat_t* p_pat)
 
 static void dump_CAT(void* p_data, cat_t* p_cat)
 {
-	CA_descriptor_t* p_descriptor = p_cat->list;
+	CA_descriptor_t* p_descriptor = (CA_descriptor_t*) p_cat->list;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 	p_stream->cat.version_number=p_cat->version_number;
 	printf("\n");
@@ -176,14 +176,14 @@ void dump_tables(void)
 	if(psi.stats.tot_sections>0)
 		psi.has_tot = 1;
 	
-	
-	dump_PAT(&psi, &psi.pat);
+	//dump_PAT(&psi, &psi.pat);
 	if(psi.has_sdt)
 		dump_SDT(&psi,&psi.sdt);
 	if(psi.ca_num>0)
 	{
 		dump_CAT(&psi, &psi.cat);
 	}
+#if 0
 	//pid 
 	for(i = 0x10; i < 0x2000 ; i++){
 		if (psi.pmt_bitmap[i/64] & ((uint64_t)1<<(i%64)))
@@ -195,6 +195,7 @@ void dump_tables(void)
 		dump_TDT(&psi, &psi.tdt);
 	if(psi.has_tot)
 		dump_TOT(&psi, &psi.tot);
+#endif
 }
 
 
@@ -244,21 +245,20 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 	list_remove(pPAT,list,struct program_list);
 	//hexdump(pdata, section_len+4);
 
-	//if ((section_len + 3) != buf_size)
-	//{
-	//	return -1;
-	//}
 	pPAT->section_length = section_len;
 
 	//Transport Stream ID
-	pPAT->transport_stream_id = (pdata[3] << 8) | pdata[4];
+	pdata += 3;
+	pPAT->transport_stream_id = TS_READ16(pdata);
+	pdata += 2;
 	pPAT->version_number = version_num;
-	pPAT->current_next_indicator = pdata[5] & 0x01;
-	pPAT->section_number = pdata[6];
-	pPAT->last_section_number = pdata[7];
-
+	pPAT->current_next_indicator = TS_READ8(pdata) & 0x01;
+	pdata += 1;
+	pPAT->section_number = TS_READ8(pdata);
+	pdata += 1;
+	pPAT->last_section_number = TS_READ8(pdata);
+	pdata += 1;
 	section_len -= (5 + 4); // exclude crc 4bytes
-	pdata += 8;
 	
 	//TODO: limit program total length
 	
@@ -266,15 +266,16 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 	while (section_len > 0)
 	{
 		struct program_list * pl, *next;
-		program_num= (pdata[0] << 8) | pdata[1];
-		program_map_PID = ((pdata[2] << 8) | pdata[3]) & 0x1FFF;
+		program_num= TS_READ16(pdata);
+		pdata+=2;
+		program_map_PID =TS_READ16(pdata) & 0x1FFF;
+		pdata+=2;
+		section_len -= 4;
 		if(program_num == 0xFFFF)
 		{
-			pdata += 4;
-			section_len -= 4;
 			break;
 		}
-		if(pPAT->program_bitmap[program_num/64] & (1<<(program_num%64)) )
+		if(pPAT->program_bitmap[program_num/64] & ((uint64_t)1<<(program_num%64)) )
 		{
 			//list_modify(pPAT,program_num,program_map_PID);
 			list_modify(pPAT,list, struct program_list, program_number, program_num, program_map_PID, program_map_PID);
@@ -285,15 +286,12 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 			register_pmt_ops(program_map_PID);
 			pl = malloc(sizeof(struct program_list));
 			pl ->program_number = program_num;
-			pl->prev = pl;
+			pl->prev = NULL;
 			pl->next = NULL;
 			pl->program_map_PID = program_map_PID;
-			pPAT->program_bitmap[program_num/64] |= (1<<(program_num%64));
+			pPAT->program_bitmap[program_num/64] |= ((uint64_t)1<<(program_num%64));
 			list_insert(pPAT,list,struct program_list, program_number, pl);
 		}
-		
-		pdata += 4;
-		section_len -= 4;
 	}
 
 	return 0;
@@ -337,22 +335,8 @@ int parse_cat(uint8_t * pbuf, uint16_t buf_size, cat_t * pCAT)
 
 	section_len -= 5 + 4; 
 	pdata += 8;
-	
-	//TODO: limit program total length
-	pCAT->list = NULL;
 
-	while (section_len > 0)
-	{
-		struct program_list *pl = malloc(sizeof(struct program_list));
-		struct program_list *next = NULL;
-		pl->program_number = (pdata[0] << 8) + pdata[1]; 
-		pl->program_map_PID = ((pdata[2] << 8) + pdata[3]) & 0x1FFF;
-		next = pCAT->list;
-		pCAT->list = pl;
-		pl->next = next;
-		pdata += 4;
-		section_len -= 4;
-	}
+	pCAT->list = parse_descriptors(pdata, section_len);
 
 	return 0;
 }
@@ -375,7 +359,7 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 		return -1;
 	}
 
-	section_len = (int16_t)((pdata[1] << 8) | pdata[2])  & 0x0FFF;
+	section_len = (int16_t)(((int16_t)pdata[1] << 8) | pdata[2])  & 0x0FFF;
 	version_num = (pdata[5] >> 1) & 0x1F;
 	if(version_num == pPMT->version_number && pPMT->es_list!=NULL)
 	{
@@ -391,7 +375,7 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 
 	pPMT->version_number = version_num;
 
-	if (!(pdata[5] & 0x01)) //current_next_indicator
+	if ((pdata[5] & 0x01)==0) //current_next_indicator
 	{
 		return -1;
 	}
@@ -430,7 +414,7 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 		el->next = NULL;
 		el->prev = NULL;
 		pdata += 2;
-		el->descriptor_list = parse_descriptors(pdata,el->ES_info_length);
+		el->descriptor_list = parse_descriptors(pdata,(int) el->ES_info_length);
 		pdata += el->ES_info_length;
 		section_len -= (5+el->ES_info_length);
 		list_insert(pPMT,es_list,struct es_info, elementary_PID, el);
@@ -566,14 +550,13 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 	{
 		return -1;
 	}
-	hexdump(pbuf, buf_size);
 	if (unlikely(pdata[0] != SDT_ACTUAL_TID && pdata[0]!=SDT_OTHER_TID))
 	{
 		return -1;
 	}
 
 	section_len = (int16_t)((pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	printf("original section_len %d\n",section_len);
+	//printf("original section_len %d\n",section_len);
 	version_num = (pdata[5] >> 1) & 0x1F;	
 	pdata += 3;
 	ts_id = TS_READ16(pdata);
@@ -583,20 +566,25 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 	pdata += 1;
 	last_sec = TS_READ8(pdata);
 	pdata += 1;
-	if(version_num != pSDT->version_number || last_sec != pSDT->last_section_number)
+	if(version_num != pSDT->version_number || last_sec != pSDT->last_section_number
+		||pSDT->service_list == NULL)
 	{
 		pSDT->transport_stream_id = ts_id;
 		pSDT->section_length = section_len;
 		pSDT->version_number = version_num;
 		pSDT->original_network_id = TS_READ16(pdata);
-		pSDT->last_section_number  = last_sec;
+		pSDT->last_section_number = last_sec;
 		list_remove(pSDT, service_list, struct service_info);
 	}
 
-	if(pSDT->section_number+1 != cur_sec)
+	if((pSDT->section_bitmap[cur_sec/64]&((uint64_t)1<<(cur_sec%64))))
 	{
+		printf("already have\n");
 		return -1;
 	}
+	hexdump(pbuf, buf_size);
+	printf("new process %d\n",cur_sec);
+	pSDT->section_bitmap[cur_sec/64] |= ((uint64_t)1<<(cur_sec%64));
 	pSDT->section_number = cur_sec;
 	pdata += 3;
 	section_len -= 8;
@@ -612,7 +600,7 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 	
 	while(loop_len>0)
 	{
-		printf("ptr %x section len %d\n",pdata,section_len);
+		//printf("ptr %x section len %d\n",pdata,section_len);
 		struct service_info* si = malloc(sizeof(struct service_info));
 		si->service_id = TS_READ16(pdata);
 		pdata+= 2;
@@ -687,7 +675,7 @@ static int parse_tot(uint8_t * pbuf, uint16_t buf_size, tot_t * pTOT)
 	pdata+=2;
 	if(pTOT->time_offset_descriptor_list)
 		free_descriptors(pTOT->time_offset_descriptor_list);
-	pTOT->time_offset_descriptor_list = parse_descriptors(pdata,pTOT->descriptors_loop_length );
+	pTOT->time_offset_descriptor_list = parse_descriptors(pdata, (int)pTOT->descriptors_loop_length );
 	return 0;
 }
 
