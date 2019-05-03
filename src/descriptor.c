@@ -248,6 +248,13 @@ int parse_cable_delivery_system_descriptor(uint8_t *buf, uint32_t len, void *ptr
 }
 int parse_VBI_data_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
+	if(buf[0]!=dr_VBI_data)
+		return -1;
+	VBI_data_descriptor_t *vd = (VBI_data_descriptor_t *)ptr;
+	vd->descriptor_tag = dr_VBI_data;
+	vd->descriptor_length = buf[1];
+	return 0;
+
 	return 0;
 }
 int parse_VBI_teletext_descriptor(uint8_t *buf, uint32_t len, void *ptr)
@@ -256,6 +263,11 @@ int parse_VBI_teletext_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 }
 int parse_bouquet_name_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
+	if(buf[0]!=dr_bouquet_name)
+		return -1;
+	bouquet_name_descriptor_t *bn = (bouquet_name_descriptor_t *)ptr;
+	bn->descriptor_tag = dr_bouquet_name;
+	bn->descriptor_length = buf[1];
 	return 0;
 }
 int parse_service_descriptor(uint8_t *buf, uint32_t len, void *ptr)
@@ -499,12 +511,12 @@ void *alloc_reserved()
 	foreach_enum_descriptor
 #undef _
 
-static struct descriptor_ops des_ops[255];
+static struct descriptor_ops des_ops[256];
 
 void init_descriptor_parsers()
 {
-	uint8_t i=0;
-	for(i=0;i<0xFF;i++)
+	uint16_t i=0;
+	for(i=0;i<=0xFF;i++)
 	{
 		des_ops[i].tag = i;
 		strncpy(des_ops[i].tag_name,"reserved",sizeof("reserved"));

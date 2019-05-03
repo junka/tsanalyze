@@ -71,19 +71,47 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 		return -1;
 }
 
-int section_preproc(uint16_t pid,uint8_t *pkt,uint16_t len,
+int16_t section_preproc(uint16_t pid,uint8_t *pkt,uint16_t len,uint8_t **buffering,
 		uint8_t payload_unit_start_indicator,uint8_t continuity_counter)
 {
 	static int total_len[8192] ={0} ;
 	static uint8_t cc[8192] = {0};
-	if(payload_unit_start_indicator==1){
-		total_len[pid] = len;
+	static uint8_t buffer[8192][4096];
+	static int16_t limit_len[8192] ={0};
+	*buffering = NULL;
+	if(payload_unit_start_indicator == 1){
+		/*skip pointer_field, valid for PSI */
+		total_len[pid] = len-1;
 		cc[pid] = continuity_counter;
-	}else{
-		total_len[pid] += len;
+		limit_len[pid] = (int16_t)(((int16_t)pkt[2] << 8) | pkt[3])&0x0FFF;
+		limit_len[pid] += 3;
+		/*section in one pkt , go without buffering*/
+		if(limit_len[pid] <= (len-1))
+		{
+			*buffering = (pkt+1);
+			return limit_len[pid];
+		}
+		else
+		{
+			memset(buffer[pid],0,4096);
+			memcpy(buffer[pid],pkt+1,len-1);
+		}
 	}
-
-	return 0;
+	else
+	{
+		if(total_len[pid]==0)
+			return -1;
+		memcpy(buffer[pid]+total_len[pid],pkt,len);
+		total_len[pid] += len;
+		if(total_len[pid]>=limit_len[pid])
+		{
+			*buffering = buffer[pid];
+			total_len[pid] = 0;
+			return limit_len[pid];
+		}
+	}
+	/*tell us buffering*/
+	return -1;
 }
 
 struct pid_ops{
@@ -110,6 +138,8 @@ int ts_proc(uint8_t *data,uint8_t len)
 {
 	ts_header head;
 	uint8_t *ptr = data;
+	int16_t sec_len;
+	uint8_t *pbuf = NULL;
 	if(ptr[0]!=TS_SYNC_BYTE)
 		return -1;
 	
@@ -141,11 +171,13 @@ int ts_proc(uint8_t *data,uint8_t len)
 		pid_dev[head.PID].error_in++;
 	}
 	
-	//pointer_field, valid for PSI/SI
-	ptr+= 1;
-	len -=1;
 	//printf("pid 0x%x 0x%x\n",head.PID,*ptr);
-	pid_dev[head.PID].tops->table_proc(head.PID,ptr ,len);//sizeof(ts_header)
+	if(head.PID == NULL_PID)
+		return 0;
+	sec_len = section_preproc(head.PID,ptr ,len,&pbuf,head.payload_unit_start_indicator,head.continuity_counter);
+	if(sec_len==-1)
+		return 0;
+	pid_dev[head.PID].tops->table_proc(head.PID,pbuf ,sec_len);//sizeof(ts_header)
 	return 0;
 }
 

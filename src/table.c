@@ -176,14 +176,14 @@ void dump_tables(void)
 	if(psi.stats.tot_sections>0)
 		psi.has_tot = 1;
 	
-	//dump_PAT(&psi, &psi.pat);
+	dump_PAT(&psi, &psi.pat);
 	if(psi.has_sdt)
 		dump_SDT(&psi,&psi.sdt);
 	if(psi.ca_num>0)
 	{
 		dump_CAT(&psi, &psi.cat);
 	}
-#if 0
+#if 1
 	//pid 
 	for(i = 0x10; i < 0x2000 ; i++){
 		if (psi.pmt_bitmap[i/64] & ((uint64_t)1<<(i%64)))
@@ -220,9 +220,9 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 	{
 		return -1;
 	}
-
+	
 	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	if(section_len > 0x3FD)
+	if(section_len > 0x3FD) //For pat , maximum
 	{
 		return -1;
 	}
@@ -314,7 +314,7 @@ int parse_cat(uint8_t * pbuf, uint16_t buf_size, cat_t * pCAT)
 	}
 
 	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	if ((section_len + 3) != buf_size)
+	if(section_len > 0x3FD) //For cat , maximum
 	{
 		return -1;
 	}
@@ -360,6 +360,10 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 	}
 
 	section_len = (int16_t)(((int16_t)pdata[1] << 8) | pdata[2])  & 0x0FFF;
+	if(section_len > 0x3FD) //For pmt , maximum
+	{
+		return -1;
+	}
 	version_num = (pdata[5] >> 1) & 0x1F;
 	if(version_num == pPMT->version_number && pPMT->es_list!=NULL)
 	{
@@ -555,7 +559,11 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 		return -1;
 	}
 
-	section_len = (int16_t)((pdata[1] << 8) | pdata[2])  & 0x0FFF;
+	section_len = (((int16_t)pdata[1] << 8) | pdata[2])  & 0x0FFF;
+	if(section_len > 0x3FD) //For sdt , maximum
+	{
+		return -1;
+	}
 	//printf("original section_len %d\n",section_len);
 	version_num = (pdata[5] >> 1) & 0x1F;	
 	pdata += 3;
@@ -579,11 +587,11 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 
 	if((pSDT->section_bitmap[cur_sec/64]&((uint64_t)1<<(cur_sec%64))))
 	{
-		printf("already have\n");
+		//printf("already have\n");
 		return -1;
 	}
-	hexdump(pbuf, buf_size);
-	printf("new process %d\n",cur_sec);
+	//hexdump(pbuf, buf_size);
+	//printf("new process %d\n",cur_sec);
 	pSDT->section_bitmap[cur_sec/64] |= ((uint64_t)1<<(cur_sec%64));
 	pSDT->section_number = cur_sec;
 	pdata += 3;
@@ -615,7 +623,7 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 		pdata += 2;
 		si->service_desriptor_list = parse_descriptors(pdata,(int)(si->descriptors_loop_length));
 		pdata += si->descriptors_loop_length;
-		printf("desc len %d\n",si->descriptors_loop_length);
+		//printf("desc len %d\n",si->descriptors_loop_length);
 		loop_len -=5;
 		loop_len -= (si->descriptors_loop_length);
 		list_insert(pSDT,service_list,struct service_info, service_id, si);
