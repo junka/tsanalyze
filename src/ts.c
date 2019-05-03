@@ -172,12 +172,13 @@ int ts_proc(uint8_t *data,uint8_t len)
 	}
 	
 	//printf("pid 0x%x 0x%x\n",head.PID,*ptr);
-	if(head.PID == NULL_PID)
-		return 0;
-	sec_len = section_preproc(head.PID,ptr ,len,&pbuf,head.payload_unit_start_indicator,head.continuity_counter);
-	if(sec_len==-1)
-		return 0;
-	pid_dev[head.PID].tops->table_proc(head.PID,pbuf ,sec_len);//sizeof(ts_header)
+	if(head.PID != NULL_PID)
+	{
+		sec_len = section_preproc(head.PID,ptr ,len,&pbuf,head.payload_unit_start_indicator,head.continuity_counter);
+		if(sec_len==-1)
+			return 0;
+	}
+	pid_dev[head.PID].tops->table_proc(head.PID,pbuf ,sec_len);
 	return 0;
 }
 
@@ -259,7 +260,7 @@ int init_pid_processor()
 
 	//hexdump(ptr, 188);
 	analyze(ptr, ts_pktlen*2, ts_pktlen , &start_index);
-	printf("valid ts starting at %d\n",start_index);
+	printf("valid ts starting at offset %d\n",start_index);
 	//hexdump(ptr+start_index, ts_pktlen);
 
 	init_pid_ops();

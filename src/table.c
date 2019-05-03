@@ -125,11 +125,7 @@ static void dump_PMT(void* p_data, pmt_t* p_pmt, uint16_t pid)
 	while(p_es){
 		printf( "    | 0x%02x (%s) @ 0x%x\n",p_es->stream_type,get_stream_type(p_es->stream_type),p_es->elementary_PID);
 		des = p_es->descriptor_list;
-		while(des)
-		{
-			dump_descriptors("    |  ]", des);
-			des = des->next;
-		}
+		dump_descriptors("    |  ]", des);
 		p_es = p_es->next;
 	}
 }
@@ -158,7 +154,30 @@ static void dump_SDT(void* p_data, sdt_t* p_sdt)
 		printf("        | free_CA_mode 0x%x \n",p_service->free_CA_mode);
 		p_service = p_service->next;
 	}
-	printf("  active              : 0x%x\n", p_sdt->current_next_indicator);
+
+}
+static void dump_NIT(void* p_data, nit_t* p_nit)
+{
+	if(p_nit == NULL ||p_data == NULL)
+		return ;
+	struct transport_stream_info* p_service = p_nit->stream_list;
+	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
+
+	printf(  "\n");
+	printf(  "NIT\n");	
+	printf(  "  section_length: %d\n",p_nit->section_length);
+	printf(  "  network_id : 0x%x\n", p_nit->network_id);
+	printf(  "  version_number      : %d\n", p_nit->version_number);
+	printf(  "  Current next   : %s\n", p_nit->current_next_indicator ? "yes" : "no");
+	dump_descriptors("  [", p_nit->network_desriptor_list);
+	printf(  "    | transport_stream \n");
+	while(p_service)
+	{
+		printf("        | transport_stream_id 0x%x \n",p_service->transport_stream_id);
+		printf("            | original_network_id 0x%x \n",p_service->original_network_id);
+		dump_descriptors("            | [", p_service->transport_stream_desriptor_list);
+		p_service = p_service->next;
+	}
 
 }
 
@@ -191,6 +210,8 @@ void dump_tables(void)
 			dump_PMT(&psi, &psi.pmt[i],i);
 		}
 	}
+	if(psi.has_nit)
+		dump_NIT(&psi, &psi.nit);
 	if(psi.has_tdt)
 		dump_TDT(&psi, &psi.tdt);
 	if(psi.has_tot)
@@ -439,12 +460,16 @@ int parse_nit(uint8_t * pbuf, uint16_t buf_size, nit_t * pNIT)
 		return -1;
 	}
 
-	if (unlikely(pdata[0] != BAT_TID))
+	if (unlikely(pdata[0] != NIT_OTHER_TID && pdata[0] !=NIT_ACTUAL_TID))
 	{
 		return -1;
 	}
 
 	section_len = (int16_t)((pdata[1] << 8) | pdata[2])  & 0x0FFF;
+	if(section_len > 0x3FD) //For nit , maximum
+	{
+		return -1;
+	}
 	version_num = (pdata[5] >> 1) & 0x1F;
 	if(version_num == pNIT->version_number && pNIT->stream_list != NULL)
 	{
@@ -499,6 +524,10 @@ int parse_bat(uint8_t * pbuf, uint16_t buf_size, bat_t * pBAT)
 	}
 
 	section_len = (int16_t)((pdata[1] << 8) | pdata[2])  & 0x0FFF;
+	if(section_len > 0x3FD) //For bat , maximum
+	{
+		return -1;
+	}
 	version_num = (pdata[5] >> 1) & 0x1F;
 	if(version_num == pBAT->version_number && pBAT->stream_list != NULL )
 	{
@@ -564,7 +593,6 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 	{
 		return -1;
 	}
-	//printf("original section_len %d\n",section_len);
 	version_num = (pdata[5] >> 1) & 0x1F;	
 	pdata += 3;
 	ts_id = TS_READ16(pdata);
@@ -587,11 +615,9 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 
 	if((pSDT->section_bitmap[cur_sec/64]&((uint64_t)1<<(cur_sec%64))))
 	{
-		//printf("already have\n");
 		return -1;
 	}
 	//hexdump(pbuf, buf_size);
-	//printf("new process %d\n",cur_sec);
 	pSDT->section_bitmap[cur_sec/64] |= ((uint64_t)1<<(cur_sec%64));
 	pSDT->section_number = cur_sec;
 	pdata += 3;
@@ -634,6 +660,23 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 
 static int parse_eit(uint8_t * pbuf, uint16_t buf_size, eit_t * pEIT)
 {
+	uint16_t section_len = 0;
+	uint8_t *pdata = pbuf;
+	
+	if (pbuf == NULL || pEIT == NULL)
+	{
+		return -1;
+	}
+
+	pdata += 1;
+	section_len = TS_READ16(pdata)&0xFFF;
+
+	if(section_len > 0xFFD) //For eit , maximum
+	{
+		return -1;
+	}
+	pEIT->section_length = section_len;
+
 	return 0;
 }
 
@@ -653,7 +696,8 @@ static int parse_tdt(uint8_t * pbuf, uint16_t buf_size, tdt_t * pTDT)
 	}
 
 	pdata += 1;
-	pTDT->section_length = TS_READ16(pdata)&0xFFF;
+	section_len = TS_READ16(pdata)&0xFFF;
+	pTDT->section_length = section_len;
 	pdata+=2;
 	memcpy(&pTDT->utc_time,pdata, 5);
 	return 0;
