@@ -15,13 +15,17 @@
 #include "ts.h"
 #include "table.h"
 
+int prog_parse_args(int argc, char **argv);
+
 int main(int argc,char *argv[])
 {
 
 	prog_parse_args(argc, argv);
 
 	init_pid_processor();
-	
+
+	ts_process();
+
 	dump_tables();
 	dump_TS_info();
 	return 0;

@@ -44,17 +44,17 @@ void prog_usage(FILE *fp,const char* pro_name)
 		fp = stderr;
 	fprintf(fp,"Usage: %s [optins]... <file>\n", pro_name);
 	fprintf(fp,"  Display infomations about mpeg ts.\n\n");
-	fprintf(fp,"%17s%c%s\n","  -",OPT_HELP_NUM,", --"OPT_HELP,"Show this help");
-	fprintf(fp,"%17s%c%s\n","  -",OPT_BRIEF_LIST_NUM,", --"OPT_BRIEF_LIST,"Show all infos in brief");
-	fprintf(fp,"%17s%c%s\n","  -",OPT_DETAIL_LIST_NUM,", --"OPT_DETAIL_LIST,"Show all infos in detail");
-	fprintf(fp,"%17s%c%s\n","  -",OPT_VERSION_NUM,", --"OPT_VERSION,"Show version");
-	fprintf(fp,"%17s%c%s\n","  -",OPT_MEMORY_NUM,", --"OPT_MEMORY,"memory to use");
-	fprintf(fp,"%17s%c%s\n","  -",OPT_TABLE_NUM,", --"OPT_TABLE,"Show select tables only");
+	fprintf(fp,"%13s%c%s\t%s\n","  -",OPT_HELP_NUM,", --"OPT_HELP,"Show this help");
+	fprintf(fp,"%13s%c%s\t%s\n","  -",OPT_BRIEF_LIST_NUM,", --"OPT_BRIEF_LIST,"Show all infos in brief");
+	fprintf(fp,"%13s%c%s\t%s\n","  -",OPT_DETAIL_LIST_NUM,", --"OPT_DETAIL_LIST,"Show all infos in detail");
+	fprintf(fp,"%13s%c%s\t%s\n","  -",OPT_VERSION_NUM,", --"OPT_VERSION,"Show version");
+	fprintf(fp,"%13s%c%s\t%s\n","  -",OPT_MEMORY_NUM,", --"OPT_MEMORY,"memory to use");
+	fprintf(fp,"%13s%c%s\t%s\n","  -",OPT_TABLE_NUM,", --"OPT_TABLE,"Show select tables only");
 	fprintf(fp,"\n\n");
 }
 
 int 
-prog_parse_args(int argc, char**argv)
+prog_parse_args(int argc, char **argv)
 {
 	int opt,ret;
 	int option_index;

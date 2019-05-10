@@ -1,10 +1,7 @@
 #ifndef _BITS_H_
 #define _BITS_H_
 
-
 /* define ts structure ,see ISO/IEC13818-1 */
-
-
 
 #ifdef __cplusplus
 extern "C"{
@@ -26,7 +23,7 @@ typedef struct{
 	uint8_t transport_scrambling_control:2;
 	uint8_t adaptation_field_control:2;
 	uint8_t continuity_counter:4;
-}__attribute__((packed)) ts_header ;
+}__attribute__((packed)) ts_header;
 
 enum adaptation_field_e{
 	ADAPT_RESERVED = 0,
@@ -97,6 +94,9 @@ struct io_ops{
 	int (*end)();
 };
 
+int init_pid_processor();
+int ts_process();
+void dump_TS_info();
 
 #ifdef __cplusplus
 }

@@ -576,24 +576,25 @@ void dump_system_clock_descriptor(system_clock_descriptor_t* p_descriptor)
 		p_descriptor->external_clock_reference_indicator);
 	fprintf(stdout,"clock_accuracy_integer: %d",
 		p_descriptor->clock_accuracy_exponent);
-	fprintf(stdout,"clock_accuracy_exponent: %d",
+	fprintf(stdout,"clock_accuracy_exponent: %d\n",
 		p_descriptor->clock_accuracy_exponent);
 }
 
 void dump_maxbitrate_descriptor(maximum_bitrate_descriptor_t *p_descriptor)
 {
-	fprintf(stdout,"maximum_bitrate: %d",
-		p_descriptor->maximum_bitrate);
-
+	fprintf(stdout,"maximum_bitrate: %d\n", (int)(p_descriptor->maximum_bitrate.bits));
 }
 
 void dump_stream_identifier_descriptor(stream_identifier_descriptor_t *p_descriptor)
 {
-
+	fprintf(stdout,"component_tag: %d\n",p_descriptor->component_tag);
 }
 void dump_subtitling_descriptor(subtitling_descriptor_t *p_descriptor)
 {
-
+	if(p_descriptor->subtitle_list){
+		fprintf(stdout,"subtitle_list:\n");
+		fprintf(stdout,"	ISO_639_language_code %d\n",p_descriptor->subtitle_list->ISO_639_language_code);
+	}
 }
 
 

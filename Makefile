@@ -1,12 +1,10 @@
 
 DIR=$(shell pwd)
 INC=-I$(DIR)/include
-LIB=-L$(DIR)/lib
-MK_FLAGS = -g -O2
+MK_FLAGS = -g -std=c11 -O2
  
 CFLAGS += $(MK_FLAGS) 
 CFLAGS += $(INC)
-CFLAGS += $(LIB)
 
 MK_LIB = -lm
 
@@ -27,7 +25,7 @@ all:$(MK_EXES)
 
 $(MK_EXES):$(OBJ_O)	
 	$(CC) $(CFLAGS) -o $(MK_EXES) $(OBJ_O) $(MK_LIB)
-	#$(STRIP) $(MK_EXES)
+	$(STRIP) $(MK_EXES)
 
 %.d : %.c	
 	set -e; 

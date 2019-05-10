@@ -10,44 +10,37 @@ mpeg_psi_t psi = {0};
 
 static char const* get_stream_type(uint8_t type)
 {
-	switch (type)
-	{
-	case 0x00:
-		return "Reserved";
-	case 0x01:
-		return "ISO/IEC 11172 Video";
-	case 0x02:
-		return "ISO/IEC 13818-2 Video";
-	case 0x03:
-		return "ISO/IEC 11172 Audio";
-	case 0x04:
-		return "ISO/IEC 13818-3 Audio";
-	case 0x05:
-		return "ISO/IEC 13818-1 Private Section";
-	case 0x06:
-		return "ISO/IEC 13818-1 Private PES data packets";
-	case 0x07:
-		return "ISO/IEC 13522 MHEG";
-	case 0x08:
-		return "ISO/IEC 13818-1 Annex A DSM CC";
-	case 0x09:
-		return "H222.1";
-	case 0x0A:
-		return "ISO/IEC 13818-6 type A";
-	case 0x0B:
-		return "ISO/IEC 13818-6 type B";
-	case 0x0C:
-		return "ISO/IEC 13818-6 type C";
-	case 0x0D:
-		return "ISO/IEC 13818-6 type D";
-	case 0x0E:
-		return "ISO/IEC 13818-1 auxillary";
-	default:
-		if (type < 0x80)
-			return "ISO/IEC 13818-1 reserved";
-		else
-			return "User Private";
-	}
+	const char *stream_type[] = {
+		"Reserved",
+		"ISO/IEC 11172 Video",
+		"ISO/IEC 13818-2 Video",
+		"ISO/IEC 11172 Audio",
+		"ISO/IEC 13818-3 Audio",
+		"ISO/IEC 13818-1 Private Section",
+		"ISO/IEC 13818-1 Private PES data packets",
+		"ISO/IEC 13522 MHEG",
+		"ISO/IEC 13818-1 Annex A DSM CC",
+		"ITU-T Rec. H.222.1",
+		"ISO/IEC 13818-6 type A",
+		"ISO/IEC 13818-6 type B",
+		"ISO/IEC 13818-6 type C",
+		"ISO/IEC 13818-6 type D",
+		"ISO/IEC 13818-1 auxillary",
+		"ISO/IEC 13818-7 Audio with ADTS transport syntax",
+		"ISO/IEC 14496-2 Visual",
+		"ISO/IEC 14496-3 Audio with the LATM transport syntax",
+		"ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in PES packets",
+		"ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in ISO/IEC14496_sections",
+		"ISO/IEC 13818-6 Synchronized Download Protocol",
+	};
+	
+	if (type < 0x15)
+		return stream_type[type];
+	else if (type < 0x80)
+		return "ISO/IEC 13818-1 reserved";
+	else
+		return "User Private";
+	
 }
 
 static void dump_PAT(void* p_data, pat_t* p_pat)
@@ -58,19 +51,18 @@ static void dump_PAT(void* p_data, pat_t* p_pat)
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 	int num = p_stream->pmt_num;
 
-	printf(  "\n");
-	printf(  "PAT\n");
-	printf(  "  section_length: %d\n",p_pat->section_length);
-	printf(  "  transport_stream_id : %d\n", p_pat->transport_stream_id);  
-	printf(  "  version_number      : %d\n", p_pat->version_number);  
-	printf(  "    | program_number @ PMT_PID\n");
+	printf("\n");
+	printf("PAT\n");
+	printf("  section_length: %d\n",p_pat->section_length);
+	printf("  transport_stream_id : %d\n", p_pat->transport_stream_id);
+	printf("  version_number      : %d\n", p_pat->version_number);
+	printf("    | program_number @ PMT_PID\n");
 	while(p_program)
 	{
 		printf("    | %14d @ 0x%x (%d)\n",p_program->program_number, p_program->program_map_PID, p_program->program_map_PID);
 		p_program = p_program->next;
 	}
 	printf("  active              : 0x%x\n", p_pat->current_next_indicator);
-
 }
 
 static void dump_CAT(void* p_data, cat_t* p_cat)
@@ -115,15 +107,15 @@ static void dump_PMT(void* p_data, pmt_t* p_pmt, uint16_t pid)
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 	
 	printf("\n" );
-	printf( "active PMT\n" );
-	printf( "  program_number : %d  => pmt pid 0x%x\n", p_pmt->program_number,pid );
-	printf( "  version_number : %d\n", p_pmt->version_number );
-	printf( "  PCR_PID        : 0x%x (%d)\n", p_pmt->PCR_PID, p_pmt->PCR_PID);
+	printf("active PMT\n" );
+	printf("  program_number : %d  => pmt pid 0x%x\n", p_pmt->program_number,pid );
+	printf("  version_number : %d\n", p_pmt->version_number );
+	printf("  PCR_PID        : 0x%x (%d)\n", p_pmt->PCR_PID, p_pmt->PCR_PID);
 	dump_descriptors("    ]", p_pmt->desriptor_list);
-	printf( "  components\n");
-	printf( "    | type @ elementary_PID\n");
+	printf("  components\n");
+	printf("    | type @ elementary_PID\n");
 	while(p_es){
-		printf( "    | 0x%02x (%s) @ 0x%x\n",p_es->stream_type,get_stream_type(p_es->stream_type),p_es->elementary_PID);
+		printf("    | 0x%02x (%s) @ 0x%x\n",p_es->stream_type,get_stream_type(p_es->stream_type),p_es->elementary_PID);
 		des = p_es->descriptor_list;
 		dump_descriptors("    |  ]", des);
 		p_es = p_es->next;
@@ -137,14 +129,14 @@ static void dump_SDT(void* p_data, sdt_t* p_sdt)
 	struct service_info* p_service = p_sdt->service_list;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 
-	printf(  "\n");
-	printf(  "SDT\n");	
-	printf(  "  section_length: %d\n",p_sdt->section_length);
-	printf(  "  transport_stream_id : 0x%x\n", p_sdt->transport_stream_id);  
-	printf(  "  version_number      : %d\n", p_sdt->version_number);  
-	printf(  "  Current next   : %s\n", p_sdt->current_next_indicator ? "yes" : "no");
-	printf(  "  original_network_id : 0x%x\n", p_sdt->original_network_id);  
-	printf(  "    | service_id \n");
+	printf("\n");
+	printf("SDT\n");	
+	printf("  section_length: %d\n",p_sdt->section_length);
+	printf("  transport_stream_id : 0x%x\n", p_sdt->transport_stream_id);  
+	printf("  version_number      : %d\n", p_sdt->version_number);  
+	printf("  Current next   : %s\n", p_sdt->current_next_indicator ? "yes" : "no");
+	printf("  original_network_id : 0x%x\n", p_sdt->original_network_id);  
+	printf("    | service_id \n");
 	while(p_service)
 	{
 		printf("    | 0x%04x(%d) \n",p_service->service_id,p_service->service_id);
@@ -163,22 +155,21 @@ static void dump_NIT(void* p_data, nit_t* p_nit)
 	struct transport_stream_info* p_service = p_nit->stream_list;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 
-	printf(  "\n");
-	printf(  "NIT\n");	
-	printf(  "  section_length: %d\n",p_nit->section_length);
-	printf(  "  network_id : 0x%x\n", p_nit->network_id);
-	printf(  "  version_number      : %d\n", p_nit->version_number);
-	printf(  "  Current next   : %s\n", p_nit->current_next_indicator ? "yes" : "no");
+	printf("\n");
+	printf("NIT\n");	
+	printf("  section_length: %d\n",p_nit->section_length);
+	printf("  network_id : 0x%x\n", p_nit->network_id);
+	printf("  version_number      : %d\n", p_nit->version_number);
+	printf("  Current next   : %s\n", p_nit->current_next_indicator ? "yes" : "no");
 	dump_descriptors("  [", p_nit->network_desriptor_list);
-	printf(  "    | transport_stream \n");
+	printf("    | transport_stream \n");
 	while(p_service)
 	{
 		printf("        | transport_stream_id 0x%x \n",p_service->transport_stream_id);
 		printf("            | original_network_id 0x%x \n",p_service->original_network_id);
-		dump_descriptors("            | [", p_service->transport_stream_desriptor_list);
+		dump_descriptors("            | ]", p_service->transport_stream_desriptor_list);
 		p_service = p_service->next;
 	}
-
 }
 
 void dump_tables(void)
@@ -202,7 +193,6 @@ void dump_tables(void)
 	{
 		dump_CAT(&psi, &psi.cat);
 	}
-#if 1
 	//pid 
 	for(i = 0x10; i < 0x2000 ; i++){
 		if (psi.pmt_bitmap[i/64] & ((uint64_t)1<<(i%64)))
@@ -216,7 +206,6 @@ void dump_tables(void)
 		dump_TDT(&psi, &psi.tdt);
 	if(psi.has_tot)
 		dump_TOT(&psi, &psi.tot);
-#endif
 }
 
 
@@ -782,7 +771,7 @@ static int eit_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 
 static int tdt_tot_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
-	if(TDT_TID ==pkt[0])
+	if(TDT_TID == pkt[0])
 	{
 		psi.stats.tdt_sections ++;
 		parse_tdt(pkt, len, &psi.tdt);

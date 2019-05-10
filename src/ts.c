@@ -231,6 +231,13 @@ extern struct io_ops file_ops;
 
 int init_pid_processor()
 {
+	init_pid_ops();
+	init_descriptor_parsers();
+	return 0;
+}
+
+int ts_process()
+{
 	file_ops.open(tsaconf.name);
 	void * ptr = NULL;
 	size_t len;
@@ -262,9 +269,6 @@ int init_pid_processor()
 	analyze(ptr, ts_pktlen*2, ts_pktlen , &start_index);
 	printf("valid ts starting at offset %d\n",start_index);
 	//hexdump(ptr+start_index, ts_pktlen);
-
-	init_pid_ops();
-	init_descriptor_parsers();
 
 	ptr += start_index;
 	len -= start_index;

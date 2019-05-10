@@ -421,6 +421,7 @@ typedef struct{
 	int (*table_proc)(uint16_t pid,uint8_t *pkt,uint16_t len);
 }table_ops;
 
+void dump_tables(void);
 
 #ifdef __cplusplus
 }
