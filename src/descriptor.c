@@ -7,6 +7,7 @@
 #include "ts.h"
 #include "descriptor.h"
 
+#define PARSE(dr,) 
 
 int parse_video_stream_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
@@ -291,152 +292,206 @@ int parse_NVOD_reference_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 }int parse_short_event_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
-}int parse_extended_event_descriptor(uint8_t *buf, uint32_t len, void *ptr)
-{
-	return 0;
-}int parse_time_shifted_event_descriptor(uint8_t *buf, uint32_t len, void *ptr)
-{
-	return 0;
-}int parse_component_descriptor(uint8_t *buf, uint32_t len, void *ptr)
-{
-	return 0;
-}int parse_mosaic_descriptor(uint8_t *buf, uint32_t len, void *ptr)
-{
-	return 0;
-}int parse_stream_identifier_descriptor(uint8_t *buf, uint32_t len, void *ptr)
-{
-	return 0;
-}int parse_CA_identifier_descriptor(uint8_t *buf, uint32_t len, void *ptr)
-{
-	return 0;
-}int parse_content_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+}
+
+int parse_extended_event_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
+int parse_time_shifted_event_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
+int parse_component_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
+int parse_mosaic_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
+int parse_stream_identifier_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
+int parse_CA_identifier_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	if(buf[0]!=dr_CA_identifier)
+		return -1;
+	CA_identifier_descriptor_t *ca = (CA_identifier_descriptor_t*)ptr;
+	ca->descriptor_tag = dr_bouquet_name;
+	ca->descriptor_length = buf[1];
+	ca->next = NULL;
+	ca->CA_system_id = malloc(ca->descriptor_length);
+	memcpy(ca->CA_system_id,buf+2,ca->descriptor_length);
+	return 0;
+}
+
+int parse_content_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	return 0;
+}
+
 int parse_parental_rating_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_teletext_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_telephone_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_local_time_offset_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_subtitling_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_terrestrial_delivery_system_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_multilingual_network_name_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_multilingual_bouquet_name_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_multilingual_service_name_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_multilingual_component_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_private_data_specifier_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_service_move_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_short_smoothing_buffer_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_frequency_list_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_partial_transport_stream_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_data_broadcast_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_scrambling_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_data_broadcast_id_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_transport_stream_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_DSNG_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_PDC_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_AC3_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_ancillary_data_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_cell_list_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_cell_frequency_link_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_announcement_support_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_application_signalling_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_adaptation_field_data_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_service_identifier_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_service_availability_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_default_authority_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;
 }
+
 int parse_related_content_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	return 0;

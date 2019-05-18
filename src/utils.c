@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
+
 #include "utils.h"
 
 #define LINE_LEN 128

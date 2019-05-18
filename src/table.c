@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "ts.h"
 #include "table.h"
 #include "utils.h"
