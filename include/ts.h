@@ -32,6 +32,11 @@ enum adaptation_field_e{
 	ADAPT_BOTH = 3,
 };
 
+typedef struct{
+	uint64_t program_clock_reference_base:33;
+	uint64_t reserved:6;
+	uint64_t program_clock_reference_extension:9;
+}__attribute__((packed))pcr_clock;
 
 typedef struct{
 	uint8_t adaptation_field_length;
@@ -44,6 +49,8 @@ typedef struct{
 	uint8_t transport_private_data_flag:1;
 	uint8_t adaptation_field_extension_flag:1;
 }__attribute__((packed)) ts_adaptation_field;
+
+
 
 enum PID_e{
 	PAT_PID		= 0x0000,
@@ -68,8 +75,10 @@ enum PID_e{
 	NULL_PID	= 0x1FFF,
 };
 
-
+#define SYS_CLK (27000000)
 /*define helper for reading bits set*/
+#define TS_READ_BIT(buf, mark) ((buf[0]>>mark)&0x01)
+
 #define TS_READ8(buff) (buff[0])
 #define TS_READ16(buff) (uint16_t)((((uint16_t)buff[0])<<8) | ((uint16_t)buff[1]))
 #define TS_READ32(buff) \

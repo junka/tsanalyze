@@ -120,6 +120,8 @@ struct pid_ops{
 	uint64_t pkts_in;
 	uint64_t error_in;
 	uint64_t bits_in;
+	uint64_t pcr;
+	uint64_t bitrate;
 	table_ops *tops;
 };
 
@@ -134,6 +136,62 @@ extern table_ops nit_ops;
 extern table_ops sdt_bat_ops;
 extern table_ops eit_ops;
 extern table_ops tdt_tot_ops;
+
+uint64_t calc_pcr_clock(pcr_clock pcr)
+{
+	return pcr.program_clock_reference_base * 300 + pcr.program_clock_reference_extension;
+}
+
+int ts_adaptation_field_proc(uint8_t *data,uint8_t len)
+{
+	ts_adaptation_field adapt;
+	pcr_clock pcr,opcr;
+	uint8_t *ptr = data;
+	adapt.discontinuity_indicator = TS_READ_BIT(ptr,7);
+	adapt.random_access_indicator = TS_READ_BIT(ptr,6);
+	adapt.elementary_stream_priority_indicator = TS_READ_BIT(ptr,5);
+	adapt.PCR_flag = TS_READ_BIT(ptr,4);
+	adapt.OPCR_flag = TS_READ_BIT(ptr,3);
+	adapt.splicing_point_flag = TS_READ_BIT(ptr,2);
+	adapt.transport_private_data_flag = TS_READ_BIT(ptr,1);
+	adapt.adaptation_field_extension_flag = TS_READ_BIT(ptr,0);
+	ptr += 1;
+
+	if(adapt.PCR_flag)
+	{
+		pcr.program_clock_reference_base = (((uint64_t)TS_READ32(ptr)<<1)|ptr[4]>>7);
+		ptr += 4;
+		pcr.program_clock_reference_extension = (TS_READ16(ptr) &0x1FF);
+		ptr += 2;
+		//printf("clock %lu\n",calc_pcr_clock(pcr));
+	}
+	if(adapt.OPCR_flag)
+	{
+		opcr.program_clock_reference_base = (((uint64_t)TS_READ32(ptr)<<1)|ptr[4]>>7);
+		ptr += 4;
+		opcr.program_clock_reference_extension = (TS_READ16(ptr) &0x1FF);
+		ptr += 2;
+		//printf("original clock %lu\n",calc_pcr_clock(pcr));
+	}
+	if(adapt.splicing_point_flag)
+	{
+		ptr += 1;
+	}
+	if(adapt.transport_private_data_flag)
+	{
+		uint8_t transport_private_data_length = TS_READ8(ptr);
+		ptr += 1;
+		ptr += transport_private_data_length;
+	}
+	if(adapt.adaptation_field_extension_flag)
+	{
+		uint8_t adaptation_field_extension_length = TS_READ8(ptr);
+		ptr += 1;
+		ptr += adaptation_field_extension_length;
+	}
+
+	return 0;
+}
 
 int ts_proc(uint8_t *data,uint8_t len)
 {
@@ -155,18 +213,21 @@ int ts_proc(uint8_t *data,uint8_t len)
 	//printf("receive PID 0x%x\n",head.PID);
 	ptr+=1;
 	len-=4;
+
+	pid_dev[head.PID].pkts_in++;
+
 	if(head.adaptation_field_control ==ADAPT_ONLY||head.adaptation_field_control ==ADAPT_BOTH)
 	{
 		ts_adaptation_field adapt;
 		adapt.adaptation_field_length = TS_READ8(ptr);
 		ptr += 1;
+		ts_adaptation_field_proc(ptr,adapt.adaptation_field_length);
 		ptr += adapt.adaptation_field_length;
 		len -=1;
 		len -= adapt.adaptation_field_length;
 		//TODO
 	}
-	
-	pid_dev[head.PID].pkts_in++;
+
 	if(head.transport_error_indicator == 1 )
 	{
 		pid_dev[head.PID].error_in++;

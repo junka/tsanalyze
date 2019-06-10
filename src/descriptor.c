@@ -7,7 +7,8 @@
 #include "ts.h"
 #include "descriptor.h"
 
-#define PARSE(dr,) 
+#define PARSE(dr,buf) \
+	if(buf[0]!=dr) return -1;
 
 int parse_video_stream_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {

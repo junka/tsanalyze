@@ -34,7 +34,7 @@ void hexdump(uint8_t *buf, uint32_t len)
 
 char* convert_UTC(UTC_time_t *t)
 {
-	static char str[18] = {0};
+	static char str[19] = {0};
 	/*16bits lsb MJB + 24 bits BCD*/
 	uint16_t mjd = (((uint16_t)t->time[0]<<8) |(t->time[1]));
 	uint8_t hour = t->time[2];
