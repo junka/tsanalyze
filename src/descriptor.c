@@ -663,16 +663,16 @@ void dump_descriptors(const char* str, descriptor_t* p_descriptor)
         switch (p_descriptor->tag)
         {
             case dr_system_clock:
-                dump_system_clock_descriptor(contain_of(p_descriptor,system_clock_descriptor_t,descriptor));
+                dump_system_clock_descriptor(container_of(p_descriptor,system_clock_descriptor_t,descriptor));
                 break;
             case dr_maximum_bitrate:
-                dump_maxbitrate_descriptor(contain_of(p_descriptor,maximum_bitrate_descriptor_t,descriptor));
+                dump_maxbitrate_descriptor(container_of(p_descriptor,maximum_bitrate_descriptor_t,descriptor));
                 break;
             case dr_stream_identifier:
-                dump_stream_identifier_descriptor(contain_of(p_descriptor,stream_identifier_descriptor_t,descriptor));
+                dump_stream_identifier_descriptor(container_of(p_descriptor,stream_identifier_descriptor_t,descriptor));
                 break;
             case dr_subtitling:
-                dump_subtitling_descriptor(contain_of(p_descriptor,subtitling_descriptor_t,descriptor));
+                dump_subtitling_descriptor(container_of(p_descriptor,subtitling_descriptor_t,descriptor));
                 break;
             default:
                 printf(  "\"");

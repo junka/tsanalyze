@@ -67,8 +67,35 @@ extern "C"{
 
 void hexdump(uint8_t *buf, uint32_t len);
 
-#define contain_of(item, type, member) \
+#define stringify(x) #x
+
+#define offsetof(type, member) ((size_t)&(((type*)0)->member))
+
+#ifndef container_off
+#define container_off(containing_type, member)	\
+			offsetof(containing_type, member)
+#endif
+
+#ifndef container_of
+#define container_of(item, type, member) \
 		((type *)((char *)item - (char *)(&((type *)0)->member)))
+#endif
+
+#if HAVE_TYPEOF
+#define container_of_var(member_ptr, container_var, member) \
+	container_of(member_ptr, typeof(*container_var), member)
+#else
+#define container_of_var(member_ptr, container_var, member)	\
+	((void *)((char *)(member_ptr)	-			\
+		  container_off_var(container_var, member)))
+#endif
+#if HAVE_TYPEOF
+#define container_off_var(var, member)		\
+	container_off(typeof(*var), member)
+#else
+#define container_off_var(var, member)			\
+	((const char *)&(var)->member - (const char *)(var))
+#endif
 
 char* convert_UTC(UTC_time_t *t);
 
