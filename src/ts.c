@@ -5,6 +5,7 @@
 
 #include "ts.h"
 #include "table.h"
+#include "filter.h"
 
 /*
 * port from ffmpeg for judging TS packet length
@@ -129,7 +130,7 @@ struct pid_ops{
 #define MAX_TS_PID_NUM 8192
 struct pid_ops pid_dev[MAX_TS_PID_NUM];
 extern table_ops drop_ops;
-extern table_ops pat_ops;
+//extern table_ops pat_ops;
 extern table_ops cat_ops;
 extern table_ops pmt_ops;
 extern table_ops nit_ops;
@@ -240,6 +241,7 @@ int ts_proc(uint8_t *data,uint8_t len)
 		if(sec_len==-1)
 			return 0;
 	}
+	filter_proc(head.PID,pbuf,sec_len);
 	pid_dev[head.PID].tops->table_proc(head.PID,pbuf ,sec_len);
 	return 0;
 }
@@ -277,7 +279,7 @@ int init_pid_ops(void)
 		pid_dev[i].tops = &drop_ops;
 	}
 	
-	pid_dev[PAT_PID].tops = &pat_ops;
+	//pid_dev[PAT_PID].tops = &pat_ops;
 	pid_dev[CAT_PID].tops = &cat_ops;
 	pid_dev[NIT_PID].tops = &nit_ops;
 	pid_dev[SDT_PID].tops = &sdt_bat_ops;

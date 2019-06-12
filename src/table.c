@@ -6,6 +6,7 @@
 #include "ts.h"
 #include "table.h"
 #include "utils.h"
+#include "filter.h"
 
 mpeg_psi_t psi = {0};
 
@@ -795,12 +796,15 @@ table_ops drop_ops ={
 	.mask = 0x00,
 	.table_proc = drop_proc,
 };
-
+#if 0
 table_ops pat_ops = {
 	.table_id = PAT_TID,
 	.mask = 0xFF,
 	.table_proc = pat_proc,
 };
+#endif
+//REGISTER_TABLE_FILTER(PAT_PID,PAT_TID,0xFF,pat_proc);
+
 
 table_ops cat_ops = {
 	.table_id = CAT_TID,
