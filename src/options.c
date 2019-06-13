@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <getopt.h>
+#include <errno.h>
 
 #include "ts.h"
 
@@ -37,8 +38,6 @@ int check_filepath_valid(char *filename)
 	return 0;
 }
 
-
-
 void prog_usage(FILE *fp,const char* pro_name)
 {
 	if(fp == NULL)
@@ -54,8 +53,7 @@ void prog_usage(FILE *fp,const char* pro_name)
 	fprintf(fp,"\n\n");
 }
 
-int 
-prog_parse_args(int argc, char **argv)
+int prog_parse_args(int argc, char **argv)
 {
 	int opt,ret;
 	int option_index;
@@ -71,7 +69,6 @@ prog_parse_args(int argc, char **argv)
 		"s:" /* tables */
 	;
 
-
 	const struct option long_options[]={
 			{OPT_BRIEF_LIST, 1, NULL, OPT_BRIEF_LIST_NUM},
 			{OPT_DETAIL_LIST, 0, NULL, OPT_DETAIL_LIST_NUM },
@@ -82,11 +79,17 @@ prog_parse_args(int argc, char **argv)
 			{0, 0, NULL, 0 }
 		};
 
+	if(argc < 2)
+	{
+		prog_usage(stdout,prgname);
+		return -EINVAL;
+	}
+
 	while((opt = getopt_long(argc,argv,short_options,
 		long_options,&option_index)) != EOF){
 		if(opt == '?'){
 			prog_usage(stdout,prgname);
-			return -1;
+			return -EINVAL;
 		}
 		switch(opt){
 		case 'h':
@@ -108,8 +111,8 @@ prog_parse_args(int argc, char **argv)
 
 	if(check_filepath_valid(argv[argc-1])<0)
 	{
-		printf("file not exsit or invalid filename\n");
-		return -1;
+		printf("no such file or invalid filepath\n");
+		return -ENOENT;
 	}
 	
 	strncpy(tsaconf.name,argv[argc-1],256);

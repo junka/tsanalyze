@@ -6,6 +6,7 @@
 #include "ts.h"
 #include "table.h"
 #include "filter.h"
+#include "utils.h"
 
 /*
 * port from ffmpeg for judging TS packet length
@@ -123,20 +124,10 @@ struct pid_ops{
 	uint64_t bits_in;
 	uint64_t pcr;
 	uint64_t bitrate;
-	table_ops *tops;
 };
 
 
-#define MAX_TS_PID_NUM 8192
 struct pid_ops pid_dev[MAX_TS_PID_NUM];
-extern table_ops drop_ops;
-//extern table_ops pat_ops;
-extern table_ops cat_ops;
-extern table_ops pmt_ops;
-extern table_ops nit_ops;
-extern table_ops sdt_bat_ops;
-extern table_ops eit_ops;
-extern table_ops tdt_tot_ops;
 
 uint64_t calc_pcr_clock(pcr_clock pcr)
 {
@@ -200,7 +191,7 @@ int ts_proc(uint8_t *data,uint8_t len)
 	uint8_t *ptr = data;
 	int16_t sec_len;
 	uint8_t *pbuf = NULL;
-	if(ptr[0]!=TS_SYNC_BYTE)
+	if(unlikely(ptr[0]!=TS_SYNC_BYTE))
 		return -1;
 	
 	ptr+=1;
@@ -242,20 +233,7 @@ int ts_proc(uint8_t *data,uint8_t len)
 			return 0;
 	}
 	filter_proc(head.PID,pbuf,sec_len);
-	pid_dev[head.PID].tops->table_proc(head.PID,pbuf ,sec_len);
 	return 0;
-}
-
-
-void register_pmt_ops(uint16_t pid)
-{
-	if(pid == NIT_PID )
-		return;
-	pid_dev[pid].tops = &pmt_ops;
-}
-void unregister_pmt_ops(uint16_t pid)
-{
-	pid_dev[pid].tops = &drop_ops;
 }
 
 void dump_TS_info()
@@ -270,32 +248,13 @@ void dump_TS_info()
 	}
 }
 
-int init_pid_ops(void)
-{
-	int i =0;
-	for(i = 0; i < 8192; i++)
-	{
-		pid_dev[i].pid = i;
-		pid_dev[i].tops = &drop_ops;
-	}
-	
-	//pid_dev[PAT_PID].tops = &pat_ops;
-	pid_dev[CAT_PID].tops = &cat_ops;
-	pid_dev[NIT_PID].tops = &nit_ops;
-	pid_dev[SDT_PID].tops = &sdt_bat_ops;
-	pid_dev[EIT_PID].tops = &eit_ops;
-	pid_dev[TDT_PID].tops = &tdt_tot_ops;
-
-	return 0;
-}
-
-
 extern struct ts_ana_configuration tsaconf;
 extern struct io_ops file_ops;
 
 int init_pid_processor()
 {
-	init_pid_ops();
+	filter_init();
+	init_table_ops();
 	init_descriptor_parsers();
 	return 0;
 }
@@ -325,13 +284,13 @@ int ts_process()
 		ts_pktlen = TS_FEC_PACKET_SIZE;
 	}else
 	{
-		printf("not a valid TS format file\n");
+		printf("TS file invalid format\n");
 		return -1;
 	}
 
 	//hexdump(ptr, 188);
 	analyze(ptr, ts_pktlen*2, ts_pktlen , &start_index);
-	printf("valid ts starting at offset %d\n",start_index);
+	printf("Ts starting at offset %d\n",start_index);
 	//hexdump(ptr+start_index, ts_pktlen);
 
 	ptr += start_index;

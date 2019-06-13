@@ -400,6 +400,7 @@ typedef struct{
 	int pmt_num;
 	uint64_t pmt_bitmap[128];
 	pmt_t pmt[8192];  /*maybe no necessary */
+	uint8_t has_pat:1;
 	uint8_t has_nit:1;
 	uint8_t has_sdt:1;
 	uint8_t has_bat:1;
@@ -415,11 +416,7 @@ typedef struct{
 	stats_t stats;
 }mpeg_psi_t;
 
-typedef struct{
-	uint8_t table_id;
-	uint8_t mask;
-	int (*table_proc)(uint16_t pid,uint8_t *pkt,uint16_t len);
-}table_ops;
+void init_table_ops(void);
 
 void dump_tables(void);
 

@@ -1,6 +1,10 @@
 #ifndef _PES_H_
 #define _PES_H_
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 enum stream_id {
 	program_stream_map = 1,
 	private_stream_1 = 2,
@@ -25,5 +29,9 @@ typedef struct {
 	uint16_t PES_packet_length;
 	
 } pes_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*_PES_H_*/

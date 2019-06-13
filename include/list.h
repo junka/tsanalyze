@@ -1,6 +1,10 @@
 #ifndef _LIST_H_
 #define _LIST_H_
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 #include <stdbool.h>
 #include <assert.h>
 
@@ -838,5 +842,8 @@ static inline void *list_entry_or_null(const struct list_head *h,
 	return (char *)n - off;
 }
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*_LIST_H_*/

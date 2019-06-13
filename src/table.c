@@ -177,6 +177,8 @@ static void dump_NIT(void* p_data, nit_t* p_nit)
 void dump_tables(void)
 {
 	int i =0;
+	if(psi.stats.pat_sections>0)
+		psi.has_pat = 1;
 	if(psi.stats.sdt_sections>0)
 		psi.has_sdt = 1;
 	if(psi.stats.bat_sections>0)
@@ -187,8 +189,9 @@ void dump_tables(void)
 		psi.has_tdt = 1;
 	if(psi.stats.tot_sections>0)
 		psi.has_tot = 1;
-	
-	dump_PAT(&psi, &psi.pat);
+
+	if(psi.has_pat)
+		dump_PAT(&psi, &psi.pat);
 	if(psi.has_sdt)
 		dump_SDT(&psi,&psi.sdt);
 	if(psi.ca_num>0)
@@ -211,9 +214,9 @@ void dump_tables(void)
 }
 
 
-extern void unregister_pmt_ops(uint16_t pid);
+void unregister_pmt_ops(uint16_t pid);
 
-extern void register_pmt_ops(uint16_t pid);
+void register_pmt_ops(uint16_t pid);
 
 int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 {
@@ -223,7 +226,7 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 	uint8_t *pdata = pbuf;
 	struct program_list *p;
 
-	if (pbuf == NULL || pPAT == NULL)
+	if (unlikely(pbuf == NULL || pPAT == NULL))
 	{
 		return -1;
 	}
@@ -234,7 +237,7 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 	}
 	
 	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	if(section_len > 0x3FD) //For pat , maximum
+	if (unlikely(section_len > 0x3FD)) //For pat , maximum
 	{
 		return -1;
 	}
@@ -315,7 +318,7 @@ int parse_cat(uint8_t * pbuf, uint16_t buf_size, cat_t * pCAT)
 	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
-	if (pbuf == NULL || pCAT == NULL)
+	if (unlikely(pbuf == NULL || pCAT == NULL))
 	{
 		return -1;
 	}
@@ -326,7 +329,7 @@ int parse_cat(uint8_t * pbuf, uint16_t buf_size, cat_t * pCAT)
 	}
 
 	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	if(section_len > 0x3FD) //For cat , maximum
+	if (unlikely(section_len > 0x3FD)) //For cat , maximum
 	{
 		return -1;
 	}
@@ -361,7 +364,7 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 	uint8_t version_num;
 	uint8_t *pdata = pbuf;
 
-	if (pbuf == NULL || pPMT == NULL)
+	if (unlikely(pbuf == NULL || pPMT == NULL))
 	{
 		return -1;
 	}
@@ -372,7 +375,7 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 	}
 
 	section_len = (int16_t)(((int16_t)pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	if(section_len > 0x3FD) //For pmt , maximum
+	if(unlikely(section_len > 0x3FD)) //For pmt , maximum
 	{
 		return -1;
 	}
@@ -446,7 +449,7 @@ int parse_nit(uint8_t * pbuf, uint16_t buf_size, nit_t * pNIT)
 	uint8_t version_num;
 	uint8_t *pdata = pbuf;
 
-	if (pbuf == NULL || pNIT == NULL)
+	if (unlikely(pbuf == NULL || pNIT == NULL))
 	{
 		return -1;
 	}
@@ -457,12 +460,12 @@ int parse_nit(uint8_t * pbuf, uint16_t buf_size, nit_t * pNIT)
 	}
 
 	section_len = (int16_t)((pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	if(section_len > 0x3FD) //For nit , maximum
+	if(unlikely(section_len > 0x3FD)) //For nit , maximum
 	{
 		return -1;
 	}
 	version_num = (pdata[5] >> 1) & 0x1F;
-	if(version_num == pNIT->version_number && pNIT->stream_list != NULL)
+	if(unlikely(version_num == pNIT->version_number && pNIT->stream_list != NULL))
 	{
 		return -1;
 	}
@@ -504,7 +507,7 @@ int parse_bat(uint8_t * pbuf, uint16_t buf_size, bat_t * pBAT)
 	uint8_t version_num;
 	uint8_t *pdata = pbuf;
 
-	if (pbuf == NULL || pBAT == NULL)
+	if (unlikely(pbuf == NULL || pBAT == NULL))
 	{
 		return -1;
 	}
@@ -515,7 +518,7 @@ int parse_bat(uint8_t * pbuf, uint16_t buf_size, bat_t * pBAT)
 	}
 
 	section_len = (int16_t)((pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	if(section_len > 0x3FD) //For bat , maximum
+	if(unlikely(section_len > 0x3FD)) //For bat , maximum
 	{
 		return -1;
 	}
@@ -570,7 +573,7 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 	uint8_t *pdata = pbuf;
 	uint8_t last_sec,cur_sec;
 	uint16_t ts_id;
-	if (pbuf == NULL || pSDT == NULL)
+	if (unlikely(pbuf == NULL || pSDT == NULL))
 	{
 		return -1;
 	}
@@ -580,7 +583,7 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 	}
 
 	section_len = (((int16_t)pdata[1] << 8) | pdata[2])  & 0x0FFF;
-	if(section_len > 0x3FD) //For sdt , maximum
+	if(unlikely(section_len > 0x3FD)) //For sdt , maximum
 	{
 		return -1;
 	}
@@ -654,7 +657,7 @@ static int parse_eit(uint8_t * pbuf, uint16_t buf_size, eit_t * pEIT)
 	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 	
-	if (pbuf == NULL || pEIT == NULL)
+	if (unlikely(pbuf == NULL || pEIT == NULL))
 	{
 		return -1;
 	}
@@ -676,7 +679,7 @@ static int parse_tdt(uint8_t * pbuf, uint16_t buf_size, tdt_t * pTDT)
 	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 	
-	if (pbuf == NULL || pTDT == NULL)
+	if (unlikely(pbuf == NULL || pTDT == NULL))
 	{
 		return -1;
 	}
@@ -699,7 +702,7 @@ static int parse_tot(uint8_t * pbuf, uint16_t buf_size, tot_t * pTOT)
 	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 	
-	if (pbuf == NULL || pTOT == NULL)
+	if (unlikely(pbuf == NULL || pTOT == NULL))
 	{
 		return -1;
 	}
@@ -764,6 +767,7 @@ static int sdt_bat_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 	}
 	return 0;
 }
+
 static int eit_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 {
 	psi.stats.eit_sections ++;
@@ -786,60 +790,44 @@ static int tdt_tot_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
 	return 0;
 }
 
-static int drop_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
+static void init_table_filter(uint16_t pid,uint8_t tableid,uint8_t mask,filter_cb func)
 {
-	return 0;
+	filter_t *f = filter_alloc(pid); 
+	filter_param_t para; 
+	para.depth = 1;
+	para.coff[0] = tableid;
+	para.mask[0] = mask;
+	filter_set(f,&para, func);
+}
+static void uninit_table_filter(uint16_t pid,uint8_t tableid,uint8_t mask)
+{
+	filter_param_t para; 
+	para.depth = 1;
+	para.coff[0] = tableid;
+	para.mask[0] = mask;
+	filter_t * f = filter_lookup(pid,&para);
+	filter_free(f);
 }
 
-table_ops drop_ops ={
-	.table_id = RESERVED_TID,
-	.mask = 0x00,
-	.table_proc = drop_proc,
-};
-#if 0
-table_ops pat_ops = {
-	.table_id = PAT_TID,
-	.mask = 0xFF,
-	.table_proc = pat_proc,
-};
-#endif
-//REGISTER_TABLE_FILTER(PAT_PID,PAT_TID,0xFF,pat_proc);
+void init_table_ops(void)
+{
+	init_table_filter(PAT_PID,PAT_TID,0xFF,pat_proc);
+	init_table_filter(CAT_PID,CAT_TID,0xFF,cat_proc);
+	init_table_filter(NIT_PID,NIT_ACTUAL_TID,0xFF,nit_proc);
+	init_table_filter(EIT_PID,EIT_ACTUAL_TID,0xFF,eit_proc);
+	init_table_filter(BAT_PID,BAT_TID,0xFF,sdt_bat_proc);
+	init_table_filter(TDT_PID,TDT_TID,0xFE,tdt_tot_proc);
+}
 
-
-table_ops cat_ops = {
-	.table_id = CAT_TID,
-	.mask = 0xFF,
-	.table_proc = cat_proc,
-};
-
-table_ops pmt_ops = {
-	.table_id = PMT_TID,
-	.mask = 0xFF,
-	.table_proc = pmt_proc,
-};
-
-table_ops nit_ops = {
-	.table_id = NIT_ACTUAL_TID,
-	.mask = 0xFF,
-	.table_proc = nit_proc,
-};
-
-table_ops sdt_bat_ops = {
-	.table_id = BAT_TID,
-	.mask = 0xFF,
-	.table_proc = sdt_bat_proc,
-};
-
-table_ops eit_ops = {
-	.table_id = EIT_ACTUAL_TID,
-	.mask = 0xFF,
-	.table_proc = eit_proc,
-};
-
-table_ops tdt_tot_ops = {
-	.table_id = TDT_TID,
-	.mask = 0xFE,
-	.table_proc = tdt_tot_proc,
-};
+void register_pmt_ops(uint16_t pid)
+{
+	if(pid == NIT_PID )
+		return;
+	init_table_filter(pid,PMT_TID,0xFF,pmt_proc);
+}
+void unregister_pmt_ops(uint16_t pid)
+{
+	uninit_table_filter(pid,PMT_TID,0xFF);
+}
 
 

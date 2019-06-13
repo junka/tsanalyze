@@ -34,16 +34,7 @@ int filter_free(filter_t *f);
 
 int filter_proc(uint16_t pid,uint8_t *data,uint16_t len);
 
-
-#define REGISTER_TABLE_FILTER(pid,tableid,msk,func) \
-	void __attribute__((constructor(102))) init_table_filter_##tableid() { \
-		filter_t *f = filter_alloc(pid); \
-		filter_param_t para; \
-		para.depth = 1;\
-		para.coff[0] = tableid;\
-		para.mask[0] = msk;\
-		filter_set(f,&para, func);\
-	}
+filter_t * filter_lookup(uint16_t pid,filter_param_t *param);
 
 
 #ifdef __cplusplus

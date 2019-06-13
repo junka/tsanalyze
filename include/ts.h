@@ -103,6 +103,8 @@ struct io_ops{
 	int (*end)();
 };
 
+#define MAX_TS_PID_NUM 8192
+
 int init_pid_processor();
 int ts_process();
 void dump_TS_info();
