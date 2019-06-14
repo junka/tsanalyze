@@ -28,6 +28,6 @@ int main(int argc,char *argv[])
 	ts_process();
 
 	dump_tables();
-	dump_TS_info();
+	dump_ts_info();
 	return 0;
 }

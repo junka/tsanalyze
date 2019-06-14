@@ -91,23 +91,15 @@ struct ts_ana_configuration{
 	uint8_t tids[256];
 };
 
-struct io_ops{
-	int fd;
-	int block_size;
-	size_t total_size;
-	size_t offset;
-	unsigned char *ptr;
-	int (*open)(char *filename);
-	int (*read)(void **ptr,size_t *len);
-	int (*close)();
-	int (*end)();
-};
 
 #define MAX_TS_PID_NUM 8192
 
-int init_pid_processor();
-int ts_process();
-void dump_TS_info();
+int init_pid_processor(void);
+
+int ts_process(void);
+
+void dump_ts_info(void);
+
 
 #ifdef __cplusplus
 }

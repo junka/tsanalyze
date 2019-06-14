@@ -5,24 +5,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
-//#include <error.h>
 
+#include "io.h"
 #include "ts.h"
 
-static int fileio_open(char * filename);
-static int fileio_read(void **ptr,size_t *len);
-static int fileio_close();
-static int fileio_end();
+static struct io_ops file_ops;
 
-
-struct io_ops file_ops={
-	.open = fileio_open,
-	.close = fileio_close,
-	.read = fileio_read,
-	.end = fileio_end,
-};
-
-int fileio_open(char * filename)
+static int fileio_open(char * filename)
 {
 	if(filename == NULL)
 		return -1;
@@ -36,7 +25,7 @@ int fileio_open(char * filename)
 	return 0;
 }
 
-int fileio_read(void **ptr,size_t *len)
+static int fileio_read(void **ptr,size_t *len)
 {
 	size_t size = file_ops.block_size;
 	if(file_ops.ptr != NULL)
@@ -63,7 +52,7 @@ int fileio_read(void **ptr,size_t *len)
 	return 0;
 }
 
-int fileio_close()
+static int fileio_close(void)
 {
 	if(file_ops.fd>=0)
 		close(file_ops.fd);
@@ -75,7 +64,18 @@ int fileio_close()
 	return 0;
 }
 
-static int fileio_end()
+static int fileio_end(void)
 {
 	return (file_ops.total_size - file_ops.offset);
 }
+
+static struct io_ops file_ops={
+	.type = IO_FILE,
+	.open = fileio_open,
+	.close = fileio_close,
+	.read = fileio_read,
+	.end = fileio_end,
+};
+
+REGISTER_IO_OPS(file,&file_ops);
+

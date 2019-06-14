@@ -3,6 +3,7 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include "io.h"
 #include "ts.h"
 #include "table.h"
 #include "filter.h"
@@ -236,7 +237,7 @@ int ts_proc(uint8_t *data,uint8_t len)
 	return 0;
 }
 
-void dump_TS_info()
+void dump_ts_info(void)
 {
 	uint16_t pid=0;
 	printf("\n");
@@ -249,9 +250,8 @@ void dump_TS_info()
 }
 
 extern struct ts_ana_configuration tsaconf;
-extern struct io_ops file_ops;
 
-int init_pid_processor()
+int init_pid_processor(void)
 {
 	filter_init();
 	init_table_ops();
@@ -261,7 +261,7 @@ int init_pid_processor()
 
 int ts_process()
 {
-	file_ops.open(tsaconf.name);
+	struct io_ops* ops = lookup_io_ops(0);
 	void * ptr = NULL;
 	size_t len;
 	int ts_pktlen = 0;
@@ -270,7 +270,9 @@ int ts_process()
 	uint8_t pkt_con[TS_FEC_PACKET_SIZE];
 	int pkt_con_len = 0;
 
-	file_ops.read(&ptr,&len);
+	ops->open(tsaconf.name);
+
+	ops->read(&ptr,&len);
 
 	typ = mpegts_probe((uint8_t *)ptr,len);
 	if(typ==0)
@@ -296,7 +298,7 @@ int ts_process()
 	ptr += start_index;
 	len -= start_index;
 	
-	while (file_ops.end())
+	while (ops->end())
 	{
 		if(pkt_con_len == ts_pktlen){
 			ts_proc(pkt_con,ts_pktlen);
@@ -313,7 +315,7 @@ int ts_process()
 			memcpy(pkt_con, ptr, len);
 			pkt_con_len = len;
 		}
-		if(file_ops.read(&ptr,&len) < 0)
+		if(ops->read(&ptr,&len) < 0)
 			break;
 		if(pkt_con_len){
 			memcpy(pkt_con + pkt_con_len, ptr , ts_pktlen - pkt_con_len);
@@ -322,7 +324,7 @@ int ts_process()
 			pkt_con_len = ts_pktlen;
 		}
 	}
-	file_ops.close();
+	ops->close();
 
 	return 0;
 }
