@@ -6,20 +6,28 @@ extern "C"{
 #endif
 
 enum stream_id {
-	program_stream_map = 1,
-	private_stream_1 = 2,
-	private_stream_2 = 3,
-	ECM_stream = 3,
-	EMM_stream = 3,
-	DSMCC_stream = 5,
-	ISO13522_stream = 2,
-	H222_1_A = 6,
-	H222_1_B = 6,
-	H222_1_C = 6,
-	H222_1_D = 6,
-	H222_1_E = 6,
-	ancillary_stream = 7,
-	program_stream_directory = 4,
+	program_stream_map = 0xBC,
+	private_stream_1 = 0xBD,
+	padding_stream = 0xBE,
+	private_stream_2 = 0xBF,
+	/*0x110x xxxx is ISO/IEC 13818-3 or ISO/IEC 11172-3 or 
+		ISO/IEC 13818-7 or ISO/IEC 14496-3 audio stream number x xxxx*/
+	/* 0x1110 xxxx is ITU-T Rec. H.262 | ISO/IEC 13818-2 or 
+		ISO/IEC 11172-2 or ISO/IEC 14496-2 video stream number xxxx*/
+	ECM_stream = 0xF0,
+	EMM_stream = 0xF1,
+	DSMCC_stream = 0xF2,
+	ISO13522_stream = 0xF3,
+	H222_1_A = 0xF4,
+	H222_1_B = 0xF5,
+	H222_1_C = 0xF6,
+	H222_1_D = 0xF7,
+	H222_1_E = 0xF8,
+	ancillary_stream = 0xF9,
+	SL_packetized_stream = 0xFA,
+	FlexMux_stream = 0xFB,
+	/* reserved 0xFC, 0xFD, 0xFE */
+	program_stream_directory = 0xFF,
 };
 
 
