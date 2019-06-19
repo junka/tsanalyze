@@ -114,13 +114,13 @@ int prog_parse_args(int argc, char **argv)
 			break;
 		}
 	}
-
+#if 0
 	if(check_filepath_valid(argv[argc-1])<0)
 	{
 		printf("no such file or invalid filepath\n");
 		return -ENOENT;
 	}
-	
+#endif
 	strncpy(tsaconf.name,argv[argc-1],256);
 	return 0;
 }

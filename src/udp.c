@@ -1,7 +1,9 @@
 #include <stdio.h>
-#include<unistd.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include<arpa/inet.h>
 #include <sys/mman.h>
 #include <poll.h>
 #include <linux/if_packet.h>
@@ -12,13 +14,43 @@ static struct io_ops udp_ops;
 
 int udp_open(char * urlpath)
 {
-	udp_ops.fd = socket(PF_PACKET, SOCK_DGRAM, 0);
+	int ret;
+	struct sockaddr_in addr,dest;
+	addr.sin_family =AF_INET;
+	addr.sin_port =htons(9900);
+	addr.sin_addr.s_addr=inet_addr("127.0.0.1");
+	dest.sin_family =AF_INET;
+	dest.sin_port =htons(9901);
+	dest.sin_addr.s_addr=inet_addr("127.0.0.1");
+	int len = sizeof(struct sockaddr);
+
+	udp_ops.fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if(udp_ops.fd < 0)
 	{
 		return -1;
 	}
 	udp_ops.block_size = 1024*1024*2;
-	int ret;
+	if (udp_ops.fd != -1) {
+		if (fcntl(udp_ops.fd, F_SETFD, FD_CLOEXEC) == -1)
+		{
+		}
+	}
+#ifdef SO_NOSIGPIPE
+		if (udp_ops.fd != -1)
+			setsockopt(udp_ops.fd, SOL_SOCKET, SO_NOSIGPIPE, &(int){1}, sizeof(int));
+#endif
+	ret = bind(udp_ops.fd,(struct sockaddr *)&addr, len);
+	if(ret < 0)
+	{
+	}
+	getsockname(udp_ops.fd, (struct sockaddr *)&addr, &len);
+	printf("%s \n",inet_ntoa(addr.sin_addr));
+	//ret = setsockopt(udp_ops.fd, SOL_SOCKET, SO_RCVBUF, &tmp, sizeof(tmp));
+	//fcntl(udp_ops.fd, F_SETFL, fcntl(udp_ops.fd, F_GETFL) | O_NONBLOCK);
+
+	ret = connect(udp_ops.fd, (struct sockaddr *) &dest, sizeof(dest));
+
+#if 0
 	struct tpacket_req req;
 	
 	req.tp_block_size = 4096;
@@ -45,12 +77,21 @@ int udp_open(char * urlpath)
 	{
 		return -1;
 	}
-	
+#endif
 }
 
 int udp_read(void **ptr,size_t *len)
 {
-	int i, nIndex = 0;
+	//int i, nIndex = 0;
+	static unsigned char buf[2048];
+	int size = 2048;
+	//int ev = POLLOUT ;
+	//struct pollfd p = { .fd = udp_ops.fd, .events = ev, .revents = 0 };
+	int ret;
+	//ret = poll(&p, 1, 100);
+	ret = recv(udp_ops.fd, buf, size, 0);
+	printf("ret %d\n",ret);
+#if 0
 	struct tpacket_hdr* pHead;// = (struct tpacket_hdr*)(udp_ops.ptr+ nIndex*2048);
 	for(i=0; i<udp_ops.block_size/4096; i++)
 	{
@@ -60,8 +101,9 @@ int udp_read(void **ptr,size_t *len)
 		nIndex++;
 		nIndex%=udp_ops.block_size/2048;
 	}
-	*ptr = udp_ops.ptr;
-	*len = udp_ops.block_size;
+#endif
+	*ptr = NULL;
+	*len = 0;
 	return 0;
 }
 
