@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <math.h>
+#include <signal.h>
 
 #include "ts.h"
 #include "table.h"
@@ -16,18 +17,25 @@
 
 int prog_parse_args(int argc, char **argv);
 
+void dump_result(int sig)
+{
+	dump_tables();
+	dump_ts_info();
+	exit(0);
+}
+
 int main(int argc,char *argv[])
 {
 	int ret;
 	ret = prog_parse_args(argc, argv);
 	if(ret<0)
 		return -1;
+	signal(SIGINT,dump_result);
 
 	init_pid_processor();
 
 	ts_process();
 
-	dump_tables();
-	dump_ts_info();
+	dump_result(0);
 	return 0;
 }
