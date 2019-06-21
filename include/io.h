@@ -12,7 +12,7 @@ struct io_ops{
 	size_t total_size;
 	size_t offset;
 	unsigned char *ptr;
-	int (*open)(char *filename);
+	int (*open)(const char *filename);
 	int (*read)(void **ptr,size_t *len);
 	int (*close)();
 	int (*end)();

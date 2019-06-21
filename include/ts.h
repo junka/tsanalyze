@@ -85,11 +85,18 @@ enum PID_e{
 	(uint32_t)(((uint32_t)buff[0]<<24) | ((uint32_t)buff[1]<<16)|((uint32_t)buff[2]<<8)|((uint32_t)buff[3]))
 
 
-struct ts_ana_configuration{
+struct tsa_config{
 	char name[256];//filename
 	uint16_t pids[4096];
 	uint8_t tids[256];
+	uint8_t type;
+	uint8_t brief:1;
+	uint8_t detail:1;
+	uint8_t mem;
+	uint8_t tables;
 };
+
+struct tsa_config *get_config();
 
 
 #define MAX_TS_PID_NUM 8192

@@ -176,6 +176,10 @@ static void dump_NIT(void* p_data, nit_t* p_nit)
 
 void dump_tables(void)
 {
+	struct tsa_config *tsaconf = get_config();
+	if(tsaconf->brief == 0)
+		return;
+
 	int i =0;
 	if(psi.stats.pat_sections>0)
 		psi.has_pat = 1;

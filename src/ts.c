@@ -241,6 +241,10 @@ int ts_proc(uint8_t *data,uint8_t len)
 
 void dump_ts_info(void)
 {
+	struct tsa_config *tsaconf = get_config();
+	if(tsaconf->detail==0)
+		return;
+
 	uint16_t pid=0;
 	printf("\n");
 	printf("TS bits statistics:\n");
@@ -250,8 +254,6 @@ void dump_ts_info(void)
 			printf("%04d(0x%04x)  %2c  %10" PRIu64 "%10" PRIu64 "\n",pid,pid,':',pid_dev[pid].pkts_in,pid_dev[pid].error_in );
 	}
 }
-
-extern struct ts_ana_configuration tsaconf;
 
 int init_pid_processor(void)
 {
@@ -263,7 +265,8 @@ int init_pid_processor(void)
 
 int ts_process()
 {
-	struct io_ops* ops = lookup_io_ops(0);
+	struct tsa_config *tsaconf = get_config();
+	struct io_ops* ops = lookup_io_ops(tsaconf->type);
 	void * ptr = NULL;
 	size_t len;
 	int ts_pktlen = 0;
@@ -272,7 +275,8 @@ int ts_process()
 	uint8_t pkt_con[TS_FEC_PACKET_SIZE];
 	int pkt_con_len = 0;
 
-	ops->open(tsaconf.name);
+	if(ops->open(tsaconf->name)<0)
+		return -1;
 
 	ops->read(&ptr,&len);
 

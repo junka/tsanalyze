@@ -11,7 +11,7 @@
 
 static struct io_ops file_ops;
 
-static int fileio_open(char * filename)
+static int fileio_open(const char * filename)
 {
 	if(filename == NULL)
 		return -1;

@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <stdbool.h>
 #include <getopt.h>
 #include <errno.h>
@@ -28,7 +30,14 @@ enum {
 	OPT_TABLE_NUM        = 's',
 };
 
-struct ts_ana_configuration tsaconf;
+static struct tsa_config tsaconf = {
+	.brief = 1,
+};
+
+struct tsa_config *get_config()
+{
+	return &tsaconf;
+}
 
 int check_filepath_valid(char *filename)
 {
@@ -37,7 +46,42 @@ int check_filepath_valid(char *filename)
 	int fd = open(filename,O_RDONLY);
 	if(fd<0)
 		return -1;
+	close(fd);
 	return 0;
+}
+
+int parse_table(const char *table)
+{
+#define TABLE_NUM (9)
+	const char* tables[TABLE_NUM]={"pat","cat","pmt","tsdt",
+		"nit","sdt","bat","tdt","tot"};
+	int i = 0;
+	for(i=0; i<TABLE_NUM; i++)
+	{
+		if(strcmp(table,tables[i])==0)
+		{
+			tsaconf.tables = i;
+			return 0;
+		}
+	}
+	return -1;
+}
+
+int parse_format_type(const char *format)
+{
+#define FORMAT_NUM (2)
+	int i = 0;
+	const char* formats[FORMAT_NUM]={
+		"file","udp"
+	};
+	for(i=0; i<FORMAT_NUM; i++)
+	{
+		if(strcmp(formats[i],format)==0)
+		{
+			return i;
+		}
+	}
+	return -1;
 }
 
 void prog_usage(FILE *fp,const char* pro_name)
@@ -64,12 +108,13 @@ int prog_parse_args(int argc, char **argv)
 
 	//make a copy of the options
 	const char short_options[]=
-		"b:" /* brief */
-		"d:" /* details */
-		"h"  /* help */
-		"m:" /* memory size */
-		"v"  /* version */
-		"s:" /* tables */
+		"b" 	/* brief */
+		"d" 	/* details */
+		"h" 	/* help */
+		"m:" 	/* memory size */
+		"v" 	/* version */
+		"s:"	/* tables */
+		"f:"	/*format*/
 	;
 
 	const struct option long_options[]={
@@ -95,17 +140,22 @@ int prog_parse_args(int argc, char **argv)
 			prog_usage(stdout,prgname);
 			return -EINVAL;
 		}
+		//printf("parse %c %s\n",opt,optarg);
 		switch(opt){
 		case 'h':
 			prog_usage(stdout,prgname);
-			break;
+			exit(0);
 		case 'b':
+			tsaconf.brief = 1;
 			break;
 		case 'd':
+			tsaconf.detail = 1;
 			break;
 		case 's':
+			tsaconf.tables = parse_table(optarg);
 			break;
 		case 'f':
+			tsaconf.type = parse_format_type(optarg);
 			break;
 		case 'v':
 			printf("version 1.0.0rc.\n");
@@ -114,14 +164,20 @@ int prog_parse_args(int argc, char **argv)
 			break;
 		}
 	}
-#if 0
-	if(check_filepath_valid(argv[argc-1])<0)
-	{
-		printf("no such file or invalid filepath\n");
-		return -ENOENT;
-	}
-#endif
+
 	strncpy(tsaconf.name,argv[argc-1],256);
+
+	if(tsaconf.type==UINT8_MAX)
+		return -EINVAL;
+	if(tsaconf.type == 0)
+	{
+		if(check_filepath_valid(argv[argc-1])<0)
+		{
+			printf("no such file or invalid filepath\n");
+			return -ENOENT;
+		}
+	}
+
 	return 0;
 }
 

@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <malloc.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -6,16 +9,74 @@
 #include <arpa/inet.h>
 
 #include "io.h"
-#include "utils.h"
 
 static struct io_ops udp_ops;
 
-int udp_open(char * urlpath)
+struct url{
+	char proto[32];
+	uint32_t addr;
+	uint32_t port;
+};
+
+void parse_url(const char*url,const char*protocl,uint32_t *addr,uint32_t *port)
 {
+	if(url == NULL)
+		return ;
+	char *url_dup = malloc(strlen(url)+1);
+	char *p_addr = NULL;
+	char *p_colon = NULL;
+	char *start = 0;
+	memcpy(url_dup,url,strlen(url)+1);
+	if(strncmp(url_dup,protocl,strlen(protocl))==0)
+	{
+		start = url_dup+strlen(protocl)+3;
+		p_colon = strchr(start,':');
+		if(p_colon != NULL)
+		{
+			*port = atoi(p_colon+1);
+			*p_colon = '\0';
+		}
+		else{
+			*port = 9001;
+		}
+		*addr = inet_addr(start);
+	}
+	if(url_dup != NULL)
+	{
+		free(url_dup);
+		url_dup = NULL;
+	}
+}
+
+static struct url *parse_url_path(const char *urlpath)
+{
+	static struct url surl;
+	if(strncmp(urlpath,"udp",3)!=0)
+	{
+		return NULL;
+	}
+	parse_url(urlpath,"udp",&surl.addr,&surl.port);
+	return &surl;
+}
+
+
+int udp_open(const char * urlpath)
+{
+	struct url * surl = parse_url_path(urlpath);
+	int ip_shift=24,i;
+	uint8_t ip[4],ipstr[16];
+	for(i=0;i<4;i++)
+	{
+		ip[i]=(surl->addr>>ip_shift)&0xFF;
+		ip_shift-=8;
+	}
+	snprintf(ipstr,16,"%u.%u.%u.%u",ip[3],ip[2],ip[1],ip[0]);
+	printf("ip addr %s, port %d \n",ipstr,surl->port);
+	
 	int ret;
 	struct sockaddr_in addr;
 	addr.sin_family =AF_INET;
-	addr.sin_port =htons(9900);
+	addr.sin_port =htons(surl->port);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);//inet_addr("127.0.0.1");
 	int len = sizeof(struct sockaddr);
 
@@ -39,8 +100,7 @@ int udp_open(char * urlpath)
 	{
 	}
 	getsockname(udp_ops.fd, (struct sockaddr *)&addr, &len);
-	printf("%s \n",inet_ntoa(addr.sin_addr));
-
+	//printf("%s \n",inet_ntoa(addr.sin_addr));
 
 }
 
