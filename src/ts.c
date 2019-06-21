@@ -45,7 +45,7 @@ static int analyze(const uint8_t *buf, int size, int packet_size, int *index){
 
 static int mpegts_probe(unsigned char *buf, int buf_size)
 {
-#define CHECK_COUNT 10
+#define CHECK_COUNT 7
 
 	const int size= buf_size;
 	int score, fec_score, dvhs_score;
@@ -192,6 +192,8 @@ int ts_proc(uint8_t *data,uint8_t len)
 	uint8_t *ptr = data;
 	int16_t sec_len;
 	uint8_t *pbuf = NULL;
+	if(unlikely(ptr == NULL))
+		return -1;
 	if(unlikely(ptr[0]!=TS_SYNC_BYTE))
 		return -1;
 	
