@@ -516,10 +516,27 @@ typedef struct {
 }external_ES_ID_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
 }muxcode_descriptor_t;
 
 typedef struct {
-	
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
 }FmxBufferSize_descriptor_t;
 
 typedef struct {
@@ -552,7 +569,16 @@ typedef struct {
 }network_name_descriptor_t;
 
 typedef struct {
-	
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
+
 }service_list_descriptor_t;
 
 typedef struct{
@@ -743,12 +769,12 @@ typedef struct {
 	};
 }linkage_descriptor_t;
 
-struct NVOD_reference{
+struct NVOD_refer{
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	uint16_t service_id;
-	struct NVOD_reference *prev;
-	struct NVOD_reference *next;
+	struct NVOD_refer *prev;
+	struct NVOD_refer *next;
 };
 
 typedef struct {
@@ -759,7 +785,7 @@ typedef struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			void * next;
-			struct NVOD_reference *nvod_list;
+			struct NVOD_refer *nvod_list;
 		};
 	};
 }NVOD_reference_descriptor_t;
@@ -825,6 +851,15 @@ typedef struct {
 }extended_event_descriptor_t;
 
 typedef struct{
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
 
 }time_shifted_event_descriptor_t;
 
@@ -847,6 +882,16 @@ typedef struct {
 } component_descriptor_t;
 
 typedef struct {
+	EXT_STD_C11
+	union{
+		descriptor_t descriptor;
+		struct {
+			uint8_t descriptor_tag;
+			uint8_t descriptor_length;
+			void * next;
+		};
+	};
+
 }mosaic_descriptor_t;
 
 typedef struct{
@@ -1496,6 +1541,7 @@ typedef struct {
 	};
 
 }default_authority_descriptor_t;
+
 typedef struct {
 	EXT_STD_C11
 	union{
@@ -1508,6 +1554,7 @@ typedef struct {
 	};
 
 } related_content_descriptor_t;
+
 typedef struct{
 	EXT_STD_C11
 	union{
@@ -1676,6 +1723,7 @@ typedef struct {
 		};
 	};
 }extension_descriptor_t;
+
 /*externsion_descriptors */
 enum extension_tag{
 	image_icon = 0x0,
@@ -1711,6 +1759,7 @@ struct descriptor_ops{
 	char tag_name[64];
 	int ( *descriptor_parse)(uint8_t *data, uint32_t len,void *ptr);
 	void* (*descriptor_alloc)(void);
+	void (* descriptor_dump)(descriptor_t* ptr);
 };
 
 void init_descriptor_parsers();
