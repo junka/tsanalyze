@@ -18,6 +18,7 @@ int psi_table_init(void)
 		list_head_init(&(psi.pmt[i].h));
 	}
 	list_head_init(&(psi.nit.h));
+	list_head_init(&(psi.eit.h));
 	list_head_init(&(psi.bat.h));
 	list_head_init(&(psi.sdt.h));
 
@@ -690,6 +691,7 @@ static int parse_eit(uint8_t * pbuf, uint16_t buf_size, eit_t * pEIT)
 {
 	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
+	struct event_node *pn,*next;
 	
 	if (unlikely(pbuf == NULL || pEIT == NULL))
 	{

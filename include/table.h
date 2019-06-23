@@ -306,7 +306,7 @@ typedef struct {
 	uint32_t crc32;
 } sdt_t;
 
-struct event_info{
+struct event_node{
 	uint16_t event_id;
 	uint64_t start_time:40;
 	uint64_t duration:24;
@@ -314,8 +314,7 @@ struct event_info{
 	uint16_t free_CA_mode:1;
 	uint16_t descriptors_loop_length:12;
 	struct descriptor * event_desriptor_list;
-	struct event_info *prev;
-	struct event_info *next;
+	struct list_node n;
 };
 
 typedef struct{
@@ -334,7 +333,7 @@ typedef struct{
 	uint16_t original_network_id;
 	uint8_t segment_last_section_number;
 	uint8_t last_table_id;
-	struct event_info* event_list;
+	struct list_head h;
 	uint32_t crc32;
 }eit_t;
 
