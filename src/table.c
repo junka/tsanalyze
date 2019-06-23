@@ -16,12 +16,15 @@ int psi_table_init(void)
 	list_head_init(&(psi.pat.h));
 	for(i=0;i<8192;i++){
 		list_head_init(&(psi.pmt[i].h));
+		list_head_init(&(psi.pmt[i].list));
 	}
 	list_head_init(&(psi.nit.h));
+	list_head_init(&(psi.nit.list));
 	list_head_init(&(psi.eit.h));
 	list_head_init(&(psi.bat.h));
+	list_head_init(&(psi.bat.list));
 	list_head_init(&(psi.sdt.h));
-
+	list_head_init(&(psi.tot.list));
 	return 0;
 }
 
@@ -84,19 +87,20 @@ static void dump_PAT(void* p_data, pat_t* p_pat)
 
 static void dump_CAT(void* p_data, cat_t* p_cat)
 {
-	CA_descriptor_t* p_descriptor = (CA_descriptor_t*) p_cat->list;
+	descriptor_t *pn;
+	CA_descriptor_t *ca;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 	p_stream->cat.version_number=p_cat->version_number;
 	printf("\n");
 	printf("CAT\n");
 	printf("  version number %d\n",p_cat->version_number);
-	while(p_descriptor)
+	list_for_each(&(p_cat->list), pn, n)
 	{
-		uint16_t system_id = p_descriptor->CA_system_ID;
-		uint16_t emm_pid = p_descriptor->CA_PID;
+		ca = (CA_descriptor_t *)pn;
+		uint16_t system_id = ca->CA_system_ID;
+		uint16_t emm_pid = ca->CA_PID;
 		//p_stream->ca_num++;
 		printf("  cat system id 0x%04x    emm pid 0x%04x\n",system_id,emm_pid);
-		p_descriptor = p_descriptor->next;
 	}
 }
 
@@ -114,7 +118,7 @@ static void dump_TOT(void* p_data, tot_t* p_tot)
 	printf("TOT: Time Offset Table\n");
 	printf("\tUTC time       : %s\n", convert_UTC(&p_tot->utc_time));
 
-	dump_descriptors("\t  |  ]", p_tot->time_offset_descriptor_list);
+	dump_descriptors("\t  |  ]", &(p_tot->list));
 }
 
 static void dump_PMT(void* p_data, pmt_t* p_pmt, uint16_t pid)
@@ -128,14 +132,13 @@ static void dump_PMT(void* p_data, pmt_t* p_pmt, uint16_t pid)
 	printf("  program_number : %d  => pmt pid 0x%x\n", p_pmt->program_number,pid );
 	printf("  version_number : %d\n", p_pmt->version_number );
 	printf("  PCR_PID        : 0x%x (%d)\n", p_pmt->PCR_PID, p_pmt->PCR_PID);
-	dump_descriptors("    ]", p_pmt->desriptor_list);
+	dump_descriptors("    ]", &(p_pmt->list));
 	printf("  components\n");
 	printf("    | type @ elementary_PID\n");
 	list_for_each(&(p_pmt->h), pn, n)
 	{
 		printf("    | 0x%02x (%s) @ 0x%x\n",pn->stream_type,get_stream_type(pn->stream_type),pn->elementary_PID);
-		des = pn->descriptor_list;
-		dump_descriptors("    |  ]", des);
+		dump_descriptors("    |  ]", &(pn->list));
 	}
 }
 
@@ -178,13 +181,13 @@ static void dump_NIT(void* p_data, nit_t* p_nit)
 	printf("  network_id : 0x%x\n", p_nit->network_id);
 	printf("  version_number      : %d\n", p_nit->version_number);
 	printf("  Current next   : %s\n", p_nit->current_next_indicator ? "yes" : "no");
-	dump_descriptors("  [", p_nit->network_desriptor_list);
+	dump_descriptors("  [", &(p_nit->list));
 	printf("    | transport_stream \n");
 	list_for_each(&(p_nit->h),pn,n)
 	{
 		printf("        | transport_stream_id 0x%x \n",pn->transport_stream_id);
 		printf("            | original_network_id 0x%x \n",pn->original_network_id);
-		dump_descriptors("            | ]", pn->transport_stream_desriptor_list);
+		dump_descriptors("            | ]", &(pn->list));
 	}
 }
 
@@ -371,7 +374,8 @@ int parse_cat(uint8_t * pbuf, uint16_t buf_size, cat_t * pCAT)
 	section_len -= 5 + 4; 
 	pdata += 8;
 
-	pCAT->list = parse_descriptors(pdata, section_len);
+	//list_add(&(pCAT->list),
+	parse_descriptors(&(pCAT->list),pdata, section_len);
 
 	return 0;
 }
@@ -437,10 +441,10 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 
 	pdata += 2;
 
-	if(pPMT->desriptor_list)
-		free_descriptors(pPMT->desriptor_list);
+	if(!list_empty(&(pPMT->list)))
+		free_descriptors(&(pPMT->list));
 
-	pPMT->desriptor_list = parse_descriptors(pdata, pPMT->program_info_length);
+	parse_descriptors(&(pPMT->list) ,pdata, pPMT->program_info_length);
 	section_len -= 2+ pPMT->program_info_length;
 	pdata += pPMT->program_info_length;
 	
@@ -449,13 +453,14 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 	while (section_len > 0)
 	{
 		pn = malloc(sizeof(struct es_node));
+		list_head_init(&(pn->list));
 		pn->stream_type = TS_READ8(pdata);
 		pdata+= 1;
 		pn->elementary_PID = TS_READ16(pdata)&0x1FFF;
 		pdata+= 2;
 		pn->ES_info_length = TS_READ16(pdata)&0x0FFF;
 		pdata += 2;
-		pn->descriptor_list = parse_descriptors(pdata,(int) pn->ES_info_length);
+		parse_descriptors(&(pn->list) ,pdata,(int) pn->ES_info_length);
 		pdata += pn->ES_info_length;
 		section_len -= (5+pn->ES_info_length);
 		list_add(&(pPMT->h),&(pn->n));
@@ -496,8 +501,8 @@ int parse_nit(uint8_t * pbuf, uint16_t buf_size, nit_t * pNIT)
 	pNIT->network_id = (pdata[3] << 8) | pdata[4];
 	pdata += 8;
 	pNIT->network_descriptors_length = TS_READ16(pdata) &0xFFF;
-	if(pNIT->network_desriptor_list)
-		free_descriptors(pNIT->network_desriptor_list);
+	if(!list_empty(&(pNIT->list)))
+		free_descriptors(&(pNIT->list));
 	
 	list_for_each_safe(&(pNIT->h), pn, next, n)
 	{
@@ -512,13 +517,14 @@ int parse_nit(uint8_t * pbuf, uint16_t buf_size, nit_t * pNIT)
 	pdata += 2 ;
 	while(section_len>0) {
 		pn = malloc(sizeof(struct transport_stream_node));
+		list_head_init(&(pn->list));
 		pn->transport_stream_id = TS_READ16(pdata);
 		pdata+=2;
 		pn->original_network_id = TS_READ16(pdata);
 		pdata+=2;
 		pn->transport_descriptors_length =TS_READ16(pdata);
 		pdata+=2;
-		pn->transport_stream_desriptor_list = parse_descriptors(pdata, (int)pn->transport_descriptors_length);
+		parse_descriptors(&(pn->list),pdata, (int)pn->transport_descriptors_length);
 		pdata+= pn->transport_descriptors_length;
 		section_len -= 6+pn->transport_descriptors_length;
 		list_add(&(pNIT->h),&(pn->n));
@@ -566,9 +572,9 @@ int parse_bat(uint8_t * pbuf, uint16_t buf_size, bat_t * pBAT)
 	pBAT->version_number = version_num;
 	pdata += 3;
 	pBAT->bouquet_descriptors_length = TS_READ16(pdata)&0xFFF;
-	if(pBAT->bouquet_desriptor_list!=NULL)
-		free_descriptors(pBAT->bouquet_desriptor_list);
-	pBAT->bouquet_desriptor_list = parse_descriptors(pdata,pBAT->bouquet_descriptors_length);
+	if(!list_empty(&(pBAT->list)))
+		free_descriptors(&(pBAT->list));
+	parse_descriptors(&(pBAT->list),pdata,pBAT->bouquet_descriptors_length);
 	pdata += pBAT->bouquet_descriptors_length;
 	section_len -= 7;
 	section_len -= pBAT->bouquet_descriptors_length;
@@ -579,13 +585,14 @@ int parse_bat(uint8_t * pbuf, uint16_t buf_size, bat_t * pBAT)
 	while(section_len>0)
 	{
 		pn = malloc(sizeof(struct transport_stream_node));
+		list_head_init(&(pn->list));
 		pn->transport_stream_id = TS_READ16(pdata);
 		pdata+= 2;
 		pn->original_network_id = TS_READ16(pdata);
 		pdata+= 2;
 		pn->transport_descriptors_length = TS_READ16(pdata)&0xFFF;
 		pdata += 2;
-		pn->transport_stream_desriptor_list = parse_descriptors(pdata,pn->transport_descriptors_length);
+		parse_descriptors(&(pn->list),pdata,pn->transport_descriptors_length);
 		pdata += pn->transport_descriptors_length;
 		section_len -= (5+pn->transport_descriptors_length);
 		list_add(&(pBAT->h),&(pn->n));
@@ -676,7 +683,7 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 		pn->descriptors_loop_length = TS_READ16(pdata)&0x0FFF;
 
 		pdata += 2;
-		pn->service_desriptor_list = parse_descriptors(pdata,(int)(pn->descriptors_loop_length));
+		parse_descriptors(&(pn->list),pdata,(int)(pn->descriptors_loop_length));
 		pdata += pn->descriptors_loop_length;
 		//printf("desc len %d\n",si->descriptors_loop_length);
 		loop_len -=5;
@@ -755,9 +762,9 @@ static int parse_tot(uint8_t * pbuf, uint16_t buf_size, tot_t * pTOT)
 	pdata+= 5;
 	pTOT->descriptors_loop_length = TS_READ16(pdata)&0xFFF;
 	pdata+=2;
-	if(pTOT->time_offset_descriptor_list)
-		free_descriptors(pTOT->time_offset_descriptor_list);
-	pTOT->time_offset_descriptor_list = parse_descriptors(pdata, (int)pTOT->descriptors_loop_length );
+	if(!list_empty(&(pTOT->list)))
+		free_descriptors(&(pTOT->list));
+	parse_descriptors(&(pTOT->list),pdata, (int)pTOT->descriptors_loop_length );
 	return 0;
 }
 

@@ -6,11 +6,13 @@ extern "C"{
 #endif
 
 #include "types.h"
+#include "list.h"
 
 typedef struct descriptor{
 	uint8_t tag;
 	uint8_t length;
-	struct descriptor * next;
+	//struct descriptor * next;
+	struct list_node n;
 	uint8_t data[0];
 }__attribute__((packed)) descriptor_t;
 
@@ -127,7 +129,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint8_t multiple_frame_rate_flag:1; /*set to '1' indicates that multiple frame rates may be present*/
 			uint8_t frame_rate_code:4;
 			uint8_t MPEG_1_only_flag:1; /*set to '1' indicates that the video stream contains only ISO/IEC 11172-2 data*/
@@ -149,7 +151,8 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			//void *next;
+			struct list_node n;
 			uint8_t free_format_flag:1;
 			uint8_t ID:1;
 			uint8_t layer:2;
@@ -177,7 +180,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint8_t reserved:4;
 			uint8_t hierarchy_type:4; /*see definition in @hierarchy_type_e*/
 			uint8_t reserved1:2;
@@ -198,7 +201,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint32_t format_identifier;
 			uint8_t* additional_identification_info;
 		};
@@ -220,7 +223,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint8_t alignment_type; /* see definition in @video_alignment_type_e */
 		};
 	};
@@ -233,7 +236,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint32_t horizontal_size:14;
 			uint32_t vertical_size:14;
 			uint32_t aspect_ratio_information:4;
@@ -248,7 +251,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint32_t horizontal_offset:14;
 			uint32_t vertical_offset:14;
 			uint32_t window_priority:4;
@@ -263,7 +266,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint16_t CA_system_ID;
 			uint16_t reserved:3;
 			uint16_t CA_PID:13;
@@ -280,10 +283,11 @@ enum audio_type_e{
 	/*0x04-0xFF reserved*/
 };
 
-struct language_info{
+struct language_node{
 	uint32_t ISO_639_language_code:24;
 	uint32_t audio_type:8; /*see definition in @audio_type_e */
-	struct language_info * next;
+	struct list_node n;
+	//struct language_info * next;
 };
 
 typedef struct {
@@ -293,9 +297,10 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			//uint32_t lang_num;
-			struct language_info* language_list;
+			//struct language_info* language_list;
+			struct list_head list;
 		};
 	};
 } ISO_639_language_descriptor_t;
@@ -307,7 +312,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint8_t external_clock_reference_indicator:1;
 			uint8_t reserved:1;
 			uint8_t clock_accuracy_integer:6;
@@ -324,7 +329,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint16_t bound_valid_flag:1;
 			uint16_t LTW_offset_lower_bound:15;
 			uint16_t reserved:1;
@@ -340,7 +345,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint32_t copyright_identifier;
 			uint8_t *additional_copyright_info;
 		};
@@ -354,7 +359,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint24_t maximum_bitrate;//22bit
 		};
 	};
@@ -367,7 +372,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint32_t private_data_indicator;
 		};
 	};
@@ -380,7 +385,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint24_t sb_leak_rate;
 			uint24_t sb_size;
 			//uint24_t reserved:2;
@@ -398,7 +403,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint8_t reserved:7;
 			uint8_t leak_valid_flag:1;
 		};
@@ -412,7 +417,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint16_t closed_gop_flag:1;
 			uint16_t identical_gop_flag:1;
 			uint16_t max_gop_length:14;
@@ -427,7 +432,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint8_t MPEG4_visual_profile_and_level;
 		};
 	};
@@ -450,7 +455,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint8_t MPEG4_audio_profile_and_level;
 		};
 	};
@@ -463,7 +468,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint8_t Scope_of_IOD_label;
 			uint8_t IOD_label;
 		};
@@ -477,16 +482,17 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint16_t ES_ID;
 		};
 	};
 } SL_descriptor_t;
 
-struct FMC_info{
+struct FMC_node{
 	uint16_t ES_ID;
 	uint8_t FlexMuxChannel;
-	struct FMC_info*next;
+	struct list_node n;
+	//struct FMC_info*next;
 };
 
 typedef struct {
@@ -496,8 +502,9 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
-			struct FMC_info *FMC_info_list;
+			struct list_node n;
+			struct list_head list;
+			//struct FMC_info *FMC_info_list;
 		};
 	};
 }FMC_descriptor_t;
@@ -509,7 +516,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint16_t external_ES_ID;
 		};
 	};
@@ -522,7 +529,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
 }muxcode_descriptor_t;
@@ -534,7 +541,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
 }FmxBufferSize_descriptor_t;
@@ -546,7 +553,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint24_t MB_buffer_size;
 			uint24_t TB_leak_rate;/* in units of 400 bits per second the rate at which data is transferred */
 		};
@@ -562,7 +569,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			char *text_byte;
 		};
 	};
@@ -575,7 +582,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
 
@@ -588,7 +595,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			char *stuffing_byte;
 		};
 	};
@@ -601,7 +608,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint32_t frequency;
 			uint16_t orbital_position;
 			uint8_t west_east_flag:1;
@@ -622,7 +629,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint32_t frequency;
 			uint16_t reserved_future_use:12;
 			uint16_t FEC_outer:4;
@@ -633,12 +640,11 @@ typedef struct {
 	};
 } cable_delivery_system_descriptor_t;
 
-struct VBI_data_info {
+struct VBI_data_node {
 	uint8_t data_service_id;
 	uint8_t data_service_descriptor_length;
 	uint8_t *reserved;
-	struct VBI_data_info * prev;
-	struct VBI_data_info * next;
+	struct list_node n;
 };
 
 typedef struct {
@@ -648,19 +654,19 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
-			struct VBI_data_info *list;
+			struct list_node n;
+			struct list_head list;
+			//struct VBI_data_info *list;
 		};
 	};
 }VBI_data_descriptor_t;
 
-struct VBI_teletext_info {
+struct VBI_teletext_node {
 	uint32_t ISO_639_language_code:24;
 	uint32_t teletext_type:5;
 	uint32_t teletext_magazine_number:3;
 	uint8_t teletext_page_number;
-	struct VBI_teletext_info * prev;
-	struct VBI_teletext_info * next;
+	struct list_node n;
 };
 
 typedef struct {
@@ -670,8 +676,9 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
-			struct VBI_teletext_info* list;
+			struct list_node n;
+			struct list_head list;
+			//struct VBI_teletext_info* list;
 		};
 	};
 }VBI_teletext_descriptor_t;
@@ -683,7 +690,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			char *sub_table;
 		};
 	};
@@ -696,7 +703,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint8_t service_type;
 			uint8_t service_provider_name_length;
 			uint8_t *text_char;
@@ -731,9 +738,10 @@ enum country_code_e{
 	BLR,
 };
 
-struct country_code{
+struct country_code_node{
 	uint24_t country_code;
-	struct country_code * next;
+	//struct country_code * next;
+	struct list_node n;
 };
 
 typedef struct {
@@ -743,10 +751,11 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t country_availability_flag:1;
 			uint8_t reserved_future_use:7;
-			struct country_code* country_list;
+			struct list_head list;
+			//struct country_code* country_list;
 		};
 	};
 }country_availability_descriptor_t;
@@ -758,7 +767,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint16_t transport_stream_id;
 			uint16_t original_network_id;
 			uint16_t service_id;
@@ -769,12 +778,11 @@ typedef struct {
 	};
 }linkage_descriptor_t;
 
-struct NVOD_refer{
+struct NVOD_reference_node{
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	uint16_t service_id;
-	struct NVOD_refer *prev;
-	struct NVOD_refer *next;
+	struct list_node n;
 };
 
 typedef struct {
@@ -784,8 +792,9 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
-			struct NVOD_refer *nvod_list;
+			struct list_node n;
+			struct list_head list;
+			//struct NVOD_refer *nvod_list;
 		};
 	};
 }NVOD_reference_descriptor_t;
@@ -797,7 +806,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t reference_service_id;
 		};
 	};
@@ -810,7 +819,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint32_t ISO_639_language_code:24;
 			uint32_t event_name_length:8;
 			uint8_t *event_name_char;
@@ -821,13 +830,12 @@ typedef struct{
 }short_event_descriptor_t;
 
 
-struct event_item{
+struct event_item_node{
 	uint8_t item_description_length;
 	uint8_t* item_description_char;
 	uint8_t item_length;
 	uint8_t *item_char;
-	struct event_item *prev;
-	struct event_item *next;
+	struct list_node n;
 };
 
 
@@ -838,12 +846,13 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t descriptor_number:4;
 			uint8_t last_descriptor_number:4;
 			uint32_t ISO_639_language_code:24;
 			uint32_t length_of_items:8;
-			struct event_item item_list;
+			struct list_head list;
+			//struct event_item item_list;
 			uint8_t text_length;
 			uint8_t *text_char;
 		};
@@ -857,10 +866,9 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
-
 }time_shifted_event_descriptor_t;
 
 typedef struct { 
@@ -870,7 +878,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t stream_content_ext:4; 
 			uint8_t stream_content:4;
 			uint8_t component_type;
@@ -888,7 +896,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
 
@@ -901,7 +909,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t component_tag;
 		};
 	};
@@ -914,17 +922,17 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint16_t *CA_system_id; /*ETSI TS 101 162 [i.1]*/
 		};
 	};
 }CA_identifier_descriptor_t;
 
-struct content_info{
+struct content_node{
 	uint8_t content_nibble_level_1:4;
 	uint8_t content_nibble_level_2:4;
 	uint8_t byte;
-	struct content_info * next;
+	struct list_node n;
 };
 
 typedef struct {
@@ -934,8 +942,9 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
-			struct content_info * content_list;
+			struct list_node n;
+			struct list_head list;
+			//struct content_info * content_list;
 		};
 	};
 }content_descriptor_t;
@@ -948,7 +957,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint32_t *countrycode_and_rating;
 		};
 	};
@@ -964,13 +973,12 @@ enum teletext_type{
 	/*0x06 to 0x1F reserved*/
 };
 
-struct teletext_info{
+struct teletext_node{
 	uint32_t ISO_639_language_code:24;
 	uint32_t teletext_type:5;
 	uint32_t teletext_magazine_number:3;
 	uint8_t teletext_page_number;
-	struct teletext_info *prev;
-	struct teletext_info *next;
+	struct list_node n;
 };
 
 typedef struct{
@@ -980,8 +988,8 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
-			struct teletext_info *teletext_list;
+			struct list_node n;
+			struct list_head list;
 		};
 	};
 }teletext_descriptor_t;
@@ -993,7 +1001,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t reserved_future_use:2;
 			uint8_t foreign_availability:1;
 			uint8_t connection_type:5;
@@ -1013,7 +1021,7 @@ typedef struct{
 	};
 }telephone_descriptor_t;
 
-struct local_time_info{
+struct local_time_node{
 	uint32_t country_code:24;
 	uint32_t country_region_id:6;
 	uint32_t reserved:1;
@@ -1021,8 +1029,7 @@ struct local_time_info{
 	uint16_t local_time_offset;
 	uint40_t time_of_change;
 	uint16_t next_time_offset;
-	struct local_time_info *prev;
-	struct local_time_info *next;
+	struct list_node n;
 };
 
 typedef struct {
@@ -1032,19 +1039,19 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
-			struct local_time_info* time_list;
+			struct list_node n;
+			struct list_head list;
+			//struct local_time_info* time_list;
 		};
 	};
 }local_time_offset_descriptor_t;
 
-struct subtitling_info{
+struct subtitling_node{
 	uint32_t ISO_639_language_code:24;
 	uint32_t subtitling_type:8;
 	uint16_t composition_page_id;
 	uint16_t ancillary_page_id;
-	struct subtitling_info *prev;
-	struct subtitling_info *next;
+	struct list_node n;
 };
 
 typedef struct{
@@ -1054,8 +1061,9 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
-			struct subtitling_info* subtitle_list;
+			struct list_node n;
+			struct list_head list;
+			//struct subtitling_info* subtitle_list;
 		};
 	};
 }subtitling_descriptor_t;
@@ -1067,7 +1075,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint32_t centre_frequency;
 			uint8_t bandwidth:3;
 			uint8_t priority:1;
@@ -1086,12 +1094,11 @@ typedef struct {
 	};
 }terrestrial_delivery_system_descriptor_t;
 
-struct multilingual_info{
+struct multilingual_node{
 	uint32_t ISO_639_language_code:24;
 	uint32_t name_length:8;
 	uint8_t *text_char;
-	struct multilingual_info*prev;
-	struct multilingual_info*next;
+	struct list_node n;
 };
 
 typedef struct {
@@ -1101,8 +1108,9 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
-			struct multilingual_info* time_list;
+			struct list_node n;
+			struct list_head list;
+			//struct multilingual_info* time_list;
 		};
 	};
 
@@ -1115,20 +1123,20 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
-			struct multilingual_info* time_list;
+			struct list_node n;
+			struct list_head list;
+			//struct multilingual_info* time_list;
 		};
 	};
 }multilingual_bouquet_name_descriptor_t;
 
-struct multilingual_service_info{
+struct multilingual_service_node{
 	uint32_t ISO_639_language_code:24;
 	uint32_t name_length:8;
 	uint8_t *text_char;
 	uint8_t service_name_length;
 	uint8_t *service_char;
-	struct multilingual_info*prev;
-	struct multilingual_info*next;
+	struct list_node n;
 };
 
 typedef struct {
@@ -1138,11 +1146,11 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
-			struct multilingual_service_info* time_list;
+			struct list_node n;
+			struct list_head list;
+			//struct multilingual_service_node
 		};
 	};
-
 }multilingual_service_name_descriptor_t;
 
 typedef struct {
@@ -1152,9 +1160,10 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t component_tag;
-			struct multilingual_info* time_list;
+			struct list_head list;
+			//struct multilingual_info* time_list;
 		};
 	};
 
@@ -1167,7 +1176,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint32_t private_data_specifier;
 		};
 	};
@@ -1180,7 +1189,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint16_t new_original_network_id;
 			uint16_t new_transport_stream_id;
 			uint16_t new_service_id;
@@ -1195,7 +1204,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t sb_size:2;
 			uint8_t sb_leak_rate:6;
 			uint8_t *DVB_reserved;
@@ -1210,7 +1219,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t reserved_future_use:6;
 			uint8_t coding_type:2;
 			uint32_t * centre_frequency;
@@ -1225,7 +1234,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint64_t DVB_reserved_future_use:2;
 			uint64_t peak_rate:22;
 			uint64_t DVB_reserved_future_use1:2;
@@ -1243,7 +1252,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint16_t data_broadcast_id;
 			uint8_t component_tag;
 			uint8_t selector_length;
@@ -1262,7 +1271,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint8_t scrambling_mode;
 		};
 	};
@@ -1275,7 +1284,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint16_t data_broadcast_id;
 			uint8_t *id_selector_byte;
 		};
@@ -1290,7 +1299,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t *byte;
 		};
 	};
@@ -1303,7 +1312,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t * byte;
 		};
 	};
@@ -1316,7 +1325,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint24_t programme_identification_label;//20bit
 		};
 	};
@@ -1330,7 +1339,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t component_type_flag:1;
 			uint8_t bsid_flag:1;
 			uint8_t mainid_flag:1;
@@ -1366,31 +1375,32 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			struct ancillary_data_identifier identifier;
 		};
 	};
 }ancillary_data_descriptor_t;
 
 
-struct subcell_list_info{
+struct subcell_list_node{
 	uint64_t cell_id_extension:8;
 	uint64_t subcell_latitude:16;
 	uint64_t subcell_longitude:16;
 	uint64_t subcell_extent_of_latitude:12;
 	uint64_t subcell_extent_of_longitude:12;
-	struct subcell_list_info *next;
+	struct list_node n;
 };
 
-struct cell_list_info{
+struct cell_list_node{
 	uint16_t cell_id;
 	uint16_t cell_latitude;
 	uint16_t cell_longitude;
 	uint32_t cell_extent_of_latitude:12;
 	uint32_t cell_extent_of_longitude:12;
 	uint32_t subcell_info_loop_length:8;
-	struct subcell_list_info *subcell_list;
-	struct cell_list_info *next;
+	//struct subcell_list_info *subcell_list;
+	struct list_head list;
+	struct list_node n;
 };
 
 typedef struct {
@@ -1400,23 +1410,26 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
-			struct cell_list_info * cell_list;
+			struct list_node n;
+			struct list_head list;
+			//struct cell_list_info * cell_list;
 		};
 	};
 } cell_list_descriptor_t;
 
-struct subcell_info{
+struct subcell_node{
 	uint8_t cell_id_extension;
 	uint32_t transposer_frequency;
-	struct subcell_info *next;
+	struct list_node n;
+	//struct subcell_info *next;
 };
 
-struct cell_frequency_info{
+struct cell_frequency_node{
 	uint16_t cell_id;
 	uint32_t frequency;
 	uint8_t subcell_info_loop_length;
-	struct subcell_info *subcell_info_list;
+	//struct subcell_info *subcell_info_list;
+	struct list_head list;
 };
 
 typedef struct {
@@ -1426,8 +1439,9 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
-			struct cell_frequency_info *cell_info_list;
+			struct list_node n;
+			struct list_head list;
+			//struct cell_frequency_info *cell_info_list;
 		};
 	};
 }cell_frequency_link_descriptor_t;
@@ -1453,12 +1467,13 @@ struct reference{
 	uint8_t component_tag;
 };
 
-struct announcement_info {
+struct announcement_node {
 	uint8_t announcement_type:4;
 	uint8_t reserved_future_use:1;
 	uint8_t reference_type:3;
 	struct reference ref;
-	struct announcement_info * next;
+	struct list_node n;
+	//struct announcement_info * next;
 };
 
 typedef struct {
@@ -1468,9 +1483,10 @@ typedef struct {
 	struct {
 		uint8_t descriptor_tag;
 		uint8_t descriptor_length;
-		void *next;
+		struct list_node n;
 		struct announcement_support_indicator indicator;
-		struct announcement_info *info;
+		struct list_head list;
+		//struct announcement_info *info;
 		};
 	};
 }announcement_support_descriptor_t;
@@ -1483,7 +1499,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
 
@@ -1506,7 +1522,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			struct adaptation_field_data_identifier identifier;
 		};
 	};
@@ -1519,7 +1535,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
 }service_identifier_descriptor_t;
@@ -1531,7 +1547,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void *next;
+			struct list_node n;
 			uint8_t availability_flag:1;
 			uint8_t reserved:7;
 			uint16_t *cell_id;
@@ -1546,7 +1562,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
 
@@ -1559,7 +1575,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
 
@@ -1572,7 +1588,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
 
@@ -1586,7 +1602,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
 
@@ -1599,7 +1615,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
 
@@ -1612,7 +1628,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
 
@@ -1625,7 +1641,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t scrambling_sequence_selector:1;
 			uint8_t multiple_input_stream_flag:1;
 			uint8_t backwards_compatibility_indicator:1;
@@ -1644,7 +1660,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t component_type_flag:1;
 			uint8_t bsid_flag:1;
 			uint8_t mainid_flag:1;
@@ -1673,7 +1689,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			//40bits
 			uint64_t sample_rate_code:4;
 			uint64_t bit_rate_code:6;
@@ -1695,7 +1711,7 @@ typedef struct{
 			struct {
 				uint8_t descriptor_tag;
 				uint8_t descriptor_length;
-				void * next;
+				struct list_node n;
 				uint8_t profile_and_level;
 				//valid when descriptor_length >1
 				uint8_t AAC_type_flag:1;
@@ -1714,7 +1730,7 @@ typedef struct{
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 		};
 	};
 }XAIT_location_descriptor_t;
@@ -1726,7 +1742,7 @@ typedef struct { /*0x7E*/
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t user_defined:1;
 			uint8_t reserved_future_use:3;
 			uint8_t do_not_scramble:1;
@@ -1743,7 +1759,7 @@ typedef struct {
 		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
-			void * next;
+			struct list_node n;
 			uint8_t descriptor_tag_extension;
 			uint8_t *selector_byte;
 		};
@@ -1785,16 +1801,17 @@ struct descriptor_ops{
 	char tag_name[64];
 	int ( *descriptor_parse)(uint8_t *data, uint32_t len,void *ptr);
 	void* (*descriptor_alloc)(void);
+	void (*descriptor_free)(descriptor_t* ptr);
 	void (* descriptor_dump)(descriptor_t* ptr);
 };
 
 void init_descriptor_parsers();
 
-void free_descriptors(descriptor_t *des);
+void free_descriptors(struct list_head *list);
 
-void dump_descriptors(const char* str, descriptor_t* p_descriptor);
+void dump_descriptors(const char* str, struct list_head* list);
 
-descriptor_t* parse_descriptors(uint8_t *buf, int len);
+void parse_descriptors(struct list_head *h,uint8_t *buf, int len);
 
 
 #ifdef __cplusplus

@@ -181,7 +181,8 @@ typedef struct {
 	uint8_t current_next_indicator:1;
 	uint8_t section_number;
 	uint8_t last_section_number;
-	struct descriptor *list; /*may have multicrypt CA descriptor here*/
+	//struct descriptor *list; /*may have multicrypt CA descriptor here*/
+	struct list_head list;
 	uint32_t crc32;
 }cat_t;
 
@@ -194,7 +195,8 @@ struct es_node{
 	uint16_t elementary_PID:13;
 	uint16_t reserved1:4;
 	uint16_t ES_info_length:12;
-	struct descriptor * descriptor_list;
+	//struct descriptor * descriptor_list;
+	struct list_head list;
 	struct list_node n;
 }__attribute__((packed));
 
@@ -214,8 +216,8 @@ typedef struct {
 	uint16_t PCR_PID:13;
 	uint16_t reserved3:4;
 	uint16_t program_info_length:12;
-	struct descriptor * desriptor_list;
-	//struct es_info* es_list;
+	//struct descriptor * desriptor_list;
+	struct list_head list;
 	struct list_head h;
 	uint32_t crc32;
 }pmt_t;
@@ -226,7 +228,7 @@ struct transport_stream_node{
 	uint16_t original_network_id;
 	uint16_t reserved_future_use:4;
 	uint16_t transport_descriptors_length:12;
-	struct descriptor * transport_stream_desriptor_list;
+	struct list_head list;
 	struct list_node n;
 };
 
@@ -245,7 +247,8 @@ typedef struct {
 	uint8_t last_section_number;
 	uint16_t reserved2:4;
 	uint16_t network_descriptors_length:12;
-	struct descriptor * network_desriptor_list;
+	struct list_head list;
+	//struct descriptor * network_desriptor_list;
 	uint16_t reserved3:4;
 	uint16_t transport_stream_loop_length:12;
 	struct list_head h;
@@ -267,7 +270,8 @@ typedef struct {
 	uint8_t last_section_number;
 	uint16_t reserved2:4;
 	uint16_t bouquet_descriptors_length:12;
-	struct descriptor * bouquet_desriptor_list;
+	//struct descriptor * bouquet_desriptor_list;
+	struct list_head list;
 	uint16_t reserved3:4;
 	uint16_t transport_stream_loop_length:12;
 	struct list_head h;
@@ -283,7 +287,8 @@ struct service_node{
 	uint16_t running_status:3;
 	uint16_t free_CA_mode:1;
 	uint16_t descriptors_loop_length:12;
-	struct descriptor * service_desriptor_list;
+	//struct descriptor * service_desriptor_list;
+	struct list_head list;
 	struct list_node n;
 };
 
@@ -355,7 +360,8 @@ typedef struct {
 	UTC_time_t utc_time;
 	uint16_t reserved1:4;
 	uint16_t descriptors_loop_length:12;
-	struct descriptor * time_offset_descriptor_list;
+	//struct descriptor * time_offset_descriptor_list;
+	struct list_head list;
 	uint32_t crc32;
 } tot_t;
 

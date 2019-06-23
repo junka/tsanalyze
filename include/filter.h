@@ -5,6 +5,11 @@
 extern "C"{
 #endif
 
+enum filter_type{
+	FILTER_SECTION = 0,
+};
+
+
 #define MAX_FILTER_DEPTH 8
 
 typedef struct filter_param

@@ -12,8 +12,7 @@
 
 #define DR_TAG(a,buf,ptr) a##_descriptor_t *dr = (a##_descriptor_t*)ptr; \
 	dr->descriptor_tag = dr_##a;\
-	dr->descriptor_length = buf[1]; \
-	dr->next = NULL;
+	dr->descriptor_length = buf[1]; 
 
 #define DR_MEMBER(dr,a,member)  dr ->member
 
@@ -110,7 +109,8 @@ int parse_ISO_639_language_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	INVALID_DR_RETURN(ISO_639_language,buf);
 	DR_TAG(ISO_639_language,buf,ptr)
-	dr->language_list = NULL;
+	//dr->language_list = NULL;
+	list_head_init(&(dr->list));
 	//lang->lang_num = 0;
 	return 0;
 }
@@ -673,6 +673,11 @@ void *alloc_reserved()
 	return malloc(sizeof(descriptor_t));
 }
 
+void free_reserved(descriptor_t * ptr)
+{
+	free(ptr);
+}
+
 void dump_reserved(descriptor_t * p_descriptor)
 {
 	int i =0 ;
@@ -685,13 +690,17 @@ void dump_reserved(descriptor_t * p_descriptor)
 
 #define FUNC(descriptor) parse_##descriptor##_descriptor
 
-#define ALLOC(descriptor) void *alloc_##descriptor(){ return malloc(sizeof(descriptor##_descriptor_t));}
+#define ALLOC(descriptor) void *alloc_##descriptor##_descriptor(){ return malloc(sizeof(descriptor##_descriptor_t));}
 
-#define FREE(descriptor) void free_##descriptor(descriptor##_descriptor_t * ptr) \
+#define FREE(descriptor) void free_##descriptor##_descriptor(descriptor_t * ptr) \
 	{ free(ptr); }
 
 #define _(a,b) ALLOC(a)
 	foreach_enum_descriptor
+#undef _
+
+#define _(a,b) FREE(a)
+		foreach_enum_descriptor
 #undef _
 
 #define _(a,b) void dump_##a##_descriptor(descriptor_t* p_descriptor) {\
@@ -712,12 +721,14 @@ void init_descriptor_parsers()
 		strncpy(des_ops[i].tag_name,"reserved",sizeof("reserved"));
 		des_ops[i].descriptor_parse = parse_reserved_descriptor;
 		des_ops[i].descriptor_alloc = alloc_reserved;
+		des_ops[i].descriptor_free = free_reserved;
 		des_ops[i].descriptor_dump = dump_reserved;
 	}
 
 #define _(a,b) des_ops[b].tag = b;\
 	des_ops[b].descriptor_parse = parse_##a##_descriptor; \
-	des_ops[b].descriptor_alloc = alloc_##a ;\
+	des_ops[b].descriptor_alloc = alloc_##a##_descriptor ;\
+	des_ops[b].descriptor_free = free_##a##_descriptor ;\
 	des_ops[b].descriptor_dump = dump_##a##_descriptor;\
 	snprintf(des_ops[b].tag_name,64, # a"_descriptor");
 		foreach_enum_descriptor
@@ -728,12 +739,12 @@ void init_descriptor_parsers()
 #define ALLOC_DES(tag)  des_ops[tag].descriptor_alloc()
 #define PARSE_DES(ptr,des)  do{ des_ops[ptr[0]].descriptor_parse(ptr,ptr[1]+2,des);}while(0)
 
-descriptor_t* parse_descriptors(uint8_t *buf, int len)
+void parse_descriptors(struct list_head *h,uint8_t *buf, int len)
 {
 	//hexdump(buf,len);
 	int l = len;
 	uint8_t* ptr = buf;
-	descriptor_t* h = NULL, *more;
+	descriptor_t *more;
 	while(l>0)
 	{
 		//hexdump( ptr, l);
@@ -741,66 +752,31 @@ descriptor_t* parse_descriptors(uint8_t *buf, int len)
 		void* des = ALLOC_DES(ptr[0]);
 		descriptor_t *more = (descriptor_t*) des;
 		PARSE_DES(ptr,des);
-		more->next = h;
 		more->tag = ptr[0];
 		more->length = ptr[1];
 		l -= more->length+ 2;
 		ptr += more->length+ 2;
-		h = more;
+		list_add(h, &(more->n));
 	}
-	return h;
 }
 
-void free_descriptors(descriptor_t *des)
+void free_descriptors(struct list_head *list)
 {
-	descriptor_t* t = des,*n;
-	while(t)
+	descriptor_t* t,*next;
+	list_for_each_safe(list, t, next, n)
 	{
-		n = t->next;
-		free(t);
-		t = n;
+		list_del(&(t->n));
+		des_ops[t->tag].descriptor_free(t);
 	}
 }
 
-
-
-#if 0
-void dump_system_clock_descriptor(system_clock_descriptor_t* p_descriptor)
+void dump_descriptors(const char* str, struct list_head* list)
 {
-	fprintf(stdout,"external_clock_reference_indicator: %d",
-		p_descriptor->external_clock_reference_indicator);
-	fprintf(stdout,"clock_accuracy_integer: %d",
-		p_descriptor->clock_accuracy_exponent);
-	fprintf(stdout,"clock_accuracy_exponent: %d\n",
-		p_descriptor->clock_accuracy_exponent);
-}
-
-void dump_maxbitrate_descriptor(maximum_bitrate_descriptor_t *p_descriptor)
-{
-	fprintf(stdout,"maximum_bitrate: %d\n", (int)(p_descriptor->maximum_bitrate.bits));
-}
-
-void dump_stream_identifier_descriptor(stream_identifier_descriptor_t *p_descriptor)
-{
-	fprintf(stdout,"component_tag: %d\n",p_descriptor->component_tag);
-}
-void dump_subtitling_descriptor(subtitling_descriptor_t *p_descriptor)
-{
-	if(p_descriptor->subtitle_list){
-		fprintf(stdout,"subtitle_list:\n");
-		fprintf(stdout,"	ISO_639_language_code %d\n",p_descriptor->subtitle_list->ISO_639_language_code);
-	}
-}
-#endif
-
-void dump_descriptors(const char* str, descriptor_t* p_descriptor)
-{
-	int i;
-	while(p_descriptor)
+	descriptor_t * p,*next;
+	list_for_each_safe(list, p, next, n)
 	{
-		printf( "%s 0x%02x (%s) : ", str, p_descriptor->tag,des_ops[p_descriptor->tag].tag_name);
-		des_ops[p_descriptor->tag].descriptor_dump(p_descriptor);
-		p_descriptor = p_descriptor->next;
+		printf( "%s 0x%02x (%s) : ", str, p->tag,des_ops[p->tag].tag_name);
+		des_ops[p->tag].descriptor_dump(p);
 	}
 }
 

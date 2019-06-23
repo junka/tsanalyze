@@ -75,6 +75,7 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 		return -1;
 }
 
+//do memcpy if section length greater than one packet
 int16_t section_preproc(uint16_t pid,uint8_t *pkt,uint16_t len,uint8_t **buffering,
 		uint8_t payload_unit_start_indicator,uint8_t continuity_counter)
 {
