@@ -7,6 +7,7 @@
 extern "C"{
 #endif
 
+#include "list.h"
 #include "descriptor.h"
 #include "statistics.h"
 
@@ -143,15 +144,11 @@ typedef enum {
 
 
 /* INFO int PAT */
-struct program_list {
+struct program_node{
 	uint16_t program_number;
 	uint16_t reserved:3;
-	//union {
 	uint16_t program_map_PID:13;
-	//uint16_t network_PID:13;
-	//};
-	struct program_list * prev;
-	struct program_list * next;
+	struct list_node n;
 };
 
 typedef struct {
@@ -167,7 +164,7 @@ typedef struct {
 	uint8_t section_number;
 	uint8_t last_section_number;
 	uint64_t program_bitmap[1024];
-	struct program_list* list;
+	struct list_head h;
 	uint32_t crc32;
 }__attribute__((packed)) pat_t;
 
@@ -191,15 +188,14 @@ typedef struct {
 
 
 /* INFO int PMT */
-struct es_info{
+struct es_node{
 	uint8_t stream_type;
 	uint16_t reserved:3;
 	uint16_t elementary_PID:13;
 	uint16_t reserved1:4;
 	uint16_t ES_info_length:12;
 	struct descriptor * descriptor_list;
-	struct es_info * prev;
-	struct es_info * next;
+	struct list_node n;
 }__attribute__((packed));
 
 typedef struct {
@@ -219,19 +215,19 @@ typedef struct {
 	uint16_t reserved3:4;
 	uint16_t program_info_length:12;
 	struct descriptor * desriptor_list;
-	struct es_info* es_list;
+	//struct es_info* es_list;
+	struct list_head h;
 	uint32_t crc32;
 }pmt_t;
 
 /*infos int nit*/
-struct transport_stream_info{
+struct transport_stream_node{
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	uint16_t reserved_future_use:4;
 	uint16_t transport_descriptors_length:12;
 	struct descriptor * transport_stream_desriptor_list;
-	struct transport_stream_info * prev;
-	struct transport_stream_info * next;
+	struct list_node n;
 };
 
 
@@ -252,7 +248,7 @@ typedef struct {
 	struct descriptor * network_desriptor_list;
 	uint16_t reserved3:4;
 	uint16_t transport_stream_loop_length:12;
-	struct transport_stream_info* stream_list;
+	struct list_head h;
 	uint32_t crc32;
 }nit_t;
 
@@ -274,12 +270,12 @@ typedef struct {
 	struct descriptor * bouquet_desriptor_list;
 	uint16_t reserved3:4;
 	uint16_t transport_stream_loop_length:12;
-	struct transport_stream_info* stream_list;
+	struct list_head h;
 	uint32_t crc32;
 }bat_t;
 
 /*infos in SDT*/
-struct service_info{
+struct service_node{
 	uint16_t service_id;
 	uint8_t reserved_future_use:6;
 	uint8_t EIT_schedule_flag:1;
@@ -288,8 +284,7 @@ struct service_info{
 	uint16_t free_CA_mode:1;
 	uint16_t descriptors_loop_length:12;
 	struct descriptor * service_desriptor_list;
-	struct service_info * prev;
-	struct service_info * next;
+	struct list_node n;
 };
 
 typedef struct {
@@ -307,7 +302,7 @@ typedef struct {
 	uint8_t last_section_number;
 	uint16_t original_network_id;
 	uint8_t reserved2;
-	struct service_info* service_list;
+	struct list_head h;
 	uint32_t crc32;
 } sdt_t;
 
