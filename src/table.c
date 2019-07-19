@@ -7,6 +7,7 @@
 #include "table.h"
 #include "utils.h"
 #include "filter.h"
+#include "err.h"
 
 static mpeg_psi_t psi;
 
@@ -78,9 +79,12 @@ static void dump_PAT(void* p_data, pat_t* p_pat)
 	printf("  transport_stream_id : %d\n", p_pat->transport_stream_id);
 	printf("  version_number      : %d\n", p_pat->version_number);
 	printf("    | program_number @ PMT_PID\n");
-	list_for_each(&(p_pat->h), pn, n)
+	//if(!list_empty(&(p_pat->h)))
 	{
-		printf("    | %14d @ 0x%x (%d)\n",pn->program_number, pn->program_map_PID, pn->program_map_PID);
+		list_for_each(&(p_pat->h), pn, n)
+		{
+				printf("    | %14d @ 0x%x (%d)\n",pn->program_number, pn->program_map_PID, pn->program_map_PID);
+		}
 	}
 	printf("  active              : 0x%x\n", p_pat->current_next_indicator);
 }
@@ -249,20 +253,19 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 
 	if (unlikely(pbuf == NULL || pPAT == NULL))
 	{
-		return -1;
+		return NULL_POINTER;
 	}
 
 	if (unlikely(pdata[0] != PAT_TID))
 	{
-		return -1;
+		return INVALID_TABLEID;
 	}
 	
 	section_len = ((pdata[1] << 8) | pdata[2])  & 0x0FFF;
 	if (unlikely(section_len > 0x3FD)) //For pat , maximum
 	{
-		return -1;
+		return INVALID_SECTION_LENGTH;
 	}
-
 	if (!(pdata[5] & 0x01)) //current_next_indicator
 	{
 		return -1;
@@ -272,14 +275,15 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 	{
 		return -1;
 	}
-	list_for_each_safe(&(pPAT->h), pn, next, n)
+	if(!list_empty(&(pPAT->h)))
 	{
-		unregister_pmt_ops(pn->program_map_PID);
-		list_del(&(pn->n));
-		free(pn);
+		list_for_each_safe(&pPAT->h, pn, next, n)
+		{
+			unregister_pmt_ops(pn->program_map_PID);
+			list_del(&pn->n);
+			free(pn);
+		}
 	}
-
-	//hexdump(pdata, section_len+4);
 
 	pPAT->section_length = section_len;
 
@@ -409,11 +413,13 @@ int parse_pmt(uint8_t * pbuf, uint16_t buf_size, pmt_t * pPMT)
 	{
 		return -1;
 	}
-
-	list_for_each_safe(&(pPMT->h), pn, next, n)
+	if(!list_empty(&(pPMT->h)))
 	{
-		list_del(&(pn->n));
-		free(pn);
+		list_for_each_safe(&(pPMT->h), pn, next, n)
+		{
+			list_del(&(pn->n));
+			free(pn);
+		}
 	}
 
 	pPMT->section_length = section_len;
@@ -503,11 +509,13 @@ int parse_nit(uint8_t * pbuf, uint16_t buf_size, nit_t * pNIT)
 	pNIT->network_descriptors_length = TS_READ16(pdata) &0xFFF;
 	if(!list_empty(&(pNIT->list)))
 		free_descriptors(&(pNIT->list));
-	
-	list_for_each_safe(&(pNIT->h), pn, next, n)
+	if(!list_empty(&(pNIT->h)))
 	{
-		list_del(&(pn->n));
-		free(pn);
+		list_for_each_safe(&(pNIT->h), pn, next, n)
+		{
+			list_del(&(pn->n));
+			free(pn);
+		}
 	}
 	pdata += 2 +pNIT->network_descriptors_length;
 	pNIT->transport_stream_loop_length = TS_READ16(pdata) &0xFFF;
@@ -559,10 +567,13 @@ int parse_bat(uint8_t * pbuf, uint16_t buf_size, bat_t * pBAT)
 	{
 		return -1;
 	}
-	list_for_each_safe(&(pBAT->h), pn, next, n)
+	if(!list_empty(&(pBAT->h)))
 	{
-		list_del(&(pn->n));
-		free(pn);
+		list_for_each_safe(&(pBAT->h), pn, next, n)
+		{
+			list_del(&(pn->n));
+			free(pn);
+		}
 	}
 	
 	pdata += 3;
@@ -643,11 +654,13 @@ int parse_sdt(uint8_t * pbuf, uint16_t buf_size, sdt_t * pSDT)
 	pSDT->version_number = version_num;
 	pSDT->original_network_id = TS_READ16(pdata);
 	pSDT->last_section_number = last_sec;
-
-	list_for_each_safe(&(pSDT->h), pn, next, n)
+	if(!list_empty(&(pSDT->h)))
 	{
-		list_del(&(pn->n));
-		free(pn);
+		list_for_each_safe(&(pSDT->h), pn, next, n)
+		{
+			list_del(&(pn->n));
+			free(pn);
+		}
 	}
 
 	if((pSDT->section_bitmap[cur_sec/64]&((uint64_t)1<<(cur_sec%64))))

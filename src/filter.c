@@ -63,6 +63,8 @@ int filter_set(filter_t *f, filter_param_t *p,filter_cb func)
 
 int filter_free(filter_t *f)
 {
+	if(f == NULL)
+		return -1;
 	struct list_head *lh = &pid_filter[f->pid].h;
 	struct filter_slot *ix ,*next;
 	list_for_each_safe(lh, ix,next, n)

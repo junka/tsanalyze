@@ -1,7 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __APPLE__
+#include <sys/malloc.h>
+#else
 #include <malloc.h>
+#endif
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -64,7 +68,8 @@ int udp_open(const char * urlpath)
 {
 	struct url * surl = parse_url_path(urlpath);
 	int ip_shift=24,i;
-	uint8_t ip[4],ipstr[16];
+	uint8_t ip[4];
+	char ipstr[16];
 	for(i=0;i<4;i++)
 	{
 		ip[i]=(surl->addr>>ip_shift)&0xFF;
@@ -78,7 +83,7 @@ int udp_open(const char * urlpath)
 	addr.sin_family =AF_INET;
 	addr.sin_port =htons(surl->port);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);//inet_addr("127.0.0.1");
-	int len = sizeof(struct sockaddr);
+	unsigned int len = sizeof(struct sockaddr);
 
 	udp_ops.fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if(udp_ops.fd < 0)
@@ -101,7 +106,7 @@ int udp_open(const char * urlpath)
 	}
 	getsockname(udp_ops.fd, (struct sockaddr *)&addr, &len);
 	//printf("%s \n",inet_ntoa(addr.sin_addr));
-
+	return 0;
 }
 
 int udp_read(void **ptr,size_t *len)
@@ -120,6 +125,7 @@ int udp_close(void)
 {
 	if(udp_ops.fd>=0)
 		close(udp_ops.fd);
+	return 0;
 }
 
 static int udp_end(void)

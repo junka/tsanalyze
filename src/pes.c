@@ -19,8 +19,8 @@ int parse_pes(uint8_t*pkt,uint16_t len)
 	{
 		pes.packet_data.PES_scrambling_control = (buf[0] >>4)&0x3;
 	}else if((pes.stream_id== program_stream_map)||(pes.stream_id==private_stream_2)
-		&&(pes.stream_id==ECM_stream)&&(pes.stream_id==EMM_stream)&&(pes.stream_id==program_stream_directory)
-		&&(pes.stream_id==DSMCC_stream)&&(pes.stream_id==H222_1_E))
+		||(pes.stream_id==ECM_stream)||(pes.stream_id==EMM_stream)||(pes.stream_id==program_stream_directory)
+		||(pes.stream_id==DSMCC_stream)||(pes.stream_id==H222_1_E))
 	{
 		pes.PES_packet_data_byte = buf;
 	}

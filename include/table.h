@@ -166,7 +166,7 @@ typedef struct {
 	uint64_t program_bitmap[1024];
 	struct list_head h;
 	uint32_t crc32;
-}__attribute__((packed)) pat_t;
+}pat_t;
 
 /* INFO int CAT */
 typedef struct {
@@ -198,7 +198,7 @@ struct es_node{
 	//struct descriptor * descriptor_list;
 	struct list_head list;
 	struct list_node n;
-}__attribute__((packed));
+};
 
 typedef struct {
 	uint8_t table_id;	/* 0x02 */

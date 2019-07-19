@@ -14,7 +14,7 @@ typedef struct descriptor{
 	//struct descriptor * next;
 	struct list_node n;
 	uint8_t data[0];
-}__attribute__((packed)) descriptor_t;
+}descriptor_t;
 
 /* ISO/IEC 13818-1 */
 #define foreach_enum_descriptor \

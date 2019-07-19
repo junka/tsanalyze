@@ -313,7 +313,6 @@ int ts_process()
 		}
 		while(len >= ts_pktlen)
 		{
-			//hexdump(ptr,ts_pktlen);
 			ts_proc(ptr,ts_pktlen);
 			len -= ts_pktlen;
 			ptr += ts_pktlen;

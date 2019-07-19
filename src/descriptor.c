@@ -756,7 +756,7 @@ void parse_descriptors(struct list_head *h,uint8_t *buf, int len)
 		more->length = ptr[1];
 		l -= more->length+ 2;
 		ptr += more->length+ 2;
-		list_add(h, &(more->n));
+		list_add(h, &more->n);
 	}
 }
 
