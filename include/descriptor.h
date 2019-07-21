@@ -11,7 +11,6 @@ extern "C"{
 typedef struct descriptor{
 	uint8_t tag;
 	uint8_t length;
-	//struct descriptor * next;
 	struct list_node n;
 	uint8_t data[0];
 }descriptor_t;

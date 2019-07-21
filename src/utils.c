@@ -51,7 +51,7 @@ char* convert_UTC(UTC_time_t *t)
 		K = 1; 
 	else
 		K = 0;
-	Y = Y1 + K;
+	Y = Y1 + K + 1900;
 	M = M1 - 1 - K *12;
 	
 	snprintf(str,18,"%d/%d/%d %02x:%02x:%02x",Y,M,D,hour,min,sec);

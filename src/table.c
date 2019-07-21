@@ -69,7 +69,7 @@ static void dump_PAT(void* p_data, pat_t* p_pat)
 	if(p_pat == NULL ||p_data == NULL)
 		return ;
 
-	struct program_node *pn;
+	struct program_node *pn = NULL;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 	int num = p_stream->pmt_num;
 
@@ -79,20 +79,17 @@ static void dump_PAT(void* p_data, pat_t* p_pat)
 	printf("  transport_stream_id : %d\n", p_pat->transport_stream_id);
 	printf("  version_number      : %d\n", p_pat->version_number);
 	printf("    | program_number @ PMT_PID\n");
-	//if(!list_empty(&(p_pat->h)))
+	list_for_each(&p_pat->h, pn, n)
 	{
-		list_for_each(&(p_pat->h), pn, n)
-		{
-				printf("    | %14d @ 0x%x (%d)\n",pn->program_number, pn->program_map_PID, pn->program_map_PID);
-		}
+		printf("    | %14d @ 0x%x (%d)\n",pn->program_number, pn->program_map_PID, pn->program_map_PID);
 	}
 	printf("  active              : 0x%x\n", p_pat->current_next_indicator);
 }
 
 static void dump_CAT(void* p_data, cat_t* p_cat)
 {
-	descriptor_t *pn;
-	CA_descriptor_t *ca;
+	descriptor_t *pn = NULL;
+	CA_descriptor_t *ca = NULL;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 	p_stream->cat.version_number=p_cat->version_number;
 	printf("\n");
@@ -127,8 +124,8 @@ static void dump_TOT(void* p_data, tot_t* p_tot)
 
 static void dump_PMT(void* p_data, pmt_t* p_pmt, uint16_t pid)
 {
-	struct es_node *pn;
-	descriptor_t* des;
+	struct es_node *pn = NULL;
+	descriptor_t* des = NULL;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 	
 	printf("\n" );
@@ -150,7 +147,7 @@ static void dump_SDT(void* p_data, sdt_t* p_sdt)
 {
 	if(p_sdt == NULL ||p_data == NULL)
 		return ;
-	struct service_node* pn;
+	struct service_node* pn = NULL;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 
 	printf("\n");
@@ -176,7 +173,7 @@ static void dump_NIT(void* p_data, nit_t* p_nit)
 {
 	if(p_nit == NULL ||p_data == NULL)
 		return ;
-	struct transport_stream_node* pn;
+	struct transport_stream_node* pn = NULL;
 	mpeg_psi_t* p_stream = (mpeg_psi_t*) p_data;
 
 	printf("\n");
@@ -249,7 +246,7 @@ int parse_pat(uint8_t * pbuf, uint16_t buf_size, pat_t * pPAT)
 	uint8_t version_num;
 	uint16_t program_num,program_map_PID;
 	uint8_t *pdata = pbuf;
-	struct program_node *pn,*next;
+	struct program_node *pn = NULL,*next = NULL;
 
 	if (unlikely(pbuf == NULL || pPAT == NULL))
 	{

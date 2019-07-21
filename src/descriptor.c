@@ -762,7 +762,7 @@ void parse_descriptors(struct list_head *h,uint8_t *buf, int len)
 
 void free_descriptors(struct list_head *list)
 {
-	descriptor_t* t,*next;
+	descriptor_t* t = NULL,*next = NULL;
 	list_for_each_safe(list, t, next, n)
 	{
 		list_del(&(t->n));
@@ -772,7 +772,7 @@ void free_descriptors(struct list_head *list)
 
 void dump_descriptors(const char* str, struct list_head* list)
 {
-	descriptor_t * p,*next;
+	descriptor_t * p = NULL, *next = NULL;
 	list_for_each_safe(list, p, next, n)
 	{
 		printf( "%s 0x%02x (%s) : ", str, p->tag,des_ops[p->tag].tag_name);
