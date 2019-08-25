@@ -7,6 +7,7 @@ extern "C"{
 
 enum filter_type{
 	FILTER_SECTION = 0,
+	FILTER_PES = 1,
 };
 
 
