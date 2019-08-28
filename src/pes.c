@@ -2,8 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "filter.h"
 #include "ts.h"
 #include "pes.h"
+
+#define PES_MAX_LENGTH 64*1024*1024
 
 int parse_pes(uint8_t*pkt,uint16_t len)
 {
@@ -152,6 +155,20 @@ int parse_pes(uint8_t*pkt,uint16_t len)
 	return 0;
 }
 
+static int pes_proc(uint16_t pid,uint8_t *pkt,uint16_t len)
+{
+	parse_pes(pkt, len);
+	return 0;
+}
 
-
-
+void register_pes_ops(uint16_t pid)
+{
+	if(pid == NIT_PID )
+		return;
+	filter_t *f = filter_alloc(pid); 
+	filter_param_t para; 
+	para.depth = 1;
+	para.coff[0] = 0xFF;
+	para.mask[0] = 0;
+	filter_set(f,&para, pes_proc);
+}

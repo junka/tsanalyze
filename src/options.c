@@ -18,6 +18,7 @@
 #define OPT_VERSION		"version"
 #define OPT_MEMORY		"mem"
 #define OPT_TABLE		"table"
+#define OPT_PID			"pid"
 
 enum {
 	/* long options mapped to a short option */
@@ -28,6 +29,7 @@ enum {
 	OPT_VERSION_NUM      = 'v',
 	OPT_MEMORY_NUM       = 'm',
 	OPT_TABLE_NUM        = 's',
+	OPT_PID_NUM			 = 'p',
 };
 
 static struct tsa_config tsaconf = {
@@ -97,6 +99,7 @@ void prog_usage(FILE *fp,const char* pro_name)
 	fprintf(fp,"%13s%c%s\t%s\n","  -",OPT_VERSION_NUM,", --"OPT_VERSION,"Show version");
 	fprintf(fp,"%13s%c%s\t%s\n","  -",OPT_MEMORY_NUM,", --"OPT_MEMORY,"memory to use");
 	fprintf(fp,"%13s%c%s\t%s\n","  -",OPT_TABLE_NUM,", --"OPT_TABLE,"Show select tables only");
+	fprintf(fp,"%13s%c%s\t%s\n","  -",OPT_PID_NUM,", --"OPT_PID,"Show select pid only");
 	fprintf(fp,"\n\n");
 }
 
@@ -115,6 +118,7 @@ int prog_parse_args(int argc, char **argv)
 		"v" 	/* version */
 		"s:"	/* tables */
 		"f:"	/*format*/
+		"p:"
 	;
 
 	const struct option long_options[]={
@@ -125,6 +129,7 @@ int prog_parse_args(int argc, char **argv)
 			{OPT_MEMORY, 1, NULL, OPT_MEMORY_NUM},
 			{OPT_TABLE, 0, NULL, OPT_TABLE_NUM },
 			{OPT_FORMAT, 1, NULL, OPT_FORMAT_NUM},
+			{OPT_PID, 0, NULL, OPT_PID_NUM},
 			{0, 0, NULL, 0 }
 		};
 

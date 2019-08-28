@@ -77,42 +77,72 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 
 //do memcpy if section length greater than one packet
 int16_t section_preproc(uint16_t pid,uint8_t *pkt,uint16_t len,uint8_t **buffering,
-		uint8_t payload_unit_start_indicator,uint8_t continuity_counter)
+		uint8_t payload_unit_start_indicator,uint8_t continuity_counter,uint8_t psi_or_pes)
 {
 	static int total_len[8192] ={0} ;
 	static uint8_t cc[8192] = {0};
-	static uint8_t buffer[8192][4096];
-	static int16_t limit_len[8192] ={0};
+	static uint8_t buffer[8192][65535];
+	static int32_t limit_len[8192] ={0};
+	uint8_t pointer_field = 0;
 	*buffering = NULL;
+	//indicate start of PES or PSI
 	if(payload_unit_start_indicator == 1){
-		/*skip pointer_field, valid for PSI */
-		total_len[pid] = len-1;
 		cc[pid] = continuity_counter;
-		limit_len[pid] = (int16_t)(((int16_t)pkt[2] << 8) | pkt[3])&0x0FFF;
-		limit_len[pid] += 3;
-		/*section in one pkt , go without buffering*/
-		if(limit_len[pid] <= (len-1))
+		if(psi_or_pes==0)//PSI
 		{
-			*buffering = (pkt+1);
-			return limit_len[pid];
+			pointer_field = pkt[0];
+			/*skip pointer_field, valid for PSI and stream_type 0x05 private_sections*/
+			total_len[pid] = len-1-pointer_field;
+			limit_len[pid] = (int32_t)(((int16_t)pkt[2+pointer_field] << 8) | pkt[3+pointer_field])&0x0FFF;
+			limit_len[pid] += 3;
+			/*section in one pkt , go without buffering*/
+			if(limit_len[pid] <= (total_len[pid]))
+			{
+				*buffering = (pkt+1+pointer_field);
+				return limit_len[pid];
+			}
+			else
+			{
+				memset(buffer[pid],0,4096);//PSI length less than this
+				memcpy(buffer[pid],pkt +1+ pointer_field,total_len[pid]);
+			}
 		}
 		else
 		{
-			memset(buffer[pid],0,4096);
-			memcpy(buffer[pid],pkt+1,len-1);
+			total_len[pid] = len;
+			limit_len[pid] = ((int32_t)pkt[4]<<8|pkt[5]);
+			if(limit_len[pid]==0)
+			{
+				//for video stream, unlimit length
+			}
+			limit_len[pid] += 6;
+			if(limit_len[pid] <= (total_len[pid]))
+			{
+				*buffering = pkt;
+				return limit_len[pid];
+			}
+			else
+			{
+				memset(buffer[pid],0,65535);
+				memcpy(buffer[pid], pkt, total_len[pid]);
+			}
 		}
+		
 	}
 	else
 	{
-		if(total_len[pid]==0)
-			return -1;
-		memcpy(buffer[pid]+total_len[pid],pkt,len);
-		total_len[pid] += len;
-		if(total_len[pid]>=limit_len[pid])
+		//if(psi_or_pes==0)//PSI
 		{
-			*buffering = buffer[pid];
-			total_len[pid] = 0;
-			return limit_len[pid];
+			if(total_len[pid]==0)
+				return -1;
+			memcpy(buffer[pid]+total_len[pid],pkt,len);
+			total_len[pid] += len;
+			if(total_len[pid]>=limit_len[pid])
+			{
+				*buffering = buffer[pid];
+				total_len[pid] = 0;
+				return limit_len[pid];
+			}
 		}
 	}
 	/*tell us buffering*/
@@ -232,7 +262,10 @@ int ts_proc(uint8_t *data,uint8_t len)
 	//printf("pid 0x%x 0x%x\n",head.PID,*ptr);
 	if(head.PID != NULL_PID)
 	{
-		sec_len = section_preproc(head.PID,ptr ,len,&pbuf,head.payload_unit_start_indicator,head.continuity_counter);
+		if(head.PID<0x05||(head.PID>0x09&&head.PID<0x15)||(head.PID==0x15)||(head.PID>0x1D&&head.PID<0x20))
+			sec_len = section_preproc(head.PID,ptr ,len,&pbuf,head.payload_unit_start_indicator,head.continuity_counter, 0 );
+		else
+			sec_len = section_preproc(head.PID,ptr ,len,&pbuf,head.payload_unit_start_indicator,head.continuity_counter, 1 );
 		if(sec_len==-1)
 			return 0;
 	}
