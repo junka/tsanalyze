@@ -302,12 +302,10 @@ int ts_process()
 	struct tsa_config *tsaconf = get_config();
 	struct io_ops* ops = lookup_io_ops(tsaconf->type);
 	void * ptr = NULL;
-	size_t len;
-	int ts_pktlen = 0;
+	size_t len, ts_pktlen = 0, pkt_con_len = 0;
 	int start_index;
 	int typ;
 	uint8_t pkt_con[TS_FEC_PACKET_SIZE];
-	int pkt_con_len = 0;
 
 	if(ops->open(tsaconf->name)<0)
 		return -1;

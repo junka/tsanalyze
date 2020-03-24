@@ -37,7 +37,7 @@ int parse_pes(uint8_t*pkt,uint16_t len)
 		buf += 1;
 		pes.packet_data.PES_header_data_length = buf[0];
 		buf += 1;
-		if(pes.packet_data.PTS_DTS_flags &0x2 == 0x2)
+		if((pes.packet_data.PTS_DTS_flags &0x2) == 0x2)
 		{
 			//PTS
 			pes.packet_data.pts.flag = 0x2;
@@ -48,7 +48,7 @@ int parse_pes(uint8_t*pkt,uint16_t len)
 			pes.packet_data.pts.PTS_DTS_3 = TS_READ16(buf)>>1;
 			buf += 2;
 		}
-		if(pes.packet_data.PTS_DTS_flags &0x1 == 0x1)
+		if((pes.packet_data.PTS_DTS_flags &0x1) == 0x1)
 		{
 			//DTS
 			pes.packet_data.dts.flag = 0x3;
@@ -63,9 +63,9 @@ int parse_pes(uint8_t*pkt,uint16_t len)
 		{
 			//ESCR
 			pes.packet_data.escr.ESCR_base_1 = (buf[0]>>3)&0x7;
-			pes.packet_data.escr.ESCR_base_2 = ((buf[0]&0x3)<<13 | buf[1]<<5 | (buf[2]>>3) );
-			pes.packet_data.escr.ESCR_base_3 = (buf[2]&0x3 <<13 | buf[3]<<5 | (buf[4]>>3));
-			pes.packet_data.escr.ESCR_extension = (buf[4]&0x3<<8 | buf[5] >>1 );
+			pes.packet_data.escr.ESCR_base_2 = (((buf[0]&0x3)<<13) | (buf[1]<<5) | (buf[2]>>3));
+			pes.packet_data.escr.ESCR_base_3 = ((buf[2]&0x3) <<13) | (buf[3]<<5) | (buf[4]>>3);
+			pes.packet_data.escr.ESCR_extension = (((buf[4]&0x3)<<8) | (buf[5] >>1));
 			buf += 6;
 		}
 		if(pes.packet_data.ES_rate_flag)
@@ -123,7 +123,7 @@ int parse_pes(uint8_t*pkt,uint16_t len)
 			if(pes.packet_data.extension.P_STD_buffer_flag)
 			{
 				pes.packet_data.extension.pstd_buffer.PSTD_buffer_scale = (buf[0]>>5)&0x1;
-				pes.packet_data.extension.pstd_buffer.PSTD_buffer_size = (buf[0]&0x1F<<8 | buf[1]);
+				pes.packet_data.extension.pstd_buffer.PSTD_buffer_size = (((buf[0]&0x1F)<<8) | buf[1]);
 				buf += 2;
 
 			}
