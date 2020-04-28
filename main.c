@@ -21,7 +21,9 @@ void dump_result(int sig)
 {
 	dump_tables();
 	dump_ts_info();
-	exit(0);
+	
+	uninit_pid_processor();
+	exit(sig);
 }
 
 int main(int argc, char *argv[])
@@ -37,5 +39,6 @@ int main(int argc, char *argv[])
 	ts_process();
 
 	dump_result(0);
+
 	return 0;
 }

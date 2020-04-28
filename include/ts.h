@@ -102,6 +102,8 @@ struct tsa_config *get_config();
 
 int init_pid_processor(void);
 
+void uninit_pid_processor(void);
+
 int ts_process(void);
 
 void dump_ts_info(void);

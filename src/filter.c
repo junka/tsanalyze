@@ -40,8 +40,10 @@ filter_t *filter_alloc(uint16_t pid)
 	if (unlikely(pid_filter[pid].filter_num >= MAX_FILTER_NUM))
 		return NULL;
 	filter_t *f = malloc(sizeof(filter_t));
+	memset(f, 0, sizeof(filter_t));
 	f->pid = pid;
 	struct filter_slot *fs = malloc(sizeof(struct filter_slot));
+	memset(fs, 0, sizeof(struct filter_slot));
 	fs->t = f;
 	list_add(&pid_filter[pid].h, &(fs->n));
 	pid_filter[pid].filter_num++;
@@ -53,7 +55,10 @@ int filter_set(filter_t *f, filter_param_t *p, filter_cb func)
 	if (unlikely(f == NULL))
 		return -1;
 	if (likely(p != NULL)) {
-		memcpy(&f->para, p, sizeof(filter_param_t));
+		f->para.depth = p->depth;
+		memcpy(f->para.coff, p->coff, p->depth * sizeof(uint8_t));
+		memcpy(f->para.mask, p->mask, p->depth * sizeof(uint8_t));
+		memcpy(f->para.negete, p->negete, p->depth * sizeof(uint8_t));
 	}
 	f->callback = func;
 	return 0;
@@ -78,20 +83,27 @@ int filter_free(filter_t *f)
 	return 0;
 }
 
-filter_t *filter_lookup(uint16_t pid, filter_param_t *param)
+filter_t *filter_lookup(uint16_t pid, filter_param_t *para)
 {
 	filter_t *f = NULL;
+	int i = 0;
+	if (unlikely(para == NULL))
+		return NULL;
 	if (unlikely(pid_filter[pid].filter_num == 0))
 		return NULL;
 	struct list_head *lh = &pid_filter[pid].h;
-	struct filter_slot *ix;
+	struct filter_slot *ix = NULL;
 	if (unlikely(list_empty(lh)))
 		return NULL;
 	list_for_each(lh, ix, n)
 	{
-		if (0 == memcmp(&(ix->t->para), param, sizeof(filter_param_t))) {
-			f = ix->t;
-			break;
+		if (ix->t->para.depth == para->depth) {
+			if (0 == memcmp(ix->t->para.coff, para->coff, para->depth * sizeof(uint8_t)) &&
+				0 == memcmp(ix->t->para.mask, para->mask, para->depth * sizeof(uint8_t)) &&
+				0 == memcmp(ix->t->para.negete, para->negete, para->depth * sizeof(uint8_t))) {
+				f = ix->t;
+				break;
+			}
 		}
 	}
 	return f;

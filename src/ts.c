@@ -276,6 +276,11 @@ int init_pid_processor(void)
 	return 0;
 }
 
+void uninit_pid_processor(void)
+{
+	uninit_table_ops();
+}
+
 int ts_process()
 {
 	struct tsa_config *tsaconf = get_config();

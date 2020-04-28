@@ -6,7 +6,7 @@
 #include "ts.h"
 #include "pes.h"
 
-#define PES_MAX_LENGTH 64 * 1024 * 1024
+#define PES_MAX_LENGTH (64 * 1024 * 1024)
 
 int parse_pes(uint8_t *pkt, uint16_t len)
 {

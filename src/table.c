@@ -783,16 +783,21 @@ static void init_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask, filte
 	para.depth = 1;
 	para.coff[0] = tableid;
 	para.mask[0] = mask;
+	para.negete[0] = 0;
 	filter_set(f, &para, func);
 }
 static void uninit_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask)
 {
 	filter_param_t para;
+	filter_t *f = NULL;
 	para.depth = 1;
 	para.coff[0] = tableid;
 	para.mask[0] = mask;
-	filter_t *f = filter_lookup(pid, &para);
-	filter_free(f);
+	para.negete[0] = 0;
+	f = filter_lookup(pid, &para);
+	if (f) {
+		filter_free(f);
+	}
 }
 
 void init_table_ops(void)
@@ -805,6 +810,25 @@ void init_table_ops(void)
 	init_table_filter(EIT_PID, EIT_ACTUAL_TID, 0xFF, eit_proc);
 	init_table_filter(BAT_PID, BAT_TID, 0xFF, sdt_bat_proc);
 	init_table_filter(TDT_PID, TDT_TID, 0xFE, tdt_tot_proc);
+}
+
+void uninit_table_ops(void)
+{
+	struct program_node *pn = NULL, *next = NULL;
+	if (!list_empty(&(psi.pat.h))) {
+		list_for_each_safe(&psi.pat.h, pn, next, n)
+		{
+			unregister_pmt_ops(pn->program_map_PID);
+			list_del(&pn->n);
+			free(pn);
+		}
+	}
+	uninit_table_filter(PAT_PID, PAT_TID, 0xFF);
+	uninit_table_filter(CAT_PID, CAT_TID, 0xFF);
+	uninit_table_filter(NIT_PID, NIT_ACTUAL_TID, 0xFF);
+	uninit_table_filter(EIT_PID, EIT_ACTUAL_TID, 0xFF);
+	uninit_table_filter(BAT_PID, BAT_TID, 0xFF);
+	uninit_table_filter(TDT_PID, TDT_TID, 0xFE);
 }
 
 void register_pmt_ops(uint16_t pid)

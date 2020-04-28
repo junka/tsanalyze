@@ -431,6 +431,8 @@ typedef struct
 
 void init_table_ops(void);
 
+void uninit_table_ops(void);
+
 void dump_tables(void);
 
 #ifdef __cplusplus
