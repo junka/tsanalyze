@@ -24,13 +24,13 @@ void dump_result(int sig)
 	exit(0);
 }
 
-int main(int argc,char *argv[])
+int main(int argc, char *argv[])
 {
 	int ret;
 	ret = prog_parse_args(argc, argv);
-	if(ret<0)
+	if (ret < 0)
 		return -1;
-	signal(SIGINT,dump_result);
+	signal(SIGINT, dump_result);
 
 	init_pid_processor();
 

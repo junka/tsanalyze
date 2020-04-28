@@ -2,15 +2,13 @@
 #define _CRC32_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
-uint32_t crc32 (char *data, int len);
-
+uint32_t crc32(char *data, int len);
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /*_CRC32_H_*/

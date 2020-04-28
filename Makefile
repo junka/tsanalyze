@@ -1,7 +1,7 @@
 
 DIR=$(shell pwd)
 INC=-I$(DIR)/include
-MK_FLAGS = -g -std=c11 -O3 -W 
+MK_FLAGS = -g -std=c11 -O3 -W
  
 CFLAGS += $(MK_FLAGS) 
 CFLAGS += $(INC)

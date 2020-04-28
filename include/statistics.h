@@ -2,10 +2,11 @@
 #define _STATISTICS_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
-typedef struct stats{
+typedef struct stats
+{
 	uint64_t pat_sections;
 	uint64_t cat_sections;
 	uint64_t pmt_sections;
@@ -15,15 +16,14 @@ typedef struct stats{
 	uint64_t bat_sections;
 	uint64_t tdt_sections;
 	uint64_t tot_sections;
-	
+
+	// private sections for CA system
 	uint64_t ecm_sections;
 	uint64_t emm_sections;
-}stats_t;
-
+} stats_t;
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-

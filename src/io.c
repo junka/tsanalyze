@@ -19,7 +19,7 @@ int unregister_io_ops(struct io_ops *ops)
 	return 0;
 }
 
-struct io_ops * lookup_io_ops(int type)
+struct io_ops *lookup_io_ops(int type)
 {
 	return ioops[type];
 }

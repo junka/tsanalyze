@@ -2,9 +2,8 @@
 #define _TYPES_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
-
 
 /** C extension macro for environments lacking C11 features. */
 #if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 201112L
@@ -13,19 +12,20 @@ extern "C"{
 #define EXT_STD_C11
 #endif
 
+typedef struct uint24
+{
+	uint32_t bits : 24;
+} __attribute__((packed)) uint24_t;
 
-typedef struct uint24 {
-	uint32_t bits:24;
-}__attribute__((packed)) uint24_t;
+typedef struct uint40
+{
+	uint64_t bits : 40;
+} __attribute__((packed)) uint40_t;
 
-typedef struct uint40 {
-	uint64_t bits:40;
-}__attribute__((packed)) uint40_t;
-
-typedef struct {
+typedef struct
+{
 	uint8_t time[5];
-}__attribute__((packed)) UTC_time_t;
-
+} __attribute__((packed)) UTC_time_t;
 
 #ifdef __cplusplus
 }

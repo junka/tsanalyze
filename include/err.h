@@ -2,7 +2,7 @@
 #define _ERR_H_
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 #define NULL_POINTER -1
