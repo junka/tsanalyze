@@ -70,61 +70,67 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 		return -1;
 }
 
+struct section_parser
+{
+	int total_len;
+	uint8_t cc;
+	uint8_t buffer[65535];
+	int32_t limit_len;
+};
+
 // do memcpy if section length greater than one packet
 int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buffering,
 						uint8_t payload_unit_start_indicator, uint8_t continuity_counter, uint8_t psi_or_pes)
 {
-	static int total_len[8192] = { 0 };
-	static uint8_t cc[8192] = { 0 };
-	static uint8_t buffer[8192][65535];
-	static int32_t limit_len[8192] = { 0 };
+	static struct section_parser sec[8192];
 	uint8_t pointer_field = 0;
+	struct section_parser *p = &sec[pid];
 	*buffering = NULL;
 	// indicate start of PES or PSI
 	if (payload_unit_start_indicator == 1) {
-		cc[pid] = continuity_counter;
+		p->cc = continuity_counter;
 		if (psi_or_pes == 0) // PSI
 		{
 			pointer_field = pkt[0];
 			/*skip pointer_field, valid for PSI and stream_type 0x05 private_sections*/
-			total_len[pid] = len - 1 - pointer_field;
-			limit_len[pid] = (int32_t)(((int16_t)pkt[2 + pointer_field] << 8) | pkt[3 + pointer_field]) & 0x0FFF;
-			limit_len[pid] += 3;
+			p->total_len = len - 1 - pointer_field;
+			p->limit_len = (int32_t)(((int16_t)pkt[2 + pointer_field] << 8) | pkt[3 + pointer_field]) & 0x0FFF;
+			p->limit_len += 3;
 			/*section in one pkt , go without buffering*/
-			if (limit_len[pid] <= (total_len[pid])) {
+			if (p->limit_len <= (p->total_len)) {
 				*buffering = (pkt + 1 + pointer_field);
-				return limit_len[pid];
+				return p->limit_len;
 			} else {
-				memset(buffer[pid], 0, 4096); // PSI length less than this
-				memcpy(buffer[pid], pkt + 1 + pointer_field, total_len[pid]);
+				memset(p->buffer, 0, 4096); // PSI length less than this
+				memcpy(p->buffer, pkt + 1 + pointer_field, p->total_len);
 			}
-		} else {
-			total_len[pid] = len;
-			limit_len[pid] = ((int32_t)pkt[4] << 8 | pkt[5]);
-			if (limit_len[pid] == 0) {
+		} else { // PES
+			p->total_len = len;
+			p->limit_len = ((int32_t)pkt[4] << 8 | pkt[5]);
+			if (p->limit_len == 0) {
 				// for video stream, unlimit length
 			}
-			limit_len[pid] += 6;
-			if (limit_len[pid] <= (total_len[pid])) {
+			p->limit_len += 6;
+			if (p->limit_len <= (p->total_len)) {
 				*buffering = pkt;
-				return limit_len[pid];
+				return p->limit_len;
 			} else {
-				memset(buffer[pid], 0, 65535);
-				memcpy(buffer[pid], pkt, total_len[pid]);
+				memset(p->buffer, 0, 65535);
+				memcpy(p->buffer, pkt, p->total_len);
 			}
 		}
 
 	} else {
 		// if(psi_or_pes==0)//PSI
 		{
-			if (total_len[pid] == 0)
+			if (p->total_len == 0)
 				return -1;
-			memcpy(buffer[pid] + total_len[pid], pkt, len);
-			total_len[pid] += len;
-			if (total_len[pid] >= limit_len[pid]) {
-				*buffering = buffer[pid];
-				total_len[pid] = 0;
-				return limit_len[pid];
+			memcpy(p->buffer + p->total_len, pkt, len);
+			p->total_len += len;
+			if (p->total_len >= p->limit_len) {
+				*buffering = p->buffer;
+				p->total_len = 0;
+				return p->limit_len;
 			}
 		}
 	}
