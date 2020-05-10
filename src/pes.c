@@ -3,8 +3,8 @@
 #include <string.h>
 
 #include "filter.h"
-#include "ts.h"
 #include "pes.h"
+#include "ts.h"
 
 #define PES_MAX_LENGTH (64 * 1024 * 1024)
 

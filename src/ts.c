@@ -1,17 +1,17 @@
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <inttypes.h>
 
-#include "io.h"
-#include "ts.h"
-#include "table.h"
 #include "filter.h"
+#include "io.h"
+#include "table.h"
+#include "ts.h"
 #include "utils.h"
 
 /*
-* port from ffmpeg for judging TS packet length
-*/
+ * port from ffmpeg for judging TS packet length
+ */
 
 static int analyze(const uint8_t *buf, int size, int packet_size, int *index)
 {
@@ -57,9 +57,9 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 	fec_score = analyze(buf, TS_FEC_PACKET_SIZE * check_count, TS_FEC_PACKET_SIZE, NULL) * CHECK_COUNT / check_count;
 
 	/*
-	* we need a clear definition for the returned score ,
-	* otherwise things will become messy sooner or later
-	*/
+	 * we need a clear definition for the returned score ,
+	 * otherwise things will become messy sooner or later
+	 */
 	if (score > fec_score && score > dvhs_score && score > 6)
 		return 0; // 100 + score - CHECK_COUNT;
 	else if (dvhs_score > score && dvhs_score > fec_score && dvhs_score > 6)
@@ -70,8 +70,7 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 		return -1;
 }
 
-struct section_parser
-{
+struct section_parser {
 	int total_len;
 	uint8_t cc;
 	uint8_t buffer[65535];
@@ -138,8 +137,7 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 	return -1;
 }
 
-struct pid_ops
-{
+struct pid_ops {
 	uint16_t pid;
 	uint64_t pkts_in;
 	uint64_t error_in;
@@ -281,10 +279,7 @@ int init_pid_processor(void)
 	return 0;
 }
 
-void uninit_pid_processor(void)
-{
-	uninit_table_ops();
-}
+void uninit_pid_processor(void) { uninit_table_ops(); }
 
 int ts_process()
 {

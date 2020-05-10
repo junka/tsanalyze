@@ -5,8 +5,8 @@
 extern "C" {
 #endif
 
-#include <stdbool.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #include "utils.h"
 
@@ -23,8 +23,7 @@ extern "C" {
  *		struct list_node list;
  *	};
  */
-struct list_node
-{
+struct list_node {
 	struct list_node *next, *prev;
 };
 
@@ -40,8 +39,7 @@ struct list_node
  *		unsigned int num_children;
  *	};
  */
-struct list_head
-{
+struct list_head {
 	struct list_node n;
 };
 
@@ -145,10 +143,7 @@ struct list_node *list_check_node(const struct list_node *n, const char *abortst
  *	list_head_init(&parent->children);
  *	parent->num_children = 0;
  */
-static inline void list_head_init(struct list_head *h)
-{
-	h->n.next = h->n.prev = &h->n;
-}
+static inline void list_head_init(struct list_head *h) { h->n.next = h->n.prev = &h->n; }
 
 /**
  * list_node_init - initialize a list_node
@@ -157,10 +152,7 @@ static inline void list_head_init(struct list_head *h)
  * You don't need to use this normally!  But it lets you list_del(@n)
  * safely.
  */
-static inline void list_node_init(struct list_node *n)
-{
-	n->next = n->prev = n;
-}
+static inline void list_node_init(struct list_node *n) { n->next = n->prev = n; }
 
 /**
  * list_add_after - add an entry after an existing node in a linked list
@@ -280,10 +272,7 @@ static inline bool list_empty_(const struct list_head *h, const char *abortstr)
 #ifndef LIST_DEBUG
 #define list_empty_nodebug(h) list_empty(h)
 #else
-static inline bool list_empty_nodebug(const struct list_head *h)
-{
-	return h->n.next == &h->n;
-}
+static inline bool list_empty_nodebug(const struct list_head *h) { return h->n.next == &h->n; }
 #endif
 
 /**
@@ -296,10 +285,7 @@ static inline bool list_empty_nodebug(const struct list_head *h)
  * checks where an incorrect result is not an issue (optimized
  * bail out path for example).
  */
-static inline bool list_empty_nocheck(const struct list_head *h)
-{
-	return h->n.next == &h->n;
-}
+static inline bool list_empty_nocheck(const struct list_head *h) { return h->n.next == &h->n; }
 
 /**
  * list_del - delete an entry from an (unknown) linked list.
@@ -767,10 +753,7 @@ static inline void list_prepend_list_(struct list_head *to, struct list_head *fr
 #define list_del_from_off(h, n, off) list_del_from(h, list_node_from_off_((n), (off)))
 
 /* Offset helper functions so we only single-evaluate. */
-static inline void *list_node_to_off_(struct list_node *node, size_t off)
-{
-	return (void *)((char *)node - off);
-}
+static inline void *list_node_to_off_(struct list_node *node, size_t off) { return (void *)((char *)node - off); }
 static inline struct list_node *list_node_from_off_(void *ptr, size_t off)
 {
 	return (struct list_node *)((char *)ptr + off);

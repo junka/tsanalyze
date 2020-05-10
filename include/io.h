@@ -5,8 +5,7 @@
 extern "C" {
 #endif
 
-struct io_ops
-{
+struct io_ops {
 	int type;
 	int fd;
 	int block_size;
@@ -31,10 +30,7 @@ int register_io_ops(struct io_ops *ops);
 int unregister_io_ops(struct io_ops *ops);
 
 #define REGISTER_IO_OPS(nm, x)                                                                                         \
-	static void __attribute__((constructor)) register_io_ops_##nm()                                                    \
-	{                                                                                                                  \
-		register_io_ops(x);                                                                                            \
-	}
+	static void __attribute__((constructor)) register_io_ops_##nm() { register_io_ops(x); }
 
 #ifdef __cplusplus
 }

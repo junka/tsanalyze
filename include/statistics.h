@@ -5,8 +5,7 @@
 extern "C" {
 #endif
 
-typedef struct stats
-{
+typedef struct stats {
 	uint64_t pat_sections;
 	uint64_t cat_sections;
 	uint64_t pmt_sections;

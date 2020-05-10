@@ -1,11 +1,11 @@
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "utils.h"
-#include "ts.h"
 #include "descriptor.h"
+#include "ts.h"
+#include "utils.h"
 
 #define INVALID_DR_RETURN(a, buf)                                                                                      \
 	do {                                                                                                               \
@@ -672,18 +672,18 @@ int parse_extension_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 	return 0;
 }
 
-int parse_reserved_descriptor(uint8_t *buf, uint32_t len, void *ptr)
-{
-	return 0;
-}
+int parse_reserved_descriptor(uint8_t *buf, uint32_t len, void *ptr) { return 0; }
+
 void *alloc_reserved()
 {
-	return malloc(sizeof(descriptor_t));
+	void *rsv_m = malloc(sizeof(descriptor_t));
+	return rsv_m;
 }
 
 void free_reserved(descriptor_t *ptr)
 {
-	free(ptr);
+	if (ptr != NULL)
+		free(ptr);
 }
 
 void dump_reserved(descriptor_t *p_descriptor)
@@ -698,35 +698,30 @@ void dump_reserved(descriptor_t *p_descriptor)
 #define FUNC(descriptor) parse_##descriptor##_descriptor
 
 #define ALLOC(descriptor)                                                                                              \
-	void *alloc_##descriptor##_descriptor()                                                                            \
-	{                                                                                                                  \
-		return malloc(sizeof(descriptor##_descriptor_t));                                                              \
-	}
+	void *alloc_##descriptor##_descriptor() { return malloc(sizeof(descriptor##_descriptor_t)); }
 
 #define FREE(descriptor)                                                                                               \
-	void free_##descriptor##_descriptor(descriptor_t *ptr)                                                             \
-	{                                                                                                                  \
-		free(ptr);                                                                                                     \
-	}
+	void free_##descriptor##_descriptor(descriptor_t *ptr) { free(ptr); }
 
 #define _(a, b) ALLOC(a)
 foreach_enum_descriptor
 #undef _
 
 #define _(a, b) FREE(a)
-foreach_enum_descriptor
+	foreach_enum_descriptor
 #undef _
 
 #define _(a, b)                                                                                                        \
 	void dump_##a##_descriptor(descriptor_t *p_descriptor)                                                             \
 	{                                                                                                                  \
 		a##_descriptor_t *dr = container_of(p_descriptor, a##_descriptor_t, descriptor);                               \
-		printf("Descriptor 0x%x(%s)\n", dr->descriptor_tag, des_ops[dr->descriptor_tag].tag_name);                                                                                                  \
+		printf("Descriptor 0x%x(%s)\n", dr->descriptor_tag, des_ops[dr->descriptor_tag].tag_name);                     \
 	}
-foreach_enum_descriptor
+		foreach_enum_descriptor
 #undef _
 
-void init_descriptor_parsers()
+	void
+	init_descriptor_parsers()
 {
 	uint16_t i = 0;
 	for (i = 0; i <= 0xFF; i++) {

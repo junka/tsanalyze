@@ -1,9 +1,9 @@
+#include <fcntl.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <unistd.h>
 
 #include "io.h"
@@ -62,13 +62,14 @@ static int fileio_close(void)
 	return 0;
 }
 
-static int fileio_end(void)
-{
-	return (file_ops.total_size - file_ops.offset);
-}
+static int fileio_end(void) { return (file_ops.total_size - file_ops.offset); }
 
 static struct io_ops file_ops = {
-	.type = IO_FILE, .open = fileio_open, .close = fileio_close, .read = fileio_read, .end = fileio_end,
+	.type = IO_FILE,
+	.open = fileio_open,
+	.close = fileio_close,
+	.read = fileio_read,
+	.end = fileio_end,
 };
 
 REGISTER_IO_OPS(file, &file_ops);

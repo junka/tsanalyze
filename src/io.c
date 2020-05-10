@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "io.h"
 
@@ -19,7 +19,4 @@ int unregister_io_ops(struct io_ops *ops)
 	return 0;
 }
 
-struct io_ops *lookup_io_ops(int type)
-{
-	return ioops[type];
-}
+struct io_ops *lookup_io_ops(int type) { return ioops[type]; }

@@ -7,19 +7,19 @@
 extern "C" {
 #endif
 
-#include "list.h"
 #include "descriptor.h"
+#include "list.h"
 #include "statistics.h"
 
 /* table id */
 typedef enum {
 	/* ISO/IEC 13818-1, ITU T-REC H.222.0 */
-	PAT_TID = 0x00,  /* program_association_section */
-	CAT_TID = 0x01,  /* conditional_access_section */
-	PMT_TID = 0x02,  /* TS_program_map_section */
+	PAT_TID = 0x00,	 /* program_association_section */
+	CAT_TID = 0x01,	 /* conditional_access_section */
+	PMT_TID = 0x02,	 /* TS_program_map_section */
 	TSDT_TID = 0x03, /* TS_description_section */
-	SDT_TID = 0x04,  /* ISO_IEC_14496_scene_description_section */
-	ODT_TID = 0x05,  /* ISO_IEC_14496_object_descriptor_section */
+	SDT_TID = 0x04,	 /* ISO_IEC_14496_scene_description_section */
+	ODT_TID = 0x05,	 /* ISO_IEC_14496_object_descriptor_section */
 
 	/* 0x06 - 0x09: ITU-T Rec. H.222.0 | ISO/IEC 13818-1 reserved */
 
@@ -33,8 +33,8 @@ typedef enum {
 
 	/* 0x38 - 0x3F: Defined in ISO/IEC 13818-6 */
 	DSMCC_DL_MESSAGE_TID = 0x3B, /* DSM-CC Download Message */
-	DSMCC_DL_DATA_TID = 0x3C,	/* DSM-CC Download Data */
-	DSMCC_DL_EVENT_TID = 0x3D,   /* DSM-CC Download Event */
+	DSMCC_DL_DATA_TID = 0x3C,	 /* DSM-CC Download Data */
+	DSMCC_DL_EVENT_TID = 0x3D,	 /* DSM-CC Download Event */
 
 	/* 0x40 - 0x7F: ETSI EN 300 468 V1.9.1 (2009-03) */
 	NIT_ACTUAL_TID = 0x40,		   /* network_information_section - actual_network */
@@ -142,16 +142,14 @@ typedef enum {
 } StreamType_E;
 
 /* INFO int PAT */
-struct program_node
-{
+struct program_node {
 	uint16_t program_number;
 	uint16_t reserved : 3;
 	uint16_t program_map_PID : 13;
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	uint8_t table_id; /* 0x00 */
 	uint16_t section_syntax_indicator : 1;
 	uint16_t z : 1;
@@ -169,8 +167,7 @@ typedef struct
 } pat_t;
 
 /* INFO int CAT */
-typedef struct
-{
+typedef struct {
 	uint8_t table_id; /* 0x00 */
 	uint16_t section_syntax_indicator : 1;
 	uint16_t z : 1;
@@ -188,8 +185,7 @@ typedef struct
 } cat_t;
 
 /* INFO int PMT */
-struct es_node
-{
+struct es_node {
 	uint8_t stream_type;
 	uint16_t reserved : 3;
 	uint16_t elementary_PID : 13;
@@ -200,8 +196,7 @@ struct es_node
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	uint8_t table_id; /* 0x02 */
 	uint16_t section_syntax_indicator : 1;
 	uint16_t z : 1;
@@ -224,8 +219,7 @@ typedef struct
 } pmt_t;
 
 /*infos int nit*/
-struct transport_stream_node
-{
+struct transport_stream_node {
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	uint16_t reserved_future_use : 4;
@@ -234,8 +228,7 @@ struct transport_stream_node
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	uint8_t table_id; /* 0x40,0x41 */
 	uint16_t section_syntax_indicator : 1;
 	uint16_t reserved_future_use : 1;
@@ -258,8 +251,7 @@ typedef struct
 } nit_t;
 
 /*infos in bat*/
-typedef struct
-{
+typedef struct {
 	uint8_t table_id; /* 0x4A */
 	uint16_t section_syntax_indicator : 1;
 	uint16_t reserved_future_use : 1;
@@ -282,8 +274,7 @@ typedef struct
 } bat_t;
 
 /*infos in SDT*/
-struct service_node
-{
+struct service_node {
 	uint16_t service_id;
 	uint8_t reserved_future_use : 6;
 	uint8_t EIT_schedule_flag : 1;
@@ -296,8 +287,7 @@ struct service_node
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	uint8_t table_id; /* 0x42,0x46 */
 	uint16_t section_syntax_indicator : 1;
 	uint16_t reserved_future_use : 1;
@@ -316,8 +306,7 @@ typedef struct
 	uint32_t crc32;
 } sdt_t;
 
-struct event_node
-{
+struct event_node {
 	uint16_t event_id;
 	uint64_t start_time : 40;
 	uint64_t duration : 24;
@@ -328,8 +317,7 @@ struct event_node
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	uint8_t table_id; /* 0x4E,0x4F,0x50-0x5F,0x60-0x6F */
 	uint16_t section_syntax_indicator : 1;
 	uint16_t reserved_future_use : 1;
@@ -349,8 +337,7 @@ typedef struct
 	uint32_t crc32;
 } eit_t;
 
-typedef struct
-{
+typedef struct {
 	uint8_t table_id; /* 0x70 */
 	uint16_t section_syntax_indicator : 1;
 	uint16_t reserved_future_use : 1;
@@ -359,8 +346,7 @@ typedef struct
 	UTC_time_t utc_time;
 } tdt_t;
 
-typedef struct
-{
+typedef struct {
 	uint8_t table_id; /* 0x73 */
 	uint16_t section_syntax_indicator : 1;
 	uint16_t reserved_future_use : 1;
@@ -374,8 +360,7 @@ typedef struct
 	uint32_t crc32;
 } tot_t;
 
-struct running_status
-{
+struct running_status {
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	uint16_t service_id;
@@ -385,8 +370,7 @@ struct running_status
 	struct running_status *next;
 };
 
-typedef struct
-{
+typedef struct {
 	uint8_t table_id; /* 0x71 */
 	uint16_t section_syntax_indicator : 1;
 	uint16_t reserved_future_use : 1;
@@ -395,8 +379,7 @@ typedef struct
 	struct running_status *status_list;
 } rst_t;
 
-typedef struct
-{
+typedef struct {
 	uint8_t table_id;
 	uint16_t section_syntax_indicator : 1;
 	uint16_t reserved_future_use : 1;
@@ -405,8 +388,7 @@ typedef struct
 	uint8_t data_byte[0];
 } st_t;
 
-typedef struct
-{
+typedef struct {
 	pat_t pat;
 	cat_t cat;
 	int ca_num;

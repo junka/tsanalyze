@@ -1,24 +1,22 @@
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "list.h"
-#include "utils.h"
 #include "filter.h"
+#include "list.h"
 #include "ts.h"
+#include "utils.h"
 
 #define MAX_FILTER_NUM (6)
 
-struct filter_slot
-{
+struct filter_slot {
 	filter_t *t;
 	struct list_node n;
 } filter_slot;
 
-struct filter_head
-{
+struct filter_head {
 	int filter_num;
 	struct list_head h;
 };
@@ -132,10 +130,7 @@ void filter_dump(void)
 		if (unlikely(list_empty(lh)))
 			continue;
 		printf("PID %0x4d(0x%04x):", i, i);
-		list_for_each(lh, ix, n)
-		{
-			printf(" 0x%x ", ix->t->para.coff[0]);
-		}
+		list_for_each(lh, ix, n) { printf(" 0x%x ", ix->t->para.coff[0]); }
 		printf("\n");
 	}
 }

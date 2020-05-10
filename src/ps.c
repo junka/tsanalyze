@@ -1,14 +1,11 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "ts.h"
-#include "ps.h"
 #include "pes.h"
+#include "ps.h"
+#include "ts.h"
 
-int parse_pack(uint8_t *pkt, uint16_t len)
-{
-	return 0;
-}
+int parse_pack(uint8_t *pkt, uint16_t len) { return 0; }
 
 int parse_ps(uint8_t *pkt, uint16_t len)
 {

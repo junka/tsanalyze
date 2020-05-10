@@ -1,13 +1,13 @@
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "ts.h"
-#include "table.h"
-#include "utils.h"
-#include "filter.h"
 #include "err.h"
+#include "filter.h"
+#include "table.h"
+#include "ts.h"
+#include "utils.h"
 
 static mpeg_psi_t psi;
 
@@ -836,7 +836,4 @@ void register_pmt_ops(uint16_t pid)
 		return;
 	init_table_filter(pid, PMT_TID, 0xFF, pmt_proc);
 }
-void unregister_pmt_ops(uint16_t pid)
-{
-	uninit_table_filter(pid, PMT_TID, 0xFF);
-}
+void unregister_pmt_ops(uint16_t pid) { uninit_table_filter(pid, PMT_TID, 0xFF); }

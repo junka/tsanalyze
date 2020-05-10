@@ -5,11 +5,10 @@
 extern "C" {
 #endif
 
-#include "types.h"
 #include "list.h"
+#include "types.h"
 
-typedef struct descriptor
-{
+typedef struct descriptor {
 	uint8_t tag;
 	uint8_t length;
 	struct list_node n;
@@ -18,31 +17,42 @@ typedef struct descriptor
 
 /* ISO/IEC 13818-1 */
 #define foreach_enum_descriptor                                                                                        \
-	_(video_stream, 0x02) _(audio_stream, 0x03) _(hierarchy, 0x04) _(registration, 0x05)                               \
-		_(data_stream_alignment, 0x06) _(target_background_grid, 0x07) _(video_window, 0x08) _(CA, 0x09)               \
-		_(ISO_639_language, 0x0A) _(system_clock, 0x0B) _(multiplex_buffer_utilization, 0x0C) _(copyright, 0x0D)       \
-		_(maximum_bitrate, 0x0E) _(private_data_indicator, 0x0F) _(smoothing_buffer, 0x10) _(STD, 0x11) _(ibp, 0x12)   \
-		/* 0x12 - 0x1A Defined in ISO/IEC 13818-6*/                                                                    \
+	_(video_stream, 0x02)                                                                                              \
+	_(audio_stream, 0x03) _(hierarchy, 0x04) _(registration, 0x05) _(data_stream_alignment, 0x06)                      \
+		_(target_background_grid, 0x07) _(video_window, 0x08) _(CA, 0x09) _(ISO_639_language, 0x0A)                    \
+			_(system_clock, 0x0B) _(multiplex_buffer_utilization, 0x0C) _(copyright, 0x0D) _(maximum_bitrate, 0x0E)    \
+				_(private_data_indicator, 0x0F) _(smoothing_buffer, 0x10) _(STD, 0x11)                                 \
+					_(ibp, 0x12) /* 0x12 - 0x1A Defined in ISO/IEC 13818-6*/                                           \
 		_(MPEG4_video, 0x1B) _(MPEG4_audio, 0x1C) _(IOD, 0x1D) _(SL, 0x1E) _(FMC, 0x1F) _(external_ES_ID, 0x20)        \
-		_(muxcode, 0x21) _(FmxBufferSize, 0x22) _(MultiplexBuffer, 0x23)                                               \
-		/* 0x24 - 0x3F reserved */                                                                                     \
-		/* EN 300 468*/                                                                                                \
+			_(muxcode, 0x21) _(FmxBufferSize, 0x22)                                                                    \
+				_(MultiplexBuffer, 0x23) /* 0x24 - 0x3F reserved */ /* EN 300 468*/                                    \
 		_(network_name, 0x40) _(service_list, 0x41) _(stuffing, 0x42) _(satellite_delivery_system, 0x43)               \
-		_(cable_delivery_system, 0x44) _(VBI_data, 0x45) _(VBI_teletext, 0x46) _(bouquet_name, 0x47) _(service, 0x48)  \
-		_(country_availability, 0x49) _(linkage, 0x4A) _(NVOD_reference, 0x4B) _(time_shifted_service, 0x4C)           \
-		_(short_event, 0x4D) _(extended_event, 0x4E) _(time_shifted_event, 0x4F) _(component, 0x50) _(mosaic, 0x51)    \
-		_(stream_identifier, 0x52) _(CA_identifier, 0x53) _(content, 0x54) _(parental_rating, 0x55) _(teletext, 0x56)  \
-		_(telephone, 0x57) _(local_time_offset, 0x58) _(subtitling, 0x59) _(terrestrial_delivery_system, 0x5A)         \
-		_(multilingual_network_name, 0x5B) _(multilingual_bouquet_name, 0x5C) _(multilingual_service_name, 0x5D)       \
-		_(multilingual_component, 0x5E) _(private_data_specifier, 0x5F) _(service_move, 0x60)                          \
-		_(short_smoothing_buffer, 0x61) _(frequency_list, 0x62) _(partial_transport_stream, 0x63)                      \
-		_(data_broadcast, 0x64) _(scrambling, 0x65) _(data_broadcast_id, 0x66) _(transport_stream, 0x67) _(DSNG, 0x68) \
-		_(PDC, 0x69) _(AC3, 0x6A) _(ancillary_data, 0x6B) _(cell_list, 0x6C) _(cell_frequency_link, 0x6D)              \
-		_(announcement_support, 0x6E) _(application_signalling, 0x6F) _(adaptation_field_data, 0x70)                   \
-		_(service_identifier, 0x71) _(service_availability, 0x72) _(default_authority, 0x73) _(related_content, 0x74)  \
-		_(TVA_id, 0x75) _(content_identifier, 0x76) _(time_slice_fec_identifier, 0x77) _(ECM_repetition_rate, 0x78)    \
-		_(S2_satellite_delivery_system, 0x79) _(enhanced_AC3, 0x7A) _(DTS, 0x7B) _(AAC, 0x7C) _(XAIT_location, 0x7D)   \
-		_(FTA_content_management, 0x7E) _(extension, 0x7F)
+			_(cable_delivery_system, 0x44) _(VBI_data, 0x45) _(VBI_teletext, 0x46) _(bouquet_name, 0x47) _(            \
+				service, 0x48) _(country_availability, 0x49) _(linkage, 0x4A) _(NVOD_reference, 0x4B)                  \
+				_(time_shifted_service, 0x4C) _(short_event, 0x4D) _(extended_event, 0x4E) _(time_shifted_event, 0x4F) \
+					_(component, 0x50) _(mosaic, 0x51) _(stream_identifier, 0x52) _(CA_identifier, 0x53)               \
+						_(content, 0x54) _(parental_rating, 0x55) _(teletext, 0x56) _(telephone, 0x57) _(              \
+							local_time_offset, 0x58) _(subtitling, 0x59) _(terrestrial_delivery_system, 0x5A)          \
+							_(multilingual_network_name, 0x5B) _(multilingual_bouquet_name, 0x5C) _(                   \
+								multilingual_service_name, 0x5D) _(multilingual_component,                             \
+																   0x5E) _(private_data_specifier, 0x5F)               \
+								_(service_move, 0x60) _(short_smoothing_buffer, 0x61) _(frequency_list, 0x62)          \
+									_(partial_transport_stream, 0x63) _(data_broadcast, 0x64) _(scrambling, 0x65)      \
+										_(data_broadcast_id, 0x66) _(transport_stream, 0x67) _(DSNG, 0x68)             \
+											_(PDC, 0x69) _(AC3, 0x6A) _(ancillary_data, 0x6B) _(cell_list, 0x6C)       \
+												_(cell_frequency_link, 0x6D) _(announcement_support,                   \
+																			   0x6E) _(application_signalling, 0x6F)   \
+													_(adaptation_field_data, 0x70) _(service_identifier, 0x71)         \
+														_(service_availability, 0x72) _(default_authority, 0x73)       \
+															_(related_content, 0x74) _(TVA_id, 0x75)                   \
+																_(content_identifier,                                  \
+																  0x76) _(time_slice_fec_identifier, 0x77)             \
+																	_(ECM_repetition_rate, 0x78)                       \
+																		_(S2_satellite_delivery_system, 0x79)          \
+																			_(enhanced_AC3, 0x7A) _(DTS, 0x7B)         \
+																				_(AAC, 0x7C) _(XAIT_location, 0x7D)    \
+																					_(FTA_content_management, 0x7E)    \
+																						_(extension, 0x7F)
 /*0x80 to 0xFE user defined */
 /*0xFF forbidden */
 
@@ -53,21 +63,18 @@ enum descriptor_e {
 };
 
 /* see ISO/IEC 13818-1 chapter 2.6*/
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
 			uint8_t multiple_frame_rate_flag : 1; /*set to '1' indicates that multiple frame rates may be present*/
 			uint8_t frame_rate_code : 4;
-			uint8_t MPEG_1_only_flag
-				: 1; /*set to '1' indicates that the video stream contains only ISO/IEC 11172-2 data*/
+			uint8_t MPEG_1_only_flag : 1; /*set to '1' indicates that the video stream contains only ISO/IEC 11172-2
+											 data*/
 			uint8_t constrained_parameter_flag : 1;
 			uint8_t still_picture_flag : 1; /*set to '1' indicates that the video stream contains only still pictures.*/
 			/*exist only when MPEG_1_only_flag == 0*/
@@ -79,14 +86,11 @@ typedef struct
 	};
 } video_stream_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			// void *next;
@@ -104,21 +108,18 @@ enum hierarchy_type_e {
 	spatial_scalability = 1,  /*ITU-T Rec. H.262 | ISO/IEC 13818-2 spatial_scalability*/
 	SNR_scalability = 2,	  /*ITU-T Rec. H.262 | ISO/IEC 13818-2 SNR_scalability */
 	temporal_scalability = 3, /* ITU-T Rec. H.262 | ISO/IEC 13818-2 temporal_scalability*/
-	data_partitioning = 4,	/* ITU-T Rec. H.262 | ISO/IEC 13818-2 data_partitioning */
+	data_partitioning = 4,	  /* ITU-T Rec. H.262 | ISO/IEC 13818-2 data_partitioning */
 	extension_bitstream = 5,  /*ISO/IEC 13818-3 extension_bitstream*/
 	private_stream = 6,		  /* ITU-T Rec.H222.0 | ISO/IEC 13818-1 Private Stream private_stream*/
-	multiview_profile = 7,	/* ITU-T Rec. H.262 | ISO/IEC 13818-2 Multi-view Profile*/
+	multiview_profile = 7,	  /* ITU-T Rec. H.262 | ISO/IEC 13818-2 Multi-view Profile*/
 	base_layer = 15,
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -135,14 +136,11 @@ typedef struct
 
 } hierarchy_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -160,14 +158,11 @@ enum video_alignment_type_e {
 	/* 0x05 - 0xFF reserved*/
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -176,14 +171,11 @@ typedef struct
 	};
 } data_stream_alignment_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -194,14 +186,11 @@ typedef struct
 	};
 } target_background_grid_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -212,14 +201,11 @@ typedef struct
 	};
 } video_window_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -239,22 +225,18 @@ enum audio_type_e {
 	/*0x04-0xFF reserved*/
 };
 
-struct language_node
-{
+struct language_node {
 	uint32_t ISO_639_language_code : 24;
 	uint32_t audio_type : 8; /*see definition in @audio_type_e */
 	struct list_node n;
 	// struct language_info * next;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -265,14 +247,11 @@ typedef struct
 	};
 } ISO_639_language_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -285,14 +264,11 @@ typedef struct
 	};
 } system_clock_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -304,14 +280,11 @@ typedef struct
 	};
 } multiplex_buffer_utilization_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -321,14 +294,11 @@ typedef struct
 	};
 } copyright_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -337,14 +307,11 @@ typedef struct
 	};
 } maximum_bitrate_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -353,14 +320,11 @@ typedef struct
 	};
 } private_data_indicator_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -374,14 +338,11 @@ typedef struct
 	};
 } smoothing_buffer_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -391,14 +352,11 @@ typedef struct
 	};
 } STD_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -409,14 +367,11 @@ typedef struct
 	};
 } ibp_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -433,14 +388,11 @@ enum MPEG4_audio_profile_and_level_e {
 	/*0x14-0x17 reserved */
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -449,14 +401,11 @@ typedef struct
 	};
 } MPEG4_audio_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -466,14 +415,11 @@ typedef struct
 	};
 } IOD_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -482,22 +428,18 @@ typedef struct
 	};
 } SL_descriptor_t;
 
-struct FMC_node
-{
+struct FMC_node {
 	uint16_t ES_ID;
 	uint8_t FlexMuxChannel;
 	struct list_node n;
 	// struct FMC_info*next;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -507,14 +449,11 @@ typedef struct
 	};
 } FMC_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -523,14 +462,11 @@ typedef struct
 	};
 } external_ES_ID_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -538,14 +474,11 @@ typedef struct
 	};
 } muxcode_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -553,14 +486,11 @@ typedef struct
 	};
 } FmxBufferSize_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -572,14 +502,11 @@ typedef struct
 
 /*see EN_300 468 chapter 6*/
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -588,14 +515,11 @@ typedef struct
 	};
 } network_name_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -604,14 +528,11 @@ typedef struct
 
 } service_list_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -620,14 +541,11 @@ typedef struct
 	};
 } stuffing_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -644,14 +562,11 @@ typedef struct
 	};
 } satellite_delivery_system_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -665,22 +580,18 @@ typedef struct
 	};
 } cable_delivery_system_descriptor_t;
 
-struct VBI_data_node
-{
+struct VBI_data_node {
 	uint8_t data_service_id;
 	uint8_t data_service_descriptor_length;
 	uint8_t *reserved;
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -690,8 +601,7 @@ typedef struct
 	};
 } VBI_data_descriptor_t;
 
-struct VBI_teletext_node
-{
+struct VBI_teletext_node {
 	uint32_t ISO_639_language_code : 24;
 	uint32_t teletext_type : 5;
 	uint32_t teletext_magazine_number : 3;
@@ -699,14 +609,11 @@ struct VBI_teletext_node
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -716,14 +623,11 @@ typedef struct
 	};
 } VBI_teletext_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -732,14 +636,11 @@ typedef struct
 	};
 } bouquet_name_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -776,21 +677,17 @@ enum country_code_e {
 	BLR,
 };
 
-struct country_code_node
-{
+struct country_code_node {
 	uint24_t country_code;
 	// struct country_code * next;
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -802,14 +699,11 @@ typedef struct
 	};
 } country_availability_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -823,22 +717,18 @@ typedef struct
 	};
 } linkage_descriptor_t;
 
-struct NVOD_reference_node
-{
+struct NVOD_reference_node {
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	uint16_t service_id;
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -848,14 +738,11 @@ typedef struct
 	};
 } NVOD_reference_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -864,14 +751,11 @@ typedef struct
 	};
 } time_shifted_service_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -884,8 +768,7 @@ typedef struct
 	};
 } short_event_descriptor_t;
 
-struct event_item_node
-{
+struct event_item_node {
 	uint8_t item_description_length;
 	uint8_t *item_description_char;
 	uint8_t item_length;
@@ -893,14 +776,11 @@ struct event_item_node
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -916,14 +796,11 @@ typedef struct
 	};
 } extended_event_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -931,14 +808,11 @@ typedef struct
 	};
 } time_shifted_event_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -952,14 +826,11 @@ typedef struct
 	};
 } component_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -968,14 +839,11 @@ typedef struct
 
 } mosaic_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -984,14 +852,11 @@ typedef struct
 	};
 } stream_identifier_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1000,22 +865,18 @@ typedef struct
 	};
 } CA_identifier_descriptor_t;
 
-struct content_node
-{
+struct content_node {
 	uint8_t content_nibble_level_1 : 4;
 	uint8_t content_nibble_level_2 : 4;
 	uint8_t byte;
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1025,14 +886,11 @@ typedef struct
 	};
 } content_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1051,8 +909,7 @@ enum teletext_type {
 	/*0x06 to 0x1F reserved*/
 };
 
-struct teletext_node
-{
+struct teletext_node {
 	uint32_t ISO_639_language_code : 24;
 	uint32_t teletext_type : 5;
 	uint32_t teletext_magazine_number : 3;
@@ -1060,14 +917,11 @@ struct teletext_node
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1076,14 +930,11 @@ typedef struct
 	};
 } teletext_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1106,8 +957,7 @@ typedef struct
 	};
 } telephone_descriptor_t;
 
-struct local_time_node
-{
+struct local_time_node {
 	uint32_t country_code : 24;
 	uint32_t country_region_id : 6;
 	uint32_t reserved : 1;
@@ -1118,14 +968,11 @@ struct local_time_node
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1135,8 +982,7 @@ typedef struct
 	};
 } local_time_offset_descriptor_t;
 
-struct subtitling_node
-{
+struct subtitling_node {
 	uint32_t ISO_639_language_code : 24;
 	uint32_t subtitling_type : 8;
 	uint16_t composition_page_id;
@@ -1144,14 +990,11 @@ struct subtitling_node
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1161,14 +1004,11 @@ typedef struct
 	};
 } subtitling_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1190,22 +1030,18 @@ typedef struct
 	};
 } terrestrial_delivery_system_descriptor_t;
 
-struct multilingual_node
-{
+struct multilingual_node {
 	uint32_t ISO_639_language_code : 24;
 	uint32_t name_length : 8;
 	uint8_t *text_char;
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1216,14 +1052,11 @@ typedef struct
 
 } multilingual_network_name_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1233,8 +1066,7 @@ typedef struct
 	};
 } multilingual_bouquet_name_descriptor_t;
 
-struct multilingual_service_node
-{
+struct multilingual_service_node {
 	uint32_t ISO_639_language_code : 24;
 	uint32_t name_length : 8;
 	uint8_t *text_char;
@@ -1243,14 +1075,11 @@ struct multilingual_service_node
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1260,14 +1089,11 @@ typedef struct
 	};
 } multilingual_service_name_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1279,14 +1105,11 @@ typedef struct
 
 } multilingual_component_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1295,14 +1118,11 @@ typedef struct
 	};
 } private_data_specifier_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1313,14 +1133,11 @@ typedef struct
 	};
 } service_move_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1331,14 +1148,11 @@ typedef struct
 	};
 } short_smoothing_buffer_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1349,14 +1163,11 @@ typedef struct
 	};
 } frequency_list_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1370,14 +1181,11 @@ typedef struct
 	};
 } partial_transport_stream_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1392,14 +1200,11 @@ typedef struct
 	};
 } data_broadcast_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1408,14 +1213,11 @@ typedef struct
 	};
 } scrambling_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1425,14 +1227,11 @@ typedef struct
 	};
 } data_broadcast_id_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1441,14 +1240,11 @@ typedef struct
 	};
 } transport_stream_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1457,14 +1253,11 @@ typedef struct
 	};
 } DSNG_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1473,14 +1266,11 @@ typedef struct
 	};
 } PDC_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1500,8 +1290,7 @@ typedef struct
 } AC3_descriptor_t;
 
 /*ancillary_data_descriptor*/
-struct ancillary_data_identifier
-{
+struct ancillary_data_identifier {
 	uint8_t DVD_video_ancillary_data : 1;
 	uint8_t extended_ancillary_data : 1;
 	uint8_t announcement_switching_data : 1;
@@ -1512,14 +1301,11 @@ struct ancillary_data_identifier
 	uint8_t reserved : 1;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1528,8 +1314,7 @@ typedef struct
 	};
 } ancillary_data_descriptor_t;
 
-struct subcell_list_node
-{
+struct subcell_list_node {
 	uint64_t cell_id_extension : 8;
 	uint64_t subcell_latitude : 16;
 	uint64_t subcell_longitude : 16;
@@ -1538,8 +1323,7 @@ struct subcell_list_node
 	struct list_node n;
 };
 
-struct cell_list_node
-{
+struct cell_list_node {
 	uint16_t cell_id;
 	uint16_t cell_latitude;
 	uint16_t cell_longitude;
@@ -1551,14 +1335,11 @@ struct cell_list_node
 	struct list_node n;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1568,16 +1349,14 @@ typedef struct
 	};
 } cell_list_descriptor_t;
 
-struct subcell_node
-{
+struct subcell_node {
 	uint8_t cell_id_extension;
 	uint32_t transposer_frequency;
 	struct list_node n;
 	// struct subcell_info *next;
 };
 
-struct cell_frequency_node
-{
+struct cell_frequency_node {
 	uint16_t cell_id;
 	uint32_t frequency;
 	uint8_t subcell_info_loop_length;
@@ -1585,14 +1364,11 @@ struct cell_frequency_node
 	struct list_head list;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1603,8 +1379,7 @@ typedef struct
 } cell_frequency_link_descriptor_t;
 
 /*Announcement support descriptor*/
-struct announcement_support_indicator
-{
+struct announcement_support_indicator {
 	uint16_t emergency_alarm : 1;
 	uint16_t road_traffic_flash : 1;
 	uint16_t public_transport_flash : 1;
@@ -1616,16 +1391,14 @@ struct announcement_support_indicator
 	uint16_t reserved : 8;
 };
 
-struct reference
-{
+struct reference {
 	uint16_t original_network_id;
 	uint16_t transport_stream_id;
 	uint16_t service_id;
 	uint8_t component_tag;
 };
 
-struct announcement_node
-{
+struct announcement_node {
 	uint8_t announcement_type : 4;
 	uint8_t reserved_future_use : 1;
 	uint8_t reference_type : 3;
@@ -1634,14 +1407,11 @@ struct announcement_node
 	// struct announcement_info * next;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1652,14 +1422,11 @@ typedef struct
 	};
 } announcement_support_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1669,8 +1436,7 @@ typedef struct
 } application_signalling_descriptor_t;
 
 /*adaptation_field_data_descriptor*/
-struct adaptation_field_data_identifier
-{
+struct adaptation_field_data_identifier {
 	uint8_t announcement_switching_data : 1;
 	uint8_t AU_information_data : 1;
 	uint8_t PVR_assist_information_data : 1;
@@ -1678,14 +1444,11 @@ struct adaptation_field_data_identifier
 	uint8_t reserved : 4;
 };
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1694,14 +1457,11 @@ typedef struct
 	};
 } adaptation_field_data_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1709,14 +1469,11 @@ typedef struct
 	};
 } service_identifier_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1727,14 +1484,11 @@ typedef struct
 	};
 } service_availability_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1743,14 +1497,11 @@ typedef struct
 
 } default_authority_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1759,14 +1510,11 @@ typedef struct
 
 } related_content_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1775,14 +1523,11 @@ typedef struct
 
 } TVA_id_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1791,14 +1536,11 @@ typedef struct
 
 } content_identifier_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1807,14 +1549,11 @@ typedef struct
 
 } time_slice_fec_identifier_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1823,14 +1562,11 @@ typedef struct
 
 } ECM_repetition_rate_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1845,14 +1581,11 @@ typedef struct
 	};
 } S2_satellite_delivery_system_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1876,14 +1609,11 @@ typedef struct
 	};
 } enhanced_AC3_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1900,14 +1630,11 @@ typedef struct
 	};
 } DTS_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1922,14 +1649,11 @@ typedef struct
 	};
 } AAC_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1937,14 +1661,11 @@ typedef struct
 	};
 } XAIT_location_descriptor_t;
 
-typedef struct
-{ /*0x7E*/
+typedef struct { /*0x7E*/
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -1957,14 +1678,11 @@ typedef struct
 	};
 } FTA_content_management_descriptor_t;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
+	union {
 		descriptor_t descriptor;
-		struct
-		{
+		struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
@@ -2003,8 +1721,7 @@ enum extension_tag {
 	/*0x80 - 0xFF  user defined */
 };
 
-struct descriptor_ops
-{
+struct descriptor_ops {
 	uint8_t tag;
 	char tag_name[64];
 	int (*descriptor_parse)(uint8_t *data, uint32_t len, void *ptr);

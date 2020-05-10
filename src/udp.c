@@ -6,18 +6,17 @@
 #else
 #include <malloc.h>
 #endif
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "io.h"
 
 static struct io_ops udp_ops;
 
-struct url
-{
+struct url {
 	char proto[32];
 	uint32_t addr;
 	uint32_t port;
@@ -89,7 +88,7 @@ int udp_open(const char *urlpath)
 	}
 #ifdef SO_NOSIGPIPE
 	if (udp_ops.fd != -1)
-		setsockopt(udp_ops.fd, SOL_SOCKET, SO_NOSIGPIPE, &(int) { 1 }, sizeof(int));
+		setsockopt(udp_ops.fd, SOL_SOCKET, SO_NOSIGPIPE, &(int){ 1 }, sizeof(int));
 #endif
 	ret = bind(udp_ops.fd, (struct sockaddr *)&addr, len);
 	if (ret < 0) {
@@ -124,7 +123,11 @@ static int udp_end(void)
 }
 
 static struct io_ops udp_ops = {
-	.type = IO_UDP, .open = udp_open, .read = udp_read, .close = udp_close, .end = udp_end,
+	.type = IO_UDP,
+	.open = udp_open,
+	.read = udp_read,
+	.close = udp_close,
+	.end = udp_end,
 };
 
 REGISTER_IO_OPS(udp, &udp_ops);

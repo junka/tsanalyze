@@ -1,12 +1,12 @@
+#include <errno.h>
+#include <fcntl.h>
+#include <getopt.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
-#include <fcntl.h>
 #include <unistd.h>
-#include <stdbool.h>
-#include <getopt.h>
-#include <errno.h>
 
 #include "ts.h"
 
@@ -31,12 +31,11 @@ enum {
 	OPT_PID_NUM = 'p',
 };
 
-static struct tsa_config tsaconf = { .brief = 1, };
+static struct tsa_config tsaconf = {
+	.brief = 1,
+};
 
-struct tsa_config *get_config()
-{
-	return &tsaconf;
-}
+struct tsa_config *get_config() { return &tsaconf; }
 
 int check_filepath_valid(char *filename)
 {

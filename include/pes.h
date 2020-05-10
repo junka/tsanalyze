@@ -5,8 +5,8 @@
 extern "C" {
 #endif
 
-#include "types.h"
 #include "ps.h"
+#include "types.h"
 
 enum stream_id {
 	program_stream_map = 0xBC,
@@ -49,8 +49,7 @@ enum trick_mode_control {
 	mode_slow_reserve = 0x4,
 };
 
-typedef struct
-{
+typedef struct {
 	uint8_t flag : 4;
 	uint8_t PTS_DTS_1 : 3;
 	uint8_t mark_bit1 : 1;
@@ -60,8 +59,7 @@ typedef struct
 	uint16_t mark_bit3 : 1;
 } PTS_DTS;
 
-typedef struct
-{
+typedef struct {
 	uint64_t reserved : 2;
 	uint64_t ESCR_base_1 : 3;
 	uint64_t mark_bit_1 : 1;
@@ -73,52 +71,43 @@ typedef struct
 	uint64_t mark_bit_4 : 1;
 } __attribute__((packed)) ESCR;
 
-typedef struct
-{
+typedef struct {
 	uint32_t mark_bit_1 : 1;
 	uint32_t ES_rate : 22;
 	uint32_t mark_bit_2 : 1;
 } __attribute__((packed)) ES_rate;
 
-typedef struct
-{
+typedef struct {
 	EXT_STD_C11
-	union
-	{
-		struct
-		{
+	union {
+		struct {
 			uint8_t DSM_trick_mode_control : 3;
 			uint8_t rep_cntrl : 5;
 		};
-		struct
-		{
+		struct {
 			uint8_t DSM_trick_mode_control1 : 3;
 			uint8_t field_id : 2;
 			uint8_t intra_slice_refresh : 1;
 			uint8_t frequency_truncation : 2;
 		};
-		struct
-		{
+		struct {
 			uint8_t DSM_trick_mode_control2 : 3;
 			uint8_t field_id1 : 2;
 			uint8_t reserved : 3;
 		};
-		struct
-		{
+		struct {
 			uint8_t DSM_trick_mode_control3 : 3;
 			uint8_t reserved1 : 5;
 		};
 	};
 } DSM_trick_mode;
 
-typedef struct
-{
+typedef struct {
 	uint8_t mark_bit : 1;
 	uint8_t additional_copy_info : 7;
 } additional_copy;
 
-typedef struct
-{
+typedef struct {
 	uint8_t marker_bit : 1;
 	uint8_t program_packet_sequence_counter : 7;
 	uint8_t marker_bit1 : 1;
@@ -126,15 +115,13 @@ typedef struct
 	uint8_t original_stuff_length : 6;
 } program_packet_sequence_counter;
 
-typedef struct
-{
+typedef struct {
 	uint16_t zero_one : 2;
 	uint16_t PSTD_buffer_scale : 1;
 	uint16_t PSTD_buffer_size : 13;
 } PSTD_buffer;
 
-typedef struct
-{
+typedef struct {
 	uint8_t PES_private_data_flag : 1;
 	uint8_t pack_header_field_flag : 1;
 	uint8_t program_packet_sequence_counter_flag : 1;
@@ -150,8 +137,7 @@ typedef struct
 	uint8_t PES_extension_field_length : 7;
 } PES_extension;
 
-typedef struct
-{
+typedef struct {
 	uint8_t reserved : 2;
 	uint8_t PES_scrambling_control : 2;
 	uint8_t PES_priority : 1;
@@ -176,13 +162,11 @@ typedef struct
 	PES_extension extension;
 } non_ps;
 
-typedef struct
-{
+typedef struct {
 	uint32_t packet_start_code_prefix : 24; // 0x000001
 	uint32_t stream_id : 8;
 	uint16_t PES_packet_length;
-	union
-	{
+	union {
 		non_ps packet_data;
 		uint8_t *PES_packet_data_byte;
 		// user defined for private_stream_1, private_stream_2, ECM_stream, EMM_stream
