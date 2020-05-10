@@ -1,0 +1,5 @@
+2020-05-11 01:00:00 UTC+8  <wan.junjie@foxmail.com>
+	* first release, basic work for psi in file or udp stream format
+	* add copy authors files for automake
+	* add automake 
+
