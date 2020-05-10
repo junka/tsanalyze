@@ -241,7 +241,6 @@ int ts_proc(uint8_t *data, uint8_t len)
 		pid_dev[head.PID].error_in++;
 	}
 
-	// printf("pid 0x%x 0x%x\n",head.PID,*ptr);
 	if (head.PID != NULL_PID) {
 		if (head.PID < 0x05 || (head.PID > 0x09 && head.PID < 0x15) || (head.PID == 0x15) ||
 			(head.PID > 0x1D && head.PID < 0x20))

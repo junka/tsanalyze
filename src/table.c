@@ -358,7 +358,7 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 	int16_t section_len = 0;
 	uint8_t version_num;
 	uint8_t *pdata = pbuf;
-	struct es_node *pn, *next;
+	struct es_node *pn = NULL, *next = NULL;
 
 	if (unlikely(pbuf == NULL || pPMT == NULL)) {
 		return -1;
@@ -440,7 +440,7 @@ int parse_nit(uint8_t *pbuf, uint16_t buf_size, nit_t *pNIT)
 	int16_t section_len = 0;
 	uint8_t version_num;
 	uint8_t *pdata = pbuf;
-	struct transport_stream_node *pn, *next;
+	struct transport_stream_node *pn = NULL, *next = NULL;
 
 	if (unlikely(pbuf == NULL || pNIT == NULL)) {
 		return -1;
@@ -501,7 +501,7 @@ int parse_bat(uint8_t *pbuf, uint16_t buf_size, bat_t *pBAT)
 	int16_t section_len = 0;
 	uint8_t version_num;
 	uint8_t *pdata = pbuf;
-	struct transport_stream_node *pn, *next;
+	struct transport_stream_node *pn = NULL, *next = NULL;
 
 	if (unlikely(pbuf == NULL || pBAT == NULL)) {
 		return -1;
@@ -570,7 +570,7 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 	uint8_t *pdata = pbuf;
 	uint8_t last_sec, cur_sec;
 	uint16_t ts_id;
-	struct service_node *pn, *next;
+	struct service_node *pn = NULL, *next = NULL;
 
 	if (unlikely(pbuf == NULL || pSDT == NULL)) {
 		return -1;
@@ -652,7 +652,7 @@ static int parse_eit(uint8_t *pbuf, uint16_t buf_size, eit_t *pEIT)
 {
 	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
-	struct event_node *pn;
+	// struct event_node *pn = NULL;
 
 	if (unlikely(pbuf == NULL || pEIT == NULL)) {
 		return -1;
@@ -693,7 +693,6 @@ static int parse_tdt(uint8_t *pbuf, uint16_t buf_size, tdt_t *pTDT)
 
 static int parse_tot(uint8_t *pbuf, uint16_t buf_size, tot_t *pTOT)
 {
-	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
 	if (unlikely(pbuf == NULL || pTOT == NULL)) {

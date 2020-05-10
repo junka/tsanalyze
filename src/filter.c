@@ -69,7 +69,7 @@ int filter_free(filter_t *f)
 	if (f == NULL)
 		return -1;
 	struct list_head *lh = &pid_filter[f->pid].h;
-	struct filter_slot *ix, *next;
+	struct filter_slot *ix = NULL, *next = NULL;
 	list_for_each_safe(lh, ix, next, n)
 	{
 		if (ix->t == f) {
@@ -86,7 +86,6 @@ int filter_free(filter_t *f)
 filter_t *filter_lookup(uint16_t pid, filter_param_t *para)
 {
 	filter_t *f = NULL;
-	int i = 0;
 	if (unlikely(para == NULL))
 		return NULL;
 	if (unlikely(pid_filter[pid].filter_num == 0))
@@ -112,7 +111,7 @@ filter_t *filter_lookup(uint16_t pid, filter_param_t *para)
 int filter_proc(uint16_t pid, uint8_t *data, uint16_t len)
 {
 	struct list_head *lh = &pid_filter[pid].h;
-	struct filter_slot *ix, *next;
+	struct filter_slot *ix = NULL, *next = NULL;
 	if (unlikely(list_empty(lh)))
 		return -1;
 	list_for_each_safe(lh, ix, next, n)

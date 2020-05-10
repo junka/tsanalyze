@@ -21,6 +21,8 @@
 
 #define DR_MEMBER(dr, a, member) dr->member
 
+static struct descriptor_ops des_ops[256];
+
 int parse_video_stream_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	INVALID_DR_RETURN(video_stream, buf);
@@ -719,11 +721,10 @@ foreach_enum_descriptor
 	void dump_##a##_descriptor(descriptor_t *p_descriptor)                                                             \
 	{                                                                                                                  \
 		a##_descriptor_t *dr = container_of(p_descriptor, a##_descriptor_t, descriptor);                               \
-		printf("\n");                                                                                                  \
+		printf("Descriptor 0x%x(%s)\n", dr->descriptor_tag, des_ops[dr->descriptor_tag].tag_name);                                                                                                  \
 	}
 foreach_enum_descriptor
 #undef _
-	static struct descriptor_ops des_ops[256];
 
 void init_descriptor_parsers()
 {
@@ -756,15 +757,15 @@ void init_descriptor_parsers()
 
 void parse_descriptors(struct list_head *h, uint8_t *buf, int len)
 {
-	// hexdump(buf,len);
 	int l = len;
 	uint8_t *ptr = buf;
-	descriptor_t *more;
+	descriptor_t *more = NULL;
+	void *des = NULL;
 	while (l > 0) {
 		// hexdump( ptr, l);
 		// printf("%s : %d, %d\n",des_ops[ptr[0]].tag_name,l,ptr[1]);
-		void *des = ALLOC_DES(ptr[0]);
-		descriptor_t *more = (descriptor_t *)des;
+		des = ALLOC_DES(ptr[0]);
+		more = (descriptor_t *)des;
 		PARSE_DES(ptr, des);
 		more->tag = ptr[0];
 		more->length = ptr[1];

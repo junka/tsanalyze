@@ -95,8 +95,7 @@ void prog_usage(FILE *fp, const char *pro_name)
 
 int prog_parse_args(int argc, char **argv)
 {
-	int opt, ret;
-	int option_index;
+	int opt, option_index;
 	const char *prgname = argv[0];
 
 	// make a copy of the options
