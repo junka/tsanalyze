@@ -85,21 +85,17 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 	uint8_t pointer_field = 0;
 	struct section_parser *p = &sec[pid];
 	*buffering = NULL;
-	// indicate start of PES or PSI
-	
+	/* indicate start of PES or PSI */
+
 	if (payload_unit_start_indicator == 1) {
 		p->cc = continuity_counter;
-		//if (psi_or_pes == 0) // PSI
+		if (psi_or_pes == 0) /* PSI */
 		{
 			pointer_field = pkt[0];
 			/*skip pointer_field, valid for PSI and stream_type 0x05 private_sections*/
 			p->total_len = len - 1 - pointer_field;
 			p->limit_len = (int32_t)(((int16_t)pkt[2 + pointer_field] << 8) | pkt[3 + pointer_field]) & 0x0FFF;
 			p->limit_len += 3;
-			if(pid == 200)
-			{
-				printf("limit len %d, total len %d\n", p->limit_len, p->total_len);
-			}
 			/*section in one pkt , go without buffering*/
 			if (p->limit_len <= (p->total_len)) {
 				*buffering = (pkt + 1 + pointer_field);
@@ -108,38 +104,34 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 				memset(p->buffer, 0, 4096); // PSI length less than this
 				memcpy(p->buffer, pkt + 1 + pointer_field, p->total_len);
 			}
-		}
-		// else { // PES
-		// 	p->total_len = len;
-		// 	p->limit_len = ((int32_t)pkt[4] << 8 | pkt[5]);
-		// 	if (p->limit_len == 0) {
-		// 		// for video stream, unlimit length
-		// 	}
-		// 	p->limit_len += 6;
-		// 	if (p->limit_len <= (p->total_len)) {
-		// 		*buffering = pkt;
-		// 		return p->limit_len;
-		// 	} else {
-		// 		memset(p->buffer, 0, 65535);
-		// 		memcpy(p->buffer, pkt, p->total_len);
-		// 	}
-		//}
-
-	} else {
-		//if(psi_or_pes==0)//PSI
-		{
-			if (p->total_len == 0)
-				return -1;
-			memcpy(p->buffer + p->total_len, pkt, len);
-			p->total_len += len;
-			if (p->total_len >= p->limit_len) {
-				*buffering = p->buffer;
-				p->total_len = 0;
+		} else { /* PES doesn't have pointer field */
+			p->total_len = len;
+			p->limit_len = ((int32_t)pkt[4] << 8 | pkt[5]);
+			if (p->limit_len == 0) {
+				/* for video stream, unlimit length */
+			}
+			p->limit_len += 6;
+			if (p->limit_len <= (p->total_len)) {
+				*buffering = pkt;
 				return p->limit_len;
+			} else {
+				memset(p->buffer, 0, 65535);
+				memcpy(p->buffer, pkt, p->total_len);
 			}
 		}
+
+	} else {
+		if (p->total_len == 0)
+			return -1;
+		memcpy(p->buffer + p->total_len, pkt, len);
+		p->total_len += len;
+		if (p->total_len >= p->limit_len) {
+			*buffering = p->buffer;
+			p->total_len = 0;
+			return p->limit_len;
+		}
 	}
-	/*tell us buffering*/
+	/* tell us buffering */
 	return -1;
 }
 
@@ -173,33 +165,43 @@ int ts_adaptation_field_proc(uint8_t *data, uint8_t len)
 	adapt.transport_private_data_flag = TS_READ_BIT(ptr, 1);
 	adapt.adaptation_field_extension_flag = TS_READ_BIT(ptr, 0);
 	ptr += 1;
+	len -= 1;
 
 	if (adapt.PCR_flag) {
 		pcr.program_clock_reference_base = (((uint64_t)TS_READ32(ptr) << 1) | ptr[4] >> 7);
 		ptr += 4;
+		len -= 4;
 		pcr.program_clock_reference_extension = (TS_READ16(ptr) & 0x1FF);
 		ptr += 2;
+		len -= 2;
 		// printf("clock %lu\n",calc_pcr_clock(pcr));
 	}
 	if (adapt.OPCR_flag) {
 		opcr.program_clock_reference_base = (((uint64_t)TS_READ32(ptr) << 1) | ptr[4] >> 7);
 		ptr += 4;
+		len -= 4;
 		opcr.program_clock_reference_extension = (TS_READ16(ptr) & 0x1FF);
 		ptr += 2;
+		len -= 2;
 		// printf("original clock %lu\n",calc_pcr_clock(pcr));
 	}
 	if (adapt.splicing_point_flag) {
 		ptr += 1;
+		len -= 1;
 	}
 	if (adapt.transport_private_data_flag) {
 		uint8_t transport_private_data_length = TS_READ8(ptr);
 		ptr += 1;
+		len -= 1;
 		ptr += transport_private_data_length;
+		len -= transport_private_data_length;
 	}
 	if (adapt.adaptation_field_extension_flag) {
 		uint8_t adaptation_field_extension_length = TS_READ8(ptr);
 		ptr += 1;
+		len -= 1;
 		ptr += adaptation_field_extension_length;
+		len -= adaptation_field_extension_length;
 	}
 
 	return 0;
@@ -208,6 +210,7 @@ int ts_adaptation_field_proc(uint8_t *data, uint8_t len)
 int ts_proc(uint8_t *data, uint8_t len)
 {
 	ts_header head;
+	uint8_t psi_or_pes = 1;
 	uint8_t *ptr = data;
 	int16_t sec_len = -1;
 	uint8_t *pbuf = NULL;
@@ -223,8 +226,6 @@ int ts_proc(uint8_t *data, uint8_t len)
 	ptr += 2;
 	head.adaptation_field_control = (TS_READ8(ptr) >> 4) & 0x3;
 	head.continuity_counter = TS_READ8(ptr) & 0x3;
-	// memcpy(&head,data,sizeof(ts_header));
-	// printf("receive PID 0x%x\n",head.PID);
 	ptr += 1;
 	len -= 4;
 
@@ -245,15 +246,15 @@ int ts_proc(uint8_t *data, uint8_t len)
 		pid_dev[head.PID].error_in++;
 	}
 
-	if (head.PID != NULL_PID) {
-		if (head.PID < 0x05 || (head.PID > 0x09 && head.PID < 0x15) || (head.PID == 0x15) ||
-			(head.PID > 0x1D && head.PID < 0x20))
-			sec_len = section_preproc(head.PID, ptr, len, &pbuf, head.payload_unit_start_indicator,
-									  head.continuity_counter, 0);
-		else
-			sec_len = section_preproc(head.PID, ptr, len, &pbuf, head.payload_unit_start_indicator,
-									  head.continuity_counter, 1);
+	if (head.PID == NULL_PID) {
+		return 0;
 	}
+
+	if (head.PID < 0x20 || check_pmt_pid(head.PID)) // take as psi
+		psi_or_pes = 0;
+
+	sec_len = section_preproc(head.PID, ptr, len, &pbuf, head.payload_unit_start_indicator, head.continuity_counter,
+							  psi_or_pes);
 	if (sec_len == -1)
 		return 0;
 	filter_proc(head.PID, pbuf, sec_len);

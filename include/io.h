@@ -14,8 +14,8 @@ struct io_ops {
 	unsigned char *ptr;
 	int (*open)(const char *filename);
 	int (*read)(void **ptr, size_t *len);
-	int (*close)();
-	int (*end)();
+	int (*close)(void);
+	int (*end)(void);
 };
 
 typedef enum {

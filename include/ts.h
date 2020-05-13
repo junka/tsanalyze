@@ -92,7 +92,7 @@ struct tsa_config {
 	uint8_t tables;
 };
 
-struct tsa_config *get_config();
+struct tsa_config *get_config(void);
 
 #define MAX_TS_PID_NUM 8192
 

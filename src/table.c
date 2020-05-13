@@ -157,8 +157,10 @@ static void dump_SDT(sdt_t *p_sdt)
 		printf("        | EIT_present_following_flag 0x%x \n", pn->EIT_present_following_flag);
 		printf("        | running_status 0x%x \n", pn->running_status);
 		printf("        | free_CA_mode 0x%x \n", pn->free_CA_mode);
+		dump_descriptors("            | ]", &(pn->list));
 	}
 }
+
 static void dump_NIT(nit_t *p_nit)
 {
 	if (p_nit == NULL)
@@ -203,8 +205,6 @@ void dump_tables(void)
 
 	if (psi.has_pat)
 		dump_PAT(&psi.pat);
-	if (psi.has_sdt)
-		dump_SDT(&psi.sdt);
 	if (psi.ca_num > 0) {
 		dump_CAT(&psi.cat);
 	}
@@ -214,6 +214,9 @@ void dump_tables(void)
 			dump_PMT(&psi.pmt[i], i);
 		}
 	}
+
+	if (psi.has_sdt)
+		dump_SDT(&psi.sdt);
 	if (psi.has_nit)
 		dump_NIT(&psi.nit);
 	if (psi.has_tdt)
@@ -235,17 +238,17 @@ int parse_pat(uint8_t *pbuf, uint16_t buf_size, pat_t *pPAT)
 	struct program_node *pn = NULL, *next = NULL;
 
 	if (unlikely(pbuf == NULL || pPAT == NULL)) {
-		return NULL_POINTER;
+		return NULL_PTR;
 	}
 
 	if (unlikely(pdata[0] != PAT_TID)) {
-		return INVALID_TABLEID;
+		return INVALID_TID;
 	}
 
 	section_len = ((pdata[1] << 8) | pdata[2]) & 0x0FFF;
 	if (unlikely(section_len > 0x3FD)) // For pat , maximum
 	{
-		return INVALID_SECTION_LENGTH;
+		return INVALID_SEC_LEN;
 	}
 	if (!(pdata[5] & 0x01)) // current_next_indicator
 	{
@@ -317,7 +320,7 @@ int parse_cat(uint8_t *pbuf, uint16_t buf_size, cat_t *pCAT)
 	uint8_t *pdata = pbuf;
 
 	if (unlikely(pbuf == NULL || pCAT == NULL)) {
-		return -1;
+		return NULL_PTR;
 	}
 
 	if (unlikely(pdata[0] != CAT_TID)) {
@@ -443,17 +446,17 @@ int parse_nit(uint8_t *pbuf, uint16_t buf_size, nit_t *pNIT)
 	struct transport_stream_node *pn = NULL, *next = NULL;
 
 	if (unlikely(pbuf == NULL || pNIT == NULL)) {
-		return -1;
+		return NULL_PTR;
 	}
 
 	if (unlikely(pdata[0] != NIT_OTHER_TID && pdata[0] != NIT_ACTUAL_TID)) {
-		return -1;
+		return INVALID_TID;
 	}
 
 	section_len = (int16_t)((pdata[1] << 8) | pdata[2]) & 0x0FFF;
 	if (unlikely(section_len > 0x3FD)) // For nit , maximum
 	{
-		return -1;
+		return INVALID_SEC_LEN;
 	}
 	version_num = (pdata[5] >> 1) & 0x1F;
 	if (unlikely(version_num == pNIT->version_number && !list_empty(&(pNIT->h)))) {
@@ -504,17 +507,17 @@ int parse_bat(uint8_t *pbuf, uint16_t buf_size, bat_t *pBAT)
 	struct transport_stream_node *pn = NULL, *next = NULL;
 
 	if (unlikely(pbuf == NULL || pBAT == NULL)) {
-		return -1;
+		return NULL_PTR;
 	}
 
 	if (unlikely(pdata[0] != BAT_TID)) {
-		return -1;
+		return INVALID_TID;
 	}
 
 	section_len = (int16_t)((pdata[1] << 8) | pdata[2]) & 0x0FFF;
 	if (unlikely(section_len > 0x3FD)) // For bat , maximum
 	{
-		return -1;
+		return INVALID_SEC_LEN;
 	}
 	version_num = (pdata[5] >> 1) & 0x1F;
 	if (version_num == pBAT->version_number && !list_empty(&(pBAT->h))) {
@@ -573,10 +576,10 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 	struct service_node *pn = NULL, *next = NULL;
 
 	if (unlikely(pbuf == NULL || pSDT == NULL)) {
-		return -1;
+		return NULL_PTR;
 	}
 	if (unlikely(pdata[0] != SDT_ACTUAL_TID && pdata[0] != SDT_OTHER_TID)) {
-		return -1;
+		return INVALID_TID;
 	}
 
 	section_len = (((int16_t)pdata[1] << 8) | pdata[2]) & 0x0FFF;
@@ -585,6 +588,7 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 		return -1;
 	}
 	version_num = (pdata[5] >> 1) & 0x1F;
+
 	pdata += 3;
 	ts_id = TS_READ16(pdata);
 	pdata += 2;
@@ -627,6 +631,7 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 	while (loop_len > 0) {
 		// printf("ptr %x section len %d\n",pdata,section_len);
 		pn = malloc(sizeof(struct service_node));
+		list_head_init(&(pn->list));
 		pn->service_id = TS_READ16(pdata);
 		pdata += 2;
 		pn->EIT_schedule_flag = (TS_READ8(pdata) >> 1) & 0x1;
@@ -635,8 +640,8 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 		pn->running_status = (TS_READ16(pdata) >> 13) & 0x7;
 		pn->free_CA_mode = (TS_READ16(pdata) >> 12) & 0x1;
 		pn->descriptors_loop_length = TS_READ16(pdata) & 0x0FFF;
-
 		pdata += 2;
+
 		parse_descriptors(&(pn->list), pdata, (int)(pn->descriptors_loop_length));
 		pdata += pn->descriptors_loop_length;
 		// printf("desc len %d\n",si->descriptors_loop_length);
@@ -732,7 +737,6 @@ static int cat_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t
 
 static int pmt_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
 {
-	psi.pmt_bitmap[pid / 64] |= ((uint64_t)1 << (pid % 64));
 	parse_pmt(pkt, len, &(psi.pmt[pid]));
 	return 0;
 }
@@ -807,6 +811,7 @@ void init_table_ops(void)
 	init_table_filter(CAT_PID, CAT_TID, 0xFF, cat_proc);
 	init_table_filter(NIT_PID, NIT_ACTUAL_TID, 0xFF, nit_proc);
 	init_table_filter(EIT_PID, EIT_ACTUAL_TID, 0xFF, eit_proc);
+	init_table_filter(SDT_PID, SDT_ACTUAL_TID, 0xFF, sdt_bat_proc);
 	init_table_filter(BAT_PID, BAT_TID, 0xFF, sdt_bat_proc);
 	init_table_filter(TDT_PID, TDT_TID, 0xFE, tdt_tot_proc);
 }
@@ -834,6 +839,19 @@ void register_pmt_ops(uint16_t pid)
 {
 	if (pid == NIT_PID)
 		return;
+	psi.pmt_bitmap[pid / 64] |= ((uint64_t)1 << (pid % 64));
 	init_table_filter(pid, PMT_TID, 0xFF, pmt_proc);
 }
-void unregister_pmt_ops(uint16_t pid) { uninit_table_filter(pid, PMT_TID, 0xFF); }
+
+void unregister_pmt_ops(uint16_t pid)
+{
+	psi.pmt_bitmap[pid / 64] &= ~((uint64_t)1 << (pid % 64));
+	uninit_table_filter(pid, PMT_TID, 0xFF);
+}
+
+bool check_pmt_pid(uint16_t pid)
+{
+	if (psi.pmt_bitmap[pid / 64] & ((uint64_t)1 << (pid % 64)))
+		return true;
+	return false;
+}

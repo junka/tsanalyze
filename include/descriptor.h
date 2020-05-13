@@ -16,43 +16,99 @@ typedef struct descriptor {
 } descriptor_t;
 
 /* ISO/IEC 13818-1 */
+/* 0x12 - 0x1A Defined in ISO/IEC 13818-6*/
+/* 0x24 - 0x3F reserved, then EN 300 468*/
 #define foreach_enum_descriptor                                                                                        \
 	_(video_stream, 0x02)                                                                                              \
-	_(audio_stream, 0x03) _(hierarchy, 0x04) _(registration, 0x05) _(data_stream_alignment, 0x06)                      \
-		_(target_background_grid, 0x07) _(video_window, 0x08) _(CA, 0x09) _(ISO_639_language, 0x0A)                    \
-			_(system_clock, 0x0B) _(multiplex_buffer_utilization, 0x0C) _(copyright, 0x0D) _(maximum_bitrate, 0x0E)    \
-				_(private_data_indicator, 0x0F) _(smoothing_buffer, 0x10) _(STD, 0x11)                                 \
-					_(ibp, 0x12) /* 0x12 - 0x1A Defined in ISO/IEC 13818-6*/                                           \
-		_(MPEG4_video, 0x1B) _(MPEG4_audio, 0x1C) _(IOD, 0x1D) _(SL, 0x1E) _(FMC, 0x1F) _(external_ES_ID, 0x20)        \
-			_(muxcode, 0x21) _(FmxBufferSize, 0x22)                                                                    \
-				_(MultiplexBuffer, 0x23) /* 0x24 - 0x3F reserved */ /* EN 300 468*/                                    \
-		_(network_name, 0x40) _(service_list, 0x41) _(stuffing, 0x42) _(satellite_delivery_system, 0x43)               \
-			_(cable_delivery_system, 0x44) _(VBI_data, 0x45) _(VBI_teletext, 0x46) _(bouquet_name, 0x47) _(            \
-				service, 0x48) _(country_availability, 0x49) _(linkage, 0x4A) _(NVOD_reference, 0x4B)                  \
-				_(time_shifted_service, 0x4C) _(short_event, 0x4D) _(extended_event, 0x4E) _(time_shifted_event, 0x4F) \
-					_(component, 0x50) _(mosaic, 0x51) _(stream_identifier, 0x52) _(CA_identifier, 0x53)               \
-						_(content, 0x54) _(parental_rating, 0x55) _(teletext, 0x56) _(telephone, 0x57) _(              \
-							local_time_offset, 0x58) _(subtitling, 0x59) _(terrestrial_delivery_system, 0x5A)          \
-							_(multilingual_network_name, 0x5B) _(multilingual_bouquet_name, 0x5C) _(                   \
-								multilingual_service_name, 0x5D) _(multilingual_component,                             \
-																   0x5E) _(private_data_specifier, 0x5F)               \
-								_(service_move, 0x60) _(short_smoothing_buffer, 0x61) _(frequency_list, 0x62)          \
-									_(partial_transport_stream, 0x63) _(data_broadcast, 0x64) _(scrambling, 0x65)      \
-										_(data_broadcast_id, 0x66) _(transport_stream, 0x67) _(DSNG, 0x68)             \
-											_(PDC, 0x69) _(AC3, 0x6A) _(ancillary_data, 0x6B) _(cell_list, 0x6C)       \
-												_(cell_frequency_link, 0x6D) _(announcement_support,                   \
-																			   0x6E) _(application_signalling, 0x6F)   \
-													_(adaptation_field_data, 0x70) _(service_identifier, 0x71)         \
-														_(service_availability, 0x72) _(default_authority, 0x73)       \
-															_(related_content, 0x74) _(TVA_id, 0x75)                   \
-																_(content_identifier,                                  \
-																  0x76) _(time_slice_fec_identifier, 0x77)             \
-																	_(ECM_repetition_rate, 0x78)                       \
-																		_(S2_satellite_delivery_system, 0x79)          \
-																			_(enhanced_AC3, 0x7A) _(DTS, 0x7B)         \
-																				_(AAC, 0x7C) _(XAIT_location, 0x7D)    \
-																					_(FTA_content_management, 0x7E)    \
-																						_(extension, 0x7F)
+	_(audio_stream, 0x03)                                                                                              \
+	_(hierarchy, 0x04)                                                                                                 \
+	_(registration, 0x05)                                                                                              \
+	_(data_stream_alignment, 0x06)                                                                                     \
+	_(target_background_grid, 0x07)                                                                                    \
+	_(video_window, 0x08)                                                                                              \
+	_(CA, 0x09)                                                                                                        \
+	_(ISO_639_language, 0x0A)                                                                                          \
+	_(system_clock, 0x0B)                                                                                              \
+	_(multiplex_buffer_utilization, 0x0C)                                                                              \
+	_(copyright, 0x0D)                                                                                                 \
+	_(maximum_bitrate, 0x0E)                                                                                           \
+	_(private_data_indicator, 0x0F)                                                                                    \
+	_(smoothing_buffer, 0x10)                                                                                          \
+	_(STD, 0x11)                                                                                                       \
+	_(ibp, 0x12)                                                                                                       \
+	_(MPEG4_video, 0x1B)                                                                                               \
+	_(MPEG4_audio, 0x1C)                                                                                               \
+	_(IOD, 0x1D)                                                                                                       \
+	_(SL, 0x1E)                                                                                                        \
+	_(FMC, 0x1F)                                                                                                       \
+	_(external_ES_ID, 0x20)                                                                                            \
+	_(muxcode, 0x21)                                                                                                   \
+	_(FmxBufferSize, 0x22)                                                                                             \
+	_(MultiplexBuffer, 0x23)                                                                                           \
+	_(network_name, 0x40)                                                                                              \
+	_(service_list, 0x41)                                                                                              \
+	_(stuffing, 0x42)                                                                                                  \
+	_(satellite_delivery_system, 0x43)                                                                                 \
+	_(cable_delivery_system, 0x44)                                                                                     \
+	_(VBI_data, 0x45)                                                                                                  \
+	_(VBI_teletext, 0x46)                                                                                              \
+	_(bouquet_name, 0x47)                                                                                              \
+	_(service, 0x48)                                                                                                   \
+	_(country_availability, 0x49)                                                                                      \
+	_(linkage, 0x4A)                                                                                                   \
+	_(NVOD_reference, 0x4B)                                                                                            \
+	_(time_shifted_service, 0x4C)                                                                                      \
+	_(short_event, 0x4D)                                                                                               \
+	_(extended_event, 0x4E)                                                                                            \
+	_(time_shifted_event, 0x4F)                                                                                        \
+	_(component, 0x50)                                                                                                 \
+	_(mosaic, 0x51)                                                                                                    \
+	_(stream_identifier, 0x52)                                                                                         \
+	_(CA_identifier, 0x53)                                                                                             \
+	_(content, 0x54)                                                                                                   \
+	_(parental_rating, 0x55)                                                                                           \
+	_(teletext, 0x56)                                                                                                  \
+	_(telephone, 0x57)                                                                                                 \
+	_(local_time_offset, 0x58)                                                                                         \
+	_(subtitling, 0x59)                                                                                                \
+	_(terrestrial_delivery_system, 0x5A)                                                                               \
+	_(multilingual_network_name, 0x5B)                                                                                 \
+	_(multilingual_bouquet_name, 0x5C)                                                                                 \
+	_(multilingual_service_name, 0x5D)                                                                                 \
+	_(multilingual_component, 0x5E)                                                                                    \
+	_(private_data_specifier, 0x5F)                                                                                    \
+	_(service_move, 0x60)                                                                                              \
+	_(short_smoothing_buffer, 0x61)                                                                                    \
+	_(frequency_list, 0x62)                                                                                            \
+	_(partial_transport_stream, 0x63)                                                                                  \
+	_(data_broadcast, 0x64)                                                                                            \
+	_(scrambling, 0x65)                                                                                                \
+	_(data_broadcast_id, 0x66)                                                                                         \
+	_(transport_stream, 0x67)                                                                                          \
+	_(DSNG, 0x68)                                                                                                      \
+	_(PDC, 0x69)                                                                                                       \
+	_(AC3, 0x6A)                                                                                                       \
+	_(ancillary_data, 0x6B)                                                                                            \
+	_(cell_list, 0x6C)                                                                                                 \
+	_(cell_frequency_link, 0x6D)                                                                                       \
+	_(announcement_support, 0x6E)                                                                                      \
+	_(application_signalling, 0x6F)                                                                                    \
+	_(adaptation_field_data, 0x70)                                                                                     \
+	_(service_identifier, 0x71)                                                                                        \
+	_(service_availability, 0x72)                                                                                      \
+	_(default_authority, 0x73)                                                                                         \
+	_(related_content, 0x74)                                                                                           \
+	_(TVA_id, 0x75)                                                                                                    \
+	_(content_identifier, 0x76)                                                                                        \
+	_(time_slice_fec_identifier, 0x77)                                                                                 \
+	_(ECM_repetition_rate, 0x78)                                                                                       \
+	_(S2_satellite_delivery_system, 0x79)                                                                              \
+	_(enhanced_AC3, 0x7A)                                                                                              \
+	_(DTS, 0x7B)                                                                                                       \
+	_(AAC, 0x7C)                                                                                                       \
+	_(XAIT_location, 0x7D)                                                                                             \
+	_(FTA_content_management, 0x7E)                                                                                    \
+	_(extension, 0x7F)
 /*0x80 to 0xFE user defined */
 /*0xFF forbidden */
 
@@ -71,10 +127,9 @@ typedef struct {
 			uint8_t descriptor_tag;
 			uint8_t descriptor_length;
 			struct list_node n;
-			uint8_t multiple_frame_rate_flag : 1; /*set to '1' indicates that multiple frame rates may be present*/
+			uint8_t multiple_frame_rate_flag : 1; /*'1' indicates that multiple frame rates may be present*/
 			uint8_t frame_rate_code : 4;
-			uint8_t MPEG_1_only_flag : 1; /*set to '1' indicates that the video stream contains only ISO/IEC 11172-2
-											 data*/
+			uint8_t MPEG_1_only_flag : 1; /*'1' indicates that the video stream contains only ISO/IEC 11172-2 data*/
 			uint8_t constrained_parameter_flag : 1;
 			uint8_t still_picture_flag : 1; /*set to '1' indicates that the video stream contains only still pictures.*/
 			/*exist only when MPEG_1_only_flag == 0*/
@@ -501,7 +556,6 @@ typedef struct {
 } MultiplexBuffer_descriptor_t;
 
 /*see EN_300 468 chapter 6*/
-
 typedef struct {
 	EXT_STD_C11
 	union {
@@ -525,7 +579,6 @@ typedef struct {
 			struct list_node n;
 		};
 	};
-
 } service_list_descriptor_t;
 
 typedef struct {
@@ -646,9 +699,9 @@ typedef struct {
 			struct list_node n;
 			uint8_t service_type;
 			uint8_t service_provider_name_length;
-			uint8_t *text_char;
+			uint8_t *provider_name;
 			uint8_t service_name_length;
-			uint8_t *service_char;
+			uint8_t *service_name;
 		};
 	};
 } service_descriptor_t;
@@ -1730,7 +1783,7 @@ struct descriptor_ops {
 	void (*descriptor_dump)(descriptor_t *ptr);
 };
 
-void init_descriptor_parsers();
+void init_descriptor_parsers(void);
 
 void free_descriptors(struct list_head *list);
 

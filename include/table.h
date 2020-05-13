@@ -415,6 +415,8 @@ void init_table_ops(void);
 
 void uninit_table_ops(void);
 
+bool check_pmt_pid(uint16_t pid);
+
 void dump_tables(void);
 
 #ifdef __cplusplus

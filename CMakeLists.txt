@@ -8,10 +8,11 @@ SET(CMAKE_C_COMPILER "/usr/bin/gcc")
 message(${CMAKE_SYSTEM_NAME})
 
 
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -W -Wall -Wstrict-prototypes -Wshadow -Wno-unused-parameter")
 IF(${CMAKE_BUILD_TYPE} MATCHES "debug")
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -W -Wall -g")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g")
 ELSE()
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -O3 -std=c11")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 ENDIF()
 
 ADD_EXECUTABLE(tsanalyze ${SRC_LIST})

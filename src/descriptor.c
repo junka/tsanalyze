@@ -294,6 +294,17 @@ int parse_service_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 {
 	INVALID_DR_RETURN(service, buf);
 	DR_TAG(service, buf, ptr)
+	int offset = 0;
+	dr->service_type = buf[2];
+	dr->service_provider_name_length = buf[3];
+	offset += 4;
+	dr->provider_name = (uint8_t *)malloc(buf[3] + 1);
+	memcpy(dr->provider_name, buf + offset, buf[3]);
+	offset += buf[3];
+	dr->service_name_length = buf[offset];
+	offset += 1;
+	dr->service_name = (uint8_t *)malloc(dr->service_name_length + 1);
+	memcpy(dr->provider_name, buf + offset, dr->service_name_length);
 	return 0;
 }
 int parse_country_availability_descriptor(uint8_t *buf, uint32_t len, void *ptr)
@@ -674,7 +685,7 @@ int parse_extension_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 
 int parse_reserved_descriptor(uint8_t *buf, uint32_t len, void *ptr) { return 0; }
 
-void *alloc_reserved()
+void *alloc_reserved(void)
 {
 	void *rsv_m = malloc(sizeof(descriptor_t));
 	return rsv_m;
@@ -698,7 +709,7 @@ void dump_reserved(descriptor_t *p_descriptor)
 #define FUNC(descriptor) parse_##descriptor##_descriptor
 
 #define ALLOC(descriptor)                                                                                              \
-	void *alloc_##descriptor##_descriptor() { return malloc(sizeof(descriptor##_descriptor_t)); }
+	void *alloc_##descriptor##_descriptor(void) { return malloc(sizeof(descriptor##_descriptor_t)); }
 
 #define FREE(descriptor)                                                                                               \
 	void free_##descriptor##_descriptor(descriptor_t *ptr) { free(ptr); }
@@ -715,13 +726,13 @@ foreach_enum_descriptor
 	void dump_##a##_descriptor(descriptor_t *p_descriptor)                                                             \
 	{                                                                                                                  \
 		a##_descriptor_t *dr = container_of(p_descriptor, a##_descriptor_t, descriptor);                               \
-		printf("Descriptor 0x%x(%s)\n", dr->descriptor_tag, des_ops[dr->descriptor_tag].tag_name);                     \
+		printf("0x%x(%s)\n", dr->descriptor_tag, des_ops[dr->descriptor_tag].tag_name);                                \
 	}
 		foreach_enum_descriptor
 #undef _
 
 	void
-	init_descriptor_parsers()
+	init_descriptor_parsers(void)
 {
 	uint16_t i = 0;
 	for (i = 0; i <= 0xFF; i++) {
