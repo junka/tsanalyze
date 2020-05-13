@@ -86,10 +86,7 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 	struct section_parser *p = &sec[pid];
 	*buffering = NULL;
 	// indicate start of PES or PSI
-	if(pid == 200)
-	{
-		printf("start %d, psi %d\n", payload_unit_start_indicator, psi_or_pes);
-	}
+	
 	if (payload_unit_start_indicator == 1) {
 		p->cc = continuity_counter;
 		//if (psi_or_pes == 0) // PSI
