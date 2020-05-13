@@ -86,15 +86,23 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 	struct section_parser *p = &sec[pid];
 	*buffering = NULL;
 	// indicate start of PES or PSI
+	if(pid == 200)
+	{
+		printf("start %d, psi %d\n", payload_unit_start_indicator, psi_or_pes);
+	}
 	if (payload_unit_start_indicator == 1) {
 		p->cc = continuity_counter;
-		if (psi_or_pes == 0) // PSI
+		//if (psi_or_pes == 0) // PSI
 		{
 			pointer_field = pkt[0];
 			/*skip pointer_field, valid for PSI and stream_type 0x05 private_sections*/
 			p->total_len = len - 1 - pointer_field;
 			p->limit_len = (int32_t)(((int16_t)pkt[2 + pointer_field] << 8) | pkt[3 + pointer_field]) & 0x0FFF;
 			p->limit_len += 3;
+			if(pid == 200)
+			{
+				printf("limit len %d, total len %d\n", p->limit_len, p->total_len);
+			}
 			/*section in one pkt , go without buffering*/
 			if (p->limit_len <= (p->total_len)) {
 				*buffering = (pkt + 1 + pointer_field);
@@ -103,24 +111,25 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 				memset(p->buffer, 0, 4096); // PSI length less than this
 				memcpy(p->buffer, pkt + 1 + pointer_field, p->total_len);
 			}
-		} else { // PES
-			p->total_len = len;
-			p->limit_len = ((int32_t)pkt[4] << 8 | pkt[5]);
-			if (p->limit_len == 0) {
-				// for video stream, unlimit length
-			}
-			p->limit_len += 6;
-			if (p->limit_len <= (p->total_len)) {
-				*buffering = pkt;
-				return p->limit_len;
-			} else {
-				memset(p->buffer, 0, 65535);
-				memcpy(p->buffer, pkt, p->total_len);
-			}
 		}
+		// else { // PES
+		// 	p->total_len = len;
+		// 	p->limit_len = ((int32_t)pkt[4] << 8 | pkt[5]);
+		// 	if (p->limit_len == 0) {
+		// 		// for video stream, unlimit length
+		// 	}
+		// 	p->limit_len += 6;
+		// 	if (p->limit_len <= (p->total_len)) {
+		// 		*buffering = pkt;
+		// 		return p->limit_len;
+		// 	} else {
+		// 		memset(p->buffer, 0, 65535);
+		// 		memcpy(p->buffer, pkt, p->total_len);
+		// 	}
+		//}
 
 	} else {
-		// if(psi_or_pes==0)//PSI
+		//if(psi_or_pes==0)//PSI
 		{
 			if (p->total_len == 0)
 				return -1;
