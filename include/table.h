@@ -218,7 +218,7 @@ typedef struct {
 	uint32_t crc32;
 } pmt_t;
 
-/*infos int nit*/
+/*infos int nit and bat*/
 struct transport_stream_node {
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
@@ -395,15 +395,11 @@ typedef struct {
 	int pmt_num;
 	uint64_t pmt_bitmap[128];
 	pmt_t pmt[8192]; /*maybe no necessary */
-	uint8_t has_pat : 1;
-	uint8_t has_nit : 1;
-	uint8_t has_sdt : 1;
-	uint8_t has_bat : 1;
-	uint8_t has_eit : 1;
-	uint8_t has_tdt : 1;
-	uint8_t has_tot : 1;
-	nit_t nit;
-	sdt_t sdt;
+
+	nit_t nit_actual;
+	nit_t nit_other;
+	sdt_t sdt_actual;
+	sdt_t sdt_other;
 	bat_t bat;
 	eit_t eit;
 	tdt_t tdt;

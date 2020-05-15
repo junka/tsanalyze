@@ -30,7 +30,7 @@ int register_io_ops(struct io_ops *ops);
 int unregister_io_ops(struct io_ops *ops);
 
 #define REGISTER_IO_OPS(nm, x)                                                                                         \
-	static void __attribute__((constructor)) register_io_ops_##nm() { register_io_ops(x); }
+	static void __attribute__((constructor)) register_io_ops_##nm(void) { register_io_ops(x); }
 
 #ifdef __cplusplus
 }

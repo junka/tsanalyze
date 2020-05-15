@@ -9,8 +9,10 @@ typedef struct stats {
 	uint64_t pat_sections;
 	uint64_t cat_sections;
 	uint64_t pmt_sections;
-	uint64_t nit_sections;
-	uint64_t sdt_sections;
+	uint64_t nit_actual_sections;
+	uint64_t nit_other_sections;
+	uint64_t sdt_actual_sections;
+	uint64_t sdt_other_sections;
 	uint64_t eit_sections;
 	uint64_t bat_sections;
 	uint64_t tdt_sections;
