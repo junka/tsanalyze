@@ -8,7 +8,7 @@ extern "C" {
 #include <assert.h>
 #include <stdbool.h>
 
-#include "utils.h"
+#include "comm.h"
 
 /**
  * struct list_node - an entry in a doubly-linked list

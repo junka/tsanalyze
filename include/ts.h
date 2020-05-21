@@ -73,13 +73,39 @@ enum PID_e {
 };
 
 #define SYS_CLK (27000000)
+
+#define TS_READ8(buff) (*(buff))
+#define TS_READ16(buff) (uint16_t)((((uint16_t) * (buff)) << 8) | ((uint16_t) * (buff + 1)))
+#define TS_READ32(buff)                                                                                                \
+	(uint32_t)(((uint32_t) * (buff) << 24) | ((uint32_t) * (buff + 1) << 16) | ((uint32_t) * (buff + 2) << 8) |        \
+			   ((uint32_t) * (buff + 3)))
+#define TS_READ64(buff)                                                                                                \
+	(uint64_t)(((uint64_t) * (buff) << 56) | ((uint64_t) * (buff + 1) << 48) | ((uint64_t) * (buff + 2) << 40) |       \
+			   ((uint64_t) * (buff + 3) << 32) | ((uint64_t) * (buff + 4) << 24) | ((uint64_t) * (buff + 5) << 16) |   \
+			   ((uint64_t) * (buff + 6) << 8) | ((uint64_t) * (buff + 7)))
+
+#define TS_READ24(buff)                                                                                                \
+	(uint24_t)(((uint24_t) * (buff) << 16) | ((uint24_t) * (buff + 1) << 8) | ((uint24_t) * (buff + 2)))
+
+#define TS_READ_uint8_t(buf) TS_READ8(buf)
+#define TS_READ_uint16_t(buf) TS_READ16(buf)
+#define TS_READ_uint32_t(buf) TS_READ32(buf)
+#define TS_READ_uint64_t(buf) TS_READ64(buf)
+#define TS_READ_uint24_t(buf) TS_READ24(buf)
+
 /*define helper for reading bits set*/
 #define TS_READ_BIT(buf, mark) ((buf[0] >> mark) & 0x01)
+#define TS_READ8_BITS(buf, bitlen, off) ((TS_READ8(buf) >> (8 - off - bitlen)) & ((1 << bitlen) - 1))
+#define TS_READ16_BITS(buf, bitlen, off) ((TS_READ16(buf) >> (16 - off - bitlen)) & ((1 << bitlen) - 1))
+#define TS_READ32_BITS(buf, bitlen, off) ((TS_READ32(buf) >> (32 - off - bitlen)) & ((1 << bitlen) - 1))
+#define TS_READ64_BITS(buf, bitlen, off) ((TS_READ64(buf) >> (64 - off - bitlen)) & ((1 << bitlen) - 1))
+#define TS_READ24_BITS(buf, bitlen, off) ((TS_READ24(buf) >> (24 - off - bitlen)) & ((1 << bitlen) - 1))
 
-#define TS_READ8(buff) (buff[0])
-#define TS_READ16(buff) (uint16_t)((((uint16_t)buff[0]) << 8) | ((uint16_t)buff[1]))
-#define TS_READ32(buff)                                                                                                \
-	(uint32_t)(((uint32_t)buff[0] << 24) | ((uint32_t)buff[1] << 16) | ((uint32_t)buff[2] << 8) | ((uint32_t)buff[3]))
+#define TS_READ_BITS_uint8_t(buf, bitlen, off) TS_READ8_BITS(buf, bitlen, off)
+#define TS_READ_BITS_uint16_t(buf, bitlen, off) TS_READ16_BITS(buf, bitlen, off)
+#define TS_READ_BITS_uint32_t(buf, bitlen, off) TS_READ32_BITS(buf, bitlen, off)
+#define TS_READ_BITS_uint64_t(buf, bitlen, off) TS_READ64_BITS(buf, bitlen, off)
+#define TS_READ_BITS_uint24_t(buf, bitlen, off) TS_READ64_BITS(buf, bitlen, off)
 
 struct tsa_config {
 	char name[256]; // filename

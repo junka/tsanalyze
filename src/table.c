@@ -67,7 +67,7 @@ static char const *get_stream_type(uint8_t type)
 		return "User Private";
 }
 
-static void dump_PAT(pat_t *p_pat)
+static void dump_pat(pat_t *p_pat)
 {
 	if (p_pat == NULL)
 		return;
@@ -87,7 +87,7 @@ static void dump_PAT(pat_t *p_pat)
 	printf("  active              : 0x%x\n", p_pat->current_next_indicator);
 }
 
-static void dump_CAT(cat_t *p_cat)
+static void dump_cat(cat_t *p_cat)
 {
 	descriptor_t *pn = NULL;
 	CA_descriptor_t *ca = NULL;
@@ -105,14 +105,14 @@ static void dump_CAT(cat_t *p_cat)
 	}
 }
 
-static void dump_TDT(tdt_t *p_tdt)
+static void dump_tdt(tdt_t *p_tdt)
 {
 	printf("\n");
 	printf("TDT: Time and Date Table\n");
 	printf("\tUTC time       : %s\n", convert_UTC(&p_tdt->utc_time));
 }
 
-static void dump_TOT(tot_t *p_tot)
+static void dump_tot(tot_t *p_tot)
 {
 	printf("\n");
 	printf("TOT: Time Offset Table\n");
@@ -121,7 +121,7 @@ static void dump_TOT(tot_t *p_tot)
 	dump_descriptors("\t  |  ]", &(p_tot->list));
 }
 
-static void dump_PMT(pmt_t *p_pmt, uint16_t pid)
+static void dump_pmt(pmt_t *p_pmt, uint16_t pid)
 {
 	struct es_node *pn = NULL;
 
@@ -140,7 +140,7 @@ static void dump_PMT(pmt_t *p_pmt, uint16_t pid)
 	}
 }
 
-static void dump_SDT(sdt_t *p_sdt)
+static void dump_sdt(sdt_t *p_sdt)
 {
 	if (p_sdt == NULL)
 		return;
@@ -171,7 +171,7 @@ static void dump_SDT(sdt_t *p_sdt)
 	}
 }
 
-static void dump_BAT(bat_t *p_bat)
+static void dump_bat(bat_t *p_bat)
 {
 	if (p_bat == NULL)
 		return;
@@ -183,6 +183,7 @@ static void dump_BAT(bat_t *p_bat)
 	printf("  bouquet_id : 0x%x\n", p_bat->bouquet_id);
 	printf("  version_number      : %d\n", p_bat->version_number);
 	printf("  Current next   : %s\n", p_bat->current_next_indicator ? "yes" : "no");
+	dump_descriptors("    | ]", &(p_bat->list));
 	if(p_bat->transport_stream_loop_length)
 	{
 		printf("    | transport_streams: \n");
@@ -196,7 +197,7 @@ static void dump_BAT(bat_t *p_bat)
 	}
 }
 
-static void dump_NIT(nit_t *p_nit)
+static void dump_nit(nit_t *p_nit)
 {
 	if (p_nit == NULL)
 		return;
@@ -230,31 +231,31 @@ void dump_tables(void)
 	int i = 0;
 
 	if (psi.stats.pat_sections)
-		dump_PAT(&psi.pat);
+		dump_pat(&psi.pat);
 	if (psi.ca_num > 0) {
-		dump_CAT(&psi.cat);
+		dump_cat(&psi.cat);
 	}
 	// pid
 	for (i = 0x10; i < 0x2000; i++) {
 		if (psi.pmt_bitmap[i / 64] & ((uint64_t)1 << (i % 64))) {
-			dump_PMT(&psi.pmt[i], i);
+			dump_pmt(&psi.pmt[i], i);
 		}
 	}
 
 	if (psi.stats.sdt_actual_sections)
-		dump_SDT(&psi.sdt_actual);
+		dump_sdt(&psi.sdt_actual);
 	if (psi.stats.sdt_other_sections)
-		dump_SDT(&psi.sdt_other);
+		dump_sdt(&psi.sdt_other);
 	if (psi.stats.nit_actual_sections)
-		dump_NIT(&psi.nit_actual);
+		dump_nit(&psi.nit_actual);
 	if (psi.stats.nit_other_sections)
-		dump_NIT(&psi.nit_other);
+		dump_nit(&psi.nit_other);
 	if (psi.stats.bat_sections)
-		dump_BAT(&psi.bat);
+		dump_bat(&psi.bat);
 	if (psi.stats.tdt_sections)
-		dump_TDT(&psi.tdt);
+		dump_tdt(&psi.tdt);
 	if (psi.stats.tot_sections)
-		dump_TOT(&psi.tot);
+		dump_tot(&psi.tot);
 }
 
 void unregister_pmt_ops(uint16_t pid);
@@ -273,7 +274,8 @@ int parse_pat(uint8_t *pbuf, uint16_t buf_size, pat_t *pPAT)
 		return NULL_PTR;
 	}
 
-	if (unlikely(pdata[0] != PAT_TID)) {
+	pPAT->table_id = TS_READ8(pdata);
+	if (unlikely(pPAT->table_id  != PAT_TID)) {
 		return INVALID_TID;
 	}
 
@@ -355,6 +357,7 @@ int parse_cat(uint8_t *pbuf, uint16_t buf_size, cat_t *pCAT)
 		return NULL_PTR;
 	}
 
+	pCAT->table_id = TS_READ8(pdata);
 	if (unlikely(pdata[0] != CAT_TID)) {
 		return -1;
 	}
@@ -399,10 +402,10 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 		return -1;
 	}
 
-	if (unlikely(pdata[0] != PMT_TID)) {
+	pPMT->table_id = TS_READ8(pdata);
+	if (unlikely(pPMT->table_id != PMT_TID)) {
 		return -1;
 	}
-
 	section_len = (int16_t)(((int16_t)pdata[1] << 8) | pdata[2]) & 0x0FFF;
 	if (unlikely(section_len > 0x3FD)) // For pmt , maximum
 	{
@@ -547,6 +550,7 @@ int parse_bat(uint8_t *pbuf, uint16_t buf_size, bat_t *pBAT)
 		return INVALID_TID;
 	}
 
+	pBAT->table_id = TS_READ8(pdata);
 	section_len = (int16_t)((pdata[1] << 8) | pdata[2]) & 0x0FFF;
 	if (unlikely(section_len > 0x3FD)) // For bat , maximum
 	{
@@ -571,6 +575,7 @@ int parse_bat(uint8_t *pbuf, uint16_t buf_size, bat_t *pBAT)
 	pBAT->version_number = version_num;
 	pdata += 3;
 	pBAT->bouquet_descriptors_length = TS_READ16(pdata) & 0xFFF;
+	pdata += 2;
 	if (!list_empty(&(pBAT->list)))
 		free_descriptors(&(pBAT->list));
 	parse_descriptors(&(pBAT->list), pdata, pBAT->bouquet_descriptors_length);
@@ -615,7 +620,6 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 		return INVALID_TID;
 	}
 
-
 	pSDT->table_id = TS_READ8(pdata);
 	section_len = (((int16_t)pdata[1] << 8) | pdata[2]) & 0x0FFF;
 	if (unlikely(section_len > 0x3FD)) // For sdt , maximum
@@ -632,7 +636,8 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 	pdata += 1;
 	last_sec = TS_READ8(pdata);
 	pdata += 1;
-	if (version_num != pSDT->version_number || last_sec != pSDT->last_section_number || !list_empty(&(pSDT->h))) {
+	if (version_num == pSDT->version_number && last_sec == pSDT->last_section_number && !list_empty(&(pSDT->h))) {
+		// printf("error here\n");
 		return -1;
 	}
 	pSDT->transport_stream_id = ts_id;
@@ -861,7 +866,8 @@ void init_table_ops(void)
 	init_table_filter(BAT_PID, BAT_TID, 0xFF, sdt_bat_proc);
 
 	//filter tdt and tot at same time
-	init_table_filter(TDT_PID, TDT_TID, 0xFE, tdt_tot_proc);
+	init_table_filter(TDT_PID, TDT_TID, 0xFF, tdt_tot_proc);
+	init_table_filter(TOT_PID, TOT_TID, 0xFF, tdt_tot_proc);
 }
 
 void uninit_table_ops(void)
@@ -880,7 +886,8 @@ void uninit_table_ops(void)
 	uninit_table_filter(NIT_PID, NIT_ACTUAL_TID, 0xFF);
 	uninit_table_filter(EIT_PID, EIT_ACTUAL_TID, 0xFF);
 	uninit_table_filter(BAT_PID, BAT_TID, 0xFF);
-	uninit_table_filter(TDT_PID, TDT_TID, 0xFE);
+	uninit_table_filter(TDT_PID, TDT_TID, 0xFF);
+	uninit_table_filter(TOT_PID, TOT_TID, 0xFF);
 }
 
 void register_pmt_ops(uint16_t pid)

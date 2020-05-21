@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "utils.h"
+#include "types.h"
 
 #define LINE_LEN 128
 

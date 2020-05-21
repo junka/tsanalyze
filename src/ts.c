@@ -43,7 +43,7 @@ static int analyze(const uint8_t *buf, int size, int packet_size, int *index)
 
 static int mpegts_probe(unsigned char *buf, int buf_size)
 {
-#define CHECK_COUNT 7
+#define CHECK_COUNT 10
 
 	const int size = buf_size;
 	int score, fec_score, dvhs_score;

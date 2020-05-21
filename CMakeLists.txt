@@ -8,7 +8,7 @@ SET(CMAKE_C_COMPILER "/usr/bin/gcc")
 message(${CMAKE_SYSTEM_NAME})
 
 
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -W -Wall -Wstrict-prototypes -Wshadow -Wno-unused-parameter")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -W -Wall -Wfatal-errors -Wstrict-prototypes -Wshadow -Wno-unused-parameter")
 IF(${CMAKE_BUILD_TYPE} MATCHES "debug")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g")
 ELSE()
