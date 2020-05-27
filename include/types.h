@@ -26,11 +26,13 @@ typedef uint8_t uint40_t[5];
 // 	uint64_t bits : 40;
 // } __attribute__((packed)) uint40_t;
 
-typedef struct {
+typedef struct
+{
 	uint8_t time[5];
 } __attribute__((packed)) UTC_time_t;
 
-typedef struct descriptor {
+typedef struct descriptor
+{
 	uint8_t tag;
 	uint8_t length;
 	struct list_node n;

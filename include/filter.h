@@ -12,7 +12,8 @@ enum filter_type {
 
 #define MAX_FILTER_DEPTH 8
 
-typedef struct filter_param {
+typedef struct filter_param
+{
 	uint8_t depth;
 	uint8_t coff[MAX_FILTER_DEPTH];
 	uint8_t mask[MAX_FILTER_DEPTH];
@@ -21,7 +22,8 @@ typedef struct filter_param {
 
 typedef int (*filter_cb)(uint16_t pid, uint8_t *data, uint16_t len);
 
-typedef struct filter {
+typedef struct filter
+{
 	uint16_t pid;
 	filter_param_t para;
 	filter_cb callback;

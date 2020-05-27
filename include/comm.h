@@ -24,7 +24,7 @@ extern "C" {
 #define container_of_var(member_ptr, container_var, member) container_of(member_ptr, typeof(*container_var), member)
 #else
 #define container_of_var(member_ptr, container_var, member)                                                            \
-	((void *)((char *)(member_ptr)-container_off_var(container_var, member)))
+	((void *)((char *)(member_ptr) - container_off_var(container_var, member)))
 #endif
 #if HAVE_TYPEOF
 #define container_off_var(var, member) container_off(typeof(*var), member)
