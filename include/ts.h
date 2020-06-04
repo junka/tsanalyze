@@ -14,7 +14,8 @@ extern "C" {
 
 #define TS_SYNC_BYTE (0x47)
 
-typedef struct {
+typedef struct
+{
 	uint8_t sync_byte; /*0x47*/
 	uint16_t transport_error_indicator : 1;
 	uint16_t payload_unit_start_indicator : 1;
@@ -32,13 +33,15 @@ enum adaptation_field_e {
 	ADAPT_BOTH = 3,
 };
 
-typedef struct {
+typedef struct
+{
 	uint64_t program_clock_reference_base : 33;
 	uint64_t reserved : 6;
 	uint64_t program_clock_reference_extension : 9;
 } __attribute__((packed)) pcr_clock;
 
-typedef struct {
+typedef struct
+{
 	uint8_t adaptation_field_length;
 	uint8_t discontinuity_indicator : 1;
 	uint8_t random_access_indicator : 1;
@@ -107,7 +110,8 @@ enum PID_e {
 #define TS_READ_BITS_uint64_t(buf, bitlen, off) TS_READ64_BITS(buf, bitlen, off)
 #define TS_READ_BITS_uint24_t(buf, bitlen, off) TS_READ64_BITS(buf, bitlen, off)
 
-struct tsa_config {
+struct tsa_config
+{
 	char name[256]; // filename
 	uint16_t pids[4096];
 	uint8_t tids[256];

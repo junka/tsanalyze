@@ -20,7 +20,7 @@ extern "C" {
 /* 0x24 - 0x3F reserved, then EN 300 468 */
 #define foreach_enum_descriptor                                                                                        \
 	_(video_stream, 0x02)                                                                                              \
-	_(audio_stream, 0x03)                                                                                              \
+	_(audio_stream, 0x03)                                                                                              \ 
 	_(hierarchy, 0x04)                                                                                                 \
 	_(registration, 0x05)                                                                                              \
 	_(data_stream_alignment, 0x06)                                                                                     \
@@ -83,10 +83,10 @@ enum hierarchy_type_e {
 	spatial_scalability = 1,  /*ITU-T Rec. H.262 | ISO/IEC 13818-2 spatial_scalability*/
 	SNR_scalability = 2,	  /*ITU-T Rec. H.262 | ISO/IEC 13818-2 SNR_scalability */
 	temporal_scalability = 3, /* ITU-T Rec. H.262 | ISO/IEC 13818-2 temporal_scalability*/
-	data_partitioning = 4,	  /* ITU-T Rec. H.262 | ISO/IEC 13818-2 data_partitioning */
+	data_partitioning = 4,	/* ITU-T Rec. H.262 | ISO/IEC 13818-2 data_partitioning */
 	extension_bitstream = 5,  /*ISO/IEC 13818-3 extension_bitstream*/
 	private_stream = 6,		  /* ITU-T Rec.H222.0 | ISO/IEC 13818-1 Private Stream private_stream*/
-	multiview_profile = 7,	  /* ITU-T Rec. H.262 | ISO/IEC 13818-2 Multi-view Profile*/
+	multiview_profile = 7,	/* ITU-T Rec. H.262 | ISO/IEC 13818-2 Multi-view Profile*/
 	base_layer = 15,
 };
 
@@ -142,7 +142,8 @@ enum audio_type_e {
 	/*0x04-0xFF reserved*/
 };
 
-struct language_node {
+struct language_node
+{
 	uint32_t ISO_639_language_code : 24;
 	uint32_t audio_type : 8;
 	/*see definition in @audio_type_e */
@@ -210,7 +211,8 @@ enum MPEG4_audio_profile_and_level_e {
 #define foreach_SL_member \
 	__m1(uint16_t, ES_ID)
 
-struct FMC_node {
+struct FMC_node
+{
 	uint16_t ES_ID;
 	uint8_t FlexMuxChannel;
 } __attribute__((packed));
@@ -223,18 +225,21 @@ struct FMC_node {
 #define foreach_external_ES_ID_member __m1(uint16_t, external_ES_ID)
 
 /* see ISO/IEC 14496-1 */
-struct MuxCodeSlot {
+struct MuxCodeSlot
+{
 	uint8_t m4MuxChannel;
 	uint8_t numberOfBytes;
 };
 
-struct MuxCodeSubstrue {
+struct MuxCodeSubstrue
+{
 	uint8_t slotCount : 5;
 	uint8_t repetitionCount : 3;
 	struct MuxCodeSlot slots[7];
 };
 
-struct MuxCodeTableEntry {
+struct MuxCodeTableEntry
+{
 	uint8_t length;
 	uint8_t MuxCode : 4;
 	uint8_t version : 4;
@@ -246,11 +251,13 @@ struct MuxCodeTableEntry {
 // __mplast(struct MuxCodeTableEntry, entries, 2)
 
 /* see ISO/IEC 14496-1 */
-struct DefaultFlexMuxBufferDescriptor {
+struct DefaultFlexMuxBufferDescriptor
+{
 	uint24_t FB_DefaultBufferSize;
 };
 
-struct FlexMuxBufferDescriptor {
+struct FlexMuxBufferDescriptor
+{
 	uint32_t MuxChannel : 8;
 	uint32_t FB_BufferSize : 24;
 };
@@ -278,7 +285,8 @@ struct descriptor_ops {
 #define __mlv(type, length, name)	type* name;
 #define __mploop(type, name, length)	uint8_t name##_num; type *name;
 #define _(desname, val)                                                                                                \
-	typedef struct {                                                                                                   \
+	typedef struct                                                                                                     \
+	{                                                                                                                  \
 		descriptor_t descriptor;                                                                                       \
 		foreach_##desname##_member                                                                                     \
 	} desname##_descriptor_t;
@@ -294,17 +302,23 @@ foreach_enum_descriptor
 #undef __m
 
 #define ALLOC(descriptor)                                                                                              \
-	static inline void *alloc_##descriptor##_descriptor(void) { return malloc(sizeof(descriptor##_descriptor_t)); }
+	static inline void *alloc_##descriptor##_descriptor(void)                                                          \
+	{                                                                                                                  \
+		return malloc(sizeof(descriptor##_descriptor_t));                                                              \
+	}
 
 #define FREE(descriptor)                                                                                               \
-	static inline void free_##descriptor##_descriptor(descriptor_t *ptr) { free(ptr); }
+	static inline void free_##descriptor##_descriptor(descriptor_t *ptr)                                               \
+	{                                                                                                                  \
+		free(ptr);                                                                                                     \
+	}
 
 #define _(a, b) ALLOC(a)
-	foreach_enum_descriptor
+foreach_enum_descriptor
 #undef _
 
 #define _(a, b) FREE(a)
-		foreach_enum_descriptor
+foreach_enum_descriptor
 #undef _
 
 #define INVALID_DR_RETURN(a, buf)                                                                                      \
@@ -374,10 +388,9 @@ foreach_enum_descriptor
 	static inline int parse_##desname##_descriptor(uint8_t *buf, uint32_t len, void *ptr)                              \
 	{                                                                                                                  \
 		INVALID_DR_RETURN(desname, buf);                                                                               \
-		DR_TAG(desname, buf, ptr)                                                                                      \
-		foreach_##desname##_member return 0;                                                                           \
+		DR_TAG(desname, buf, ptr) foreach_##desname##_member return 0;                                                 \
 	}
-			foreach_enum_descriptor
+foreach_enum_descriptor
 #undef _
 #undef __mploop
 #undef __mlv
@@ -397,7 +410,7 @@ extern struct descriptor_ops des_ops[];
 #ifdef __APPLE__
 #define MALLOC_SIZE(x) malloc_size(x)
 #else
-#define MALLOC_SIZE(x) malloc_usable_siez(x)
+#define MALLOC_SIZE(x) malloc_usable_size(x)
 #endif
 #define __mplast(type, name)                                                                                     \
 	int i = 0, psize = MALLOC_SIZE(dr->name);                                                                          \
@@ -436,6 +449,7 @@ foreach_enum_descriptor
 #undef __m1
 #undef __m
 
+int parse_tlv(uint8_t *buf);
 
 void init_descriptor_parsers(void);
 

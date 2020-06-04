@@ -55,6 +55,13 @@ void init_descriptor_parsers(void)
 #undef _
 }
 
+int parse_tlv(uint8_t *buf)
+{
+	uint8_t tag = buf[0];
+	uint8_t len = buf[1];
+	return len+2;
+}
+
 void parse_descriptors(struct list_head *h, uint8_t *buf, int len)
 {
 	int l = len;

@@ -10,14 +10,16 @@ extern "C" {
 #define PACKET_START 0x000001
 #define PROGRAM_END 0x000001B9
 
-typedef struct {
+typedef struct
+{
 	uint8_t stream_id;
 	uint16_t one : 2;
 	uint16_t PSTD_buffer_bound_scale : 1;
 	uint16_t PSTD_buffer_size_bound : 13;
 } estd;
 
-typedef struct {
+typedef struct
+{
 	uint32_t system_header_start_code;
 	uint16_t header_length;
 	uint32_t marker_bit : 1;
@@ -35,7 +37,8 @@ typedef struct {
 	estd es;
 } system_header;
 
-typedef struct {
+typedef struct
+{
 	uint8_t pack_start_code;
 	uint64_t zero_one : 2;
 	uint64_t system_clock_reference_base1 : 3;
@@ -53,7 +56,8 @@ typedef struct {
 	uint8_t pack_stuffing_length : 5;
 } pack_header;
 
-typedef struct {
+typedef struct
+{
 	uint32_t packet_start_code_prefix : 24;
 	uint32_t map_stream_id : 8;
 	uint16_t program_stream_map_length;
@@ -69,7 +73,8 @@ typedef struct {
 	uint32_t crc_32;
 } PSM;
 
-typedef struct {
+typedef struct
+{
 	uint8_t packet_stream_id;
 	uint16_t PES_header_position_offset_sign : 1;
 	uint16_t PES_header_position_offset1 : 14;
@@ -96,7 +101,8 @@ typedef struct {
 	uint8_t reserved1 : 4;
 } access_unit;
 
-typedef struct {
+typedef struct
+{
 	uint32_t packet_start_code_prefix : 24;
 	uint32_t directory_stream_id : 8;
 	uint16_t PES_packet_length;
@@ -117,12 +123,14 @@ typedef struct {
 	// access_unit units;
 } directory_PES_packet;
 
-typedef struct {
+typedef struct
+{
 	pack_header head;
 	// PES_packet;
 } pack;
 
-typedef struct {
+typedef struct
+{
 	pack pack;
 	uint32_t MPEG_program_end_code;
 } MPEG2_PS;
