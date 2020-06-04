@@ -75,7 +75,7 @@ int udp_open(const char *urlpath)
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(surl->port);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY); // inet_addr("127.0.0.1");
-	unsigned int len = sizeof(struct sockaddr);
+	int len = sizeof(struct sockaddr);
 
 	udp_ops.fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (udp_ops.fd < 0) {

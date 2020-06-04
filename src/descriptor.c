@@ -37,7 +37,7 @@ void init_descriptor_parsers(void)
 	uint16_t i = 0;
 	for (i = 0; i <= 0xFF; i++) {
 		des_ops[i].tag = i;
-		strncpy(des_ops[i].tag_name, "reserved", sizeof("reserved"));
+		snprintf(des_ops[i].tag_name, MAX_TAG_NAME, "reserved");
 		des_ops[i].descriptor_parse = parse_reserved_descriptor;
 		des_ops[i].descriptor_alloc = alloc_reserved;
 		des_ops[i].descriptor_free = free_reserved;
@@ -50,7 +50,7 @@ void init_descriptor_parsers(void)
 	des_ops[b].descriptor_alloc = alloc_##a##_descriptor;                                                              \
 	des_ops[b].descriptor_free = free_##a##_descriptor;                                                                \
 	des_ops[b].descriptor_dump = dump_##a##_descriptor;                                                                \
-	snprintf(des_ops[b].tag_name, 64, #a "_descriptor");
+	snprintf(des_ops[b].tag_name, MAX_TAG_NAME, #a "_descriptor");
 	foreach_enum_descriptor
 #undef _
 }
@@ -63,7 +63,7 @@ void parse_descriptors(struct list_head *h, uint8_t *buf, int len)
 	void *des = NULL;
 	while (l > 0) {
 		// hexdump( ptr, l);
-		printf("%s : %d, %d\n",des_ops[ptr[0]].tag_name,l,ptr[1]);
+		// printf("%s : %d, %d\n",des_ops[ptr[0]].tag_name,l,ptr[1]);
 		des = des_ops[ptr[0]].descriptor_alloc();
 		more = (descriptor_t *)des;
 		des_ops[ptr[0]].descriptor_parse(ptr, ptr[1] + 2, des);

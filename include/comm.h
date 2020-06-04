@@ -10,7 +10,9 @@ extern "C" {
 
 #define stringify(x) #x
 
+#ifndef offsetof
 #define offsetof(type, member) ((size_t) & (((type *)0)->member))
+#endif
 
 #ifndef container_off
 #define container_off(containing_type, member) offsetof(containing_type, member)

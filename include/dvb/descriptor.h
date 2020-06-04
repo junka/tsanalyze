@@ -5,7 +5,6 @@
 extern "C" {
 #endif
 
-#include "list.h"
 #include "types.h"
 
 #define foreach_enum_dvb_descriptor                                                                                    \
@@ -75,245 +74,198 @@ extern "C" {
 	_(extension, 0x7F)
 
 /*see EN_300 468 chapter 6*/
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t *text_byte;
+#define foreach_network_name_member	\
+	__mplast(uint8_t, text_byte)
 
-} network_name_descriptor_t;
+struct service_info{
+	uint16_t service_id;
+	uint16_t service_type;
+};
 
-typedef struct {
-	descriptor_t descriptor;
+#define foreach_service_list_member	\
+	__mplast(struct service_info, services)
 
-} service_list_descriptor_t;
+#define foreach_stuffing_member	\
+	__mplast(uint8_t, stuffing_byte)
 
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t *stuffing_byte;
+#define foreach_satellite_delivery_system_member	\
+	__m1(uint32_t, frequency)	\
+	__m1(uint16_t, orbital_position)	\
+	__m(uint8_t, west_east_flag, 1)	\
+	__m(uint8_t, polarization, 2)	\
+	__m(uint8_t, roll_off, 2)	\
+	__m(uint8_t, modulation_system, 1)	\
+	__m(uint8_t, modulation_type, 2)	\
+	__m(uint32_t, symbol_rate, 28)	\
+	__m(uint32_t, FEC_inner, 4)	
 
-} stuffing_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint32_t frequency;
-	uint16_t orbital_position;
-	uint8_t west_east_flag : 1;
-	uint8_t polarization : 2;
-	uint8_t roll_off : 2;
-	uint8_t modulation_system : 1;
-	uint8_t modulation_type : 2;
-	uint32_t symbol_rate : 28;
-	uint32_t FEC_inner : 4;
-
-} satellite_delivery_system_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint32_t frequency;
-	uint16_t reserved_future_use : 12;
-	uint16_t FEC_outer : 4;
-	uint8_t modulation;
-	uint32_t symbol_rate : 28;
-	uint32_t FEC_inner : 4;
-
-} cable_delivery_system_descriptor_t;
+#define foreach_cable_delivery_system_member	\
+	__m1(uint32_t, frequency)	\
+	__m(uint16_t, reserved_future_use, 12)	\
+	__m(uint16_t, FEC_outer, 4)	\
+	__m1(uint8_t, modulation)	\
+	__m(uint32_t, symbol_rate, 28)	\
+	__m(uint32_t, FEC_inner, 4)
 
 struct VBI_data_node {
 	uint8_t data_service_id;
 	uint8_t data_service_descriptor_length;
 	uint8_t *reserved;
-	struct list_node n;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct list_head list;
-	// struct VBI_data_info *list;
-
-} VBI_data_descriptor_t;
+#define foreach_VBI_data_member	\
+	__mploop(struct VBI_data_node, vbi_data, data_service_descriptor_length)
 
 struct VBI_teletext_node {
 	uint32_t ISO_639_language_code : 24;
 	uint32_t teletext_type : 5;
 	uint32_t teletext_magazine_number : 3;
 	uint8_t teletext_page_number;
-	struct list_node n;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct list_head list;
-	// struct VBI_teletext_info* list;
+#define foreach_VBI_teletext_member	\
+	__mplast(struct VBI_teletext_node, vbi_teletext)
 
-} VBI_teletext_descriptor_t;
+#define foreach_bouquet_name_member	\
+	__mplast(uint8_t, sub_table)
 
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t *sub_table;
-
-} bouquet_name_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t service_type;
-	uint8_t service_provider_name_length;
-	uint8_t *provider_name;
-	uint8_t service_name_length;
-	uint8_t *service_name;
-
-} service_descriptor_t;
-
-enum country_code_e {
-	AFG,
-	ALA,
-	ALB,
-	DZA,
-	ASM,
-	AND,
-	AGO,
-	AIA,
-	ATA,
-	ATG,
-	ARG,
-	ARM,
-	ABW,
-	AUS,
-	AUT,
-	AZE,
-	BHS,
-	BHR,
-	BGD,
-	BRB,
-	BLR,
-};
+#define foreach_service_member	\
+	__m1(uint8_t, service_type)	\
+	__m1(uint8_t, service_provider_name_length)	\
+	__mlv(uint8_t, service_provider_name_length, provider_name)	\
+	__m1(uint8_t, service_name_length)	\
+	__mlv(uint8_t, service_name_length, service_name)
 
 struct country_code_node {
 	uint24_t country_code;
-	// struct country_code * next;
-	struct list_node n;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t country_availability_flag : 1;
-	uint8_t reserved_future_use : 7;
-	struct list_head list;
-	// struct country_code* country_list;
-} country_availability_descriptor_t;
+#define  foreach_country_availability_member	\
+	__m(uint8_t, country_availability_flag, 1)	\
+	__m(uint8_t, reserved_future_use, 7)	\
+	__mplast(struct country_code_node, cuontries)
 
-typedef struct {
-	descriptor_t descriptor;
-	uint16_t transport_stream_id;
-	uint16_t original_network_id;
-	uint16_t service_id;
-	uint8_t linkage_type;
-	// TODO
-	uint8_t *private_data_byte;
+struct mobile_handover_info{
+	uint8_t handover_type : 4;
+	uint8_t reserved_for_furture : 3;
+	uint8_t origin_type : 1;
+	union{
+		uint16_t network_id;
+		uint16_t initial_service_id;
+	};
+};
 
-} linkage_descriptor_t;
+struct event_linkage_info{
+	uint16_t target_event_id;
+	uint8_t target_listed : 1;
+	uint8_t event_simulcast : 1;
+	uint8_t reserved : 6;
+};
+
+struct extend_event_linkage_subinfo{
+	uint16_t target_event_id;
+	uint8_t target_listed : 1;
+	uint8_t event_simulcast : 1;
+	uint8_t linka_type : 2;
+	uint8_t target_id_type : 2;
+	uint8_t original_network_id_flag : 1;
+	uint8_t service_id_flag : 1;
+	union{
+		uint16_t user_defined_id;
+		uint16_t target_transport_stream_id;
+		uint16_t target_original_network_id;
+		uint16_t target_service_id;
+	};
+};
+
+struct extend_event_linkage_info{
+	uint8_t loop_length;
+	struct extend_event_linkage_subinfo * subinfo;
+};
+
+#define foreach_linkage_member	\
+	__m1(uint16_t, transport_stream_id)	\
+	__m1(uint16_t, original_network_id)	\
+	__m1(uint16_t, service_id)	\
+	__m1(uint8_t, linkage_type)	\
+	__mif(struct mobile_handover_info, mobile_handover, linkage_type, 0x08)	\
+	__mif(struct extend_event_linkage_info, event_linkage, linkage_type, 0x0D)	\
+	__mrangelv(struct extend_event_linkage_subinfo, loop_length, extend_event_linkage, linkage_type, 0x0E, 0x1F)	\
+	__mplast(uint8_t, private_data_byte)
+
 
 struct NVOD_reference_node {
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	uint16_t service_id;
-	struct list_node n;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct list_head list;
-	// struct NVOD_refer *nvod_list;
+#define foreach_NVOD_reference_member	\
+	__mplast(struct NVOD_reference_node, references)
 
-} NVOD_reference_descriptor_t;
+#define foreach_time_shifted_service_member	\
+	__m1(uint8_t, reference_service_id)
 
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t reference_service_id;
-
-} time_shifted_service_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint32_t ISO_639_language_code : 24;
-	uint32_t event_name_length : 8;
-	uint8_t *event_name_char;
-	uint8_t text_length;
-	uint8_t *text_char;
-
-} short_event_descriptor_t;
+#define foreach_short_event_member	\
+	__m(uint32_t, ISO_639_language_code, 24)	\
+	__m1(uint8_t, event_name_length)	\
+	__mlv(uint8_t, event_name_length, event_name_char)	\
+	__m1(uint8_t, text_length)	\
+	__mlv(uint8_t, text_length, text_char)
 
 struct event_item_node {
 	uint8_t item_description_length;
 	uint8_t *item_description_char;
 	uint8_t item_length;
 	uint8_t *item_char;
-	struct list_node n;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t descriptor_number : 4;
-	uint8_t last_descriptor_number : 4;
-	uint32_t ISO_639_language_code : 24;
-	uint32_t length_of_items : 8;
-	struct list_head list;
-	// struct event_item item_list;
-	uint8_t text_length;
-	uint8_t *text_char;
+#define foreach_extended_event_member	\
+	__m(uint32_t, descriptor_number, 4)	\
+	__m(uint32_t, last_descriptor_number, 4)	\
+	__m(uint32_t, ISO_639_language_code, 24)	\
+	__m1(uint8_t, length_of_items)	\
+	__mlv(struct event_item_node, length_of_items, items)	\
+	__m1(uint8_t, text_length)	\
+	__mlv(uint8_t, text_length, text_char)
 
-} extended_event_descriptor_t;
+#define foreach_time_shifted_event_member	\
+	__m1(uint16_t, reference_service_id)	\
+	__m1(uint16_t, reference_event_id)
 
-typedef struct {
-	descriptor_t descriptor;
+#define foreach_component_member	\
+	__m(uint8_t, stream_content_ext, 4)	\
+	__m(uint8_t, stream_content, 4)	\
+	__m1(uint8_t, component_type)	\
+	__m(uint32_t, component_tag, 8)	\
+	__m(uint32_t, ISO_639_language_code, 24)	\
+	__mplast(uint8_t, text_char)
 
-} time_shifted_event_descriptor_t;
 
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t stream_content_ext : 4;
-	uint8_t stream_content : 4;
-	uint8_t component_type;
-	uint32_t component_tag : 8;
-	uint32_t ISO_639_language_code : 24;
-	uint8_t *text_char;
+#define foreach_mosaic_member	\
+	__m(uint8_t, mosaic_entry_point, 1)	\
+	__m(uint8_t, number_of_horizontal_elementary_cells, 3)	\
+	__m(uint8_t, reserved_futrue_use, 1)	\
+	__m(uint8_t, number_of_vertical_elementary_cells, 3)
 
-} component_descriptor_t;
+#define foreach_stream_identifier_member	\
+	__m1(uint8_t, component_tag)
 
-typedef struct {
-	descriptor_t descriptor;
-
-} mosaic_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t component_tag;
-
-} stream_identifier_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint16_t *CA_system_id; /*ETSI TS 101 162 [i.1]*/
-
-} CA_identifier_descriptor_t;
+/*ETSI TS 101 162 [i.1]*/
+#define foreach_CA_identifier_member	\
+	__mplast(uint16_t, CA_system_id)
 
 struct content_node {
 	uint8_t content_nibble_level_1 : 4;
 	uint8_t content_nibble_level_2 : 4;
 	uint8_t byte;
-	struct list_node n;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct list_head list;
-	// struct content_info * content_list;
+#define foreach_content_member	\
+	__mplast(struct content_node, contents)
 
-} content_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint32_t *countrycode_and_rating;
-
-} parental_rating_descriptor_t;
+#define foreach_parental_rating_member	\
+	__mplast(uint32_t, countrycode_and_rating)
 
 enum teletext_type {
 	teletext_reserved = 0x0,
@@ -330,34 +282,28 @@ struct teletext_node {
 	uint32_t teletext_type : 5;
 	uint32_t teletext_magazine_number : 3;
 	uint8_t teletext_page_number;
-	struct list_node n;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct list_head list;
+#define  foreach_teletext_member	\
+	__mplast(struct teletext_node, teletext_infos)
 
-} teletext_descriptor_t;
+#define foreach_telephone_member	\
+	__m(uint8_t, reserved_future_use, 2)	\
+	__m(uint8_t, foreign_availability, 1)	\
+	__m(uint8_t, connection_type, 5)	\
+	__m(uint8_t, reserved_future_use1, 1)	\
+	__m(uint8_t, country_prefix_length, 2)	\
+	__m(uint8_t, international_area_code_length, 3)	\
+	__m(uint8_t, operator_code_length, 2)	\
+	__m(uint8_t, reserved_future_use2, 1)	\
+	__m(uint8_t, national_area_code_length, 3)	\
+	__m(uint8_t, core_number_length, 4)	\
+	__mlv(uint8_t, country_prefix_length, country_prefix_char)	\
+	__mlv(uint8_t, international_area_code_length, international_area_code_char)	\
+	__mlv(uint8_t, operator_code_length, operator_code_char)	\
+	__mlv(uint8_t, national_area_code_length, national_area_code_char)	\
+	__mlv(uint8_t, core_number_length, core_number_char)
 
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t reserved_future_use : 2;
-	uint8_t foreign_availability : 1;
-	uint8_t connection_type : 5;
-	uint8_t reserved_future_use1 : 1;
-	uint8_t country_prefix_length : 2;
-	uint8_t international_area_code_length : 3;
-	uint8_t operator_code_length : 2;
-	uint8_t reserved_future_use2 : 1;
-	uint8_t national_area_code_length : 3;
-	uint8_t core_number_length : 4;
-	uint8_t *country_prefix_char;
-	uint8_t *international_area_code_char;
-	uint8_t *operator_code_char;
-	uint8_t *national_area_code_char;
-	uint8_t *core_number_char;
-
-} telephone_descriptor_t;
 
 struct local_time_node {
 	uint32_t country_code : 24;
@@ -367,192 +313,133 @@ struct local_time_node {
 	uint16_t local_time_offset;
 	uint40_t time_of_change;
 	uint16_t next_time_offset;
-	struct list_node n;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct list_head list;
-	// struct local_time_info* time_list;
-
-} local_time_offset_descriptor_t;
+#define foreach_local_time_offset_member	\
+	__mplast(struct local_time_node, time_list)
 
 struct subtitling_node {
 	uint32_t ISO_639_language_code : 24;
 	uint32_t subtitling_type : 8;
 	uint16_t composition_page_id;
 	uint16_t ancillary_page_id;
-	struct list_node n;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct list_head list;
-	// struct subtitling_info* subtitle_list;
+#define foreach_subtitling_member	\
+	__mplast(struct subtitling_node, subtitle_list)
 
-} subtitling_descriptor_t;
+#define foreach_terrestrial_delivery_system_member	\
+	__m1(uint32_t, centre_frequency)	\
+	__m(uint8_t, bandwidth, 3)	\
+	__m(uint8_t, priority, 1)	\
+	__m(uint8_t, time_slicing_indicator, 1)	\
+	__m(uint8_t, MPE_FEC_indicator, 1)	\
+	__m(uint8_t, reserved_future_use, 2)	\
+	__m(uint8_t, constellation, 2)	\
+	__m(uint8_t, hierarchy_information, 3)	\
+	__m(uint8_t, code_rate_HP_stream, 3)	\
+	__m(uint8_t, code_rate_LP_stream, 3)	\
+	__m(uint8_t, guard_interval, 2)	\
+	__m(uint8_t, transmission_mode, 2)	\
+	__m(uint8_t, other_frequency_flag, 1)	\
+	__m1(uint32_t, reserved_future_use1)
 
-typedef struct {
-	descriptor_t descriptor;
-	uint32_t centre_frequency;
-	uint8_t bandwidth : 3;
-	uint8_t priority : 1;
-	uint8_t time_slicing_indicator : 1;
-	uint8_t MPE_FEC_indicator : 1;
-	uint8_t reserved_future_use : 2;
-	uint8_t constellation : 2;
-	uint8_t hierarchy_information : 3;
-	uint8_t code_rate_HP_stream : 3;
-	uint8_t code_rate_LP_stream : 3;
-	uint8_t guard_interval : 2;
-	uint8_t transmission_mode : 2;
-	uint8_t other_frequency_flag : 1;
-	uint32_t reserved_future_use1;
-
-} terrestrial_delivery_system_descriptor_t;
 
 struct multilingual_node {
-	uint32_t ISO_639_language_code : 24;
-	uint32_t name_length : 8;
+	uint24_t ISO_639_language_code;
+	uint8_t name_length;
 	uint8_t *text_char;
-	struct list_node n;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct list_head list;
-	// struct multilingual_info* time_list;
+#define foreach_multilingual_network_name_member	\
+	__mploop(struct multilingual_node, network_name, name_length)
 
-} multilingual_network_name_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	struct list_head list;
-	// struct multilingual_info* time_list;
-
-} multilingual_bouquet_name_descriptor_t;
+#define foreach_multilingual_bouquet_name_member	\
+	__mploop(struct multilingual_node, bouquet_name, name_length)
 
 struct multilingual_service_node {
-	uint32_t ISO_639_language_code : 24;
-	uint32_t name_length : 8;
+	uint24_t ISO_639_language_code;
+	uint8_t name_length;
 	uint8_t *text_char;
 	uint8_t service_name_length;
 	uint8_t *service_char;
-	struct list_node n;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct list_head list;
-	// struct multilingual_service_node
+#define foreach_multilingual_service_name_member	\
+	__mploop(struct multilingual_service_node, service_name, name_length)
 
-} multilingual_service_name_descriptor_t;
 
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t component_tag;
-	struct list_head list;
-	// struct multilingual_info* time_list;
+#define foreach_multilingual_component_member	\
+	__m1(uint8_t, component_tag)	\
+	__mploop(struct multilingual_node, component, name_length)
 
-} multilingual_component_descriptor_t;
 
-typedef struct {
-	descriptor_t descriptor;
-	uint32_t private_data_specifier;
+#define foreach_private_data_specifier_member	\
+	__m1(uint32_t, private_data_specifier)
 
-} private_data_specifier_descriptor_t;
+#define foreach_service_move_member	\
+	__m1(uint16_t, new_original_network_id)	\
+	__m1(uint16_t, new_transport_stream_id)	\
+	__m1(uint16_t, new_service_id)
 
-typedef struct {
-	descriptor_t descriptor;
-	uint16_t new_original_network_id;
-	uint16_t new_transport_stream_id;
-	uint16_t new_service_id;
+#define foreach_short_smoothing_buffer_member	\
+	__m(uint8_t, sb_size, 2)	\
+	__m(uint8_t, sb_leak_rate, 6)	\
+	__mplast(uint8_t, DVB_reserved)
 
-} service_move_descriptor_t;
+#define foreach_frequency_list_member	\
+	__m(uint8_t, reserved_future_use, 6)	\
+	__m(uint8_t, coding_type, 2)	\
+	__mplast(uint32_t, centre_frequency)
 
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t sb_size : 2;
-	uint8_t sb_leak_rate : 6;
-	uint8_t *DVB_reserved;
+#define foreach_partial_transport_stream_member	\
+	__m(uint64_t, DVB_reserved_future_use, 2)	\
+	__m(uint64_t, peak_rate, 22)	\
+	__m(uint64_t, DVB_reserved_future_use1, 2)	\
+	__m(uint64_t, minimum_overall_smoothing_rate, 22)	\
+	__m(uint64_t, DVB_reserved_future_use2, 2)	\
+	__m(uint64_t, maximum_overall_smoothing_buffer, 14)
 
-} short_smoothing_buffer_descriptor_t;
 
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t reserved_future_use : 6;
-	uint8_t coding_type : 2;
-	uint32_t *centre_frequency;
+#define foreach_data_broadcast_member	\
+	__m1(uint16_t, data_broadcast_id)	\
+	__m1(uint8_t, component_tag)	\
+	__m1(uint8_t, selector_length)	\
+	__mlv(uint8_t, selector_length, selector_byte)	\
+	__m(uint32_t, ISO_639_language_code, 24)	\
+	__m(uint32_t, text_length, 8)	\
+	__mlv(uint8_t, text_length, text_char)
 
-} frequency_list_descriptor_t;
 
-typedef struct {
-	descriptor_t descriptor;
-	uint64_t DVB_reserved_future_use : 2;
-	uint64_t peak_rate : 22;
-	uint64_t DVB_reserved_future_use1 : 2;
-	uint64_t minimum_overall_smoothing_rate : 22;
-	uint64_t DVB_reserved_future_use2 : 2;
-	uint64_t maximum_overall_smoothing_buffer : 14;
+#define foreach_scrambling_member	\
+	__m1(uint8_t, scrambling_mode)
 
-} partial_transport_stream_descriptor_t;
+#define foreach_data_broadcast_id_member	\
+	__m1(uint16_t, data_broadcast_id)	\
+	__mplast(uint8_t, id_selector_byte)
 
-typedef struct {
-	descriptor_t descriptor;
-	uint16_t data_broadcast_id;
-	uint8_t component_tag;
-	uint8_t selector_length;
-	uint8_t *selector_byte;
-	uint32_t ISO_639_language_code : 24;
-	uint32_t text_length : 8;
-	uint8_t *text_char;
 
-} data_broadcast_descriptor_t;
+#define foreach_transport_stream_member	\
+	__mplast(uint8_t, byte)
 
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t scrambling_mode;
+#define foreach_DSNG_member	\
+	__mplast(uint8_t, byte)
 
-} scrambling_descriptor_t;
+#define foreach_PDC_member	\
+	__m(uint32_t, reserved_for_futrue, 4)	\
+	__m(uint32_t, programme_identification_label, 20) // 20bit
 
-typedef struct {
-	descriptor_t descriptor;
-	uint16_t data_broadcast_id;
-	uint8_t *id_selector_byte;
-
-} data_broadcast_id_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t *byte;
-
-} transport_stream_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t *byte;
-
-} DSNG_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint24_t programme_identification_label; // 20bit
-
-} PDC_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t component_type_flag : 1;
-	uint8_t bsid_flag : 1;
-	uint8_t mainid_flag : 1;
-	uint8_t asvc_flag : 1;
-	uint8_t reserved_flags : 4;
-	uint8_t component_type;
-	uint8_t bsid;
-	uint8_t mainid;
-	uint8_t asvc;
-	uint8_t *additional_info_byte;
-} AC3_descriptor_t;
+#define foreach_AC3_member	\
+	__m(uint8_t, component_type_flag, 1)	\
+	__m(uint8_t, bsid_flag, 1)	\
+	__m(uint8_t, mainid_flag, 1)	\
+	__m(uint8_t, asvc_flag, 1)	\
+	__m(uint8_t, reserved_flags, 4)	\
+	__mif(uint8_t, component_type, component_type_flag, 1)	\
+	__mif(uint8_t, bsid, bsid_flag, 1)	\
+	__mif(uint8_t, mainid, mainid_flag, 1)	\
+	__mif(uint8_t, asvc, asvc_flag, 1)	\
+	__mplast(uint8_t, additional_info_byte)
 
 /*ancillary_data_descriptor*/
 struct ancillary_data_identifier {
@@ -566,10 +453,8 @@ struct ancillary_data_identifier {
 	uint8_t reserved : 1;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct ancillary_data_identifier identifier;
-} ancillary_data_descriptor_t;
+#define foreach_ancillary_data_member	\
+	__m1(uint8_t, ancillary_data_identifier)
 
 struct subcell_list_node {
 	uint64_t cell_id_extension : 8;
@@ -592,12 +477,8 @@ struct cell_list_node {
 	struct list_node n;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct list_head list;
-	// struct cell_list_info * cell_list;
-
-} cell_list_descriptor_t;
+//TODO
+#define foreach_cell_list_member
 
 struct subcell_node {
 	uint8_t cell_id_extension;
@@ -614,12 +495,8 @@ struct cell_frequency_node {
 	struct list_head list;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct list_head list;
-	// struct cell_frequency_info *cell_info_list;
-
-} cell_frequency_link_descriptor_t;
+//TODO
+#define foreach_cell_frequency_link_member	
 
 /*Announcement support descriptor*/
 struct announcement_support_indicator {
@@ -650,18 +527,13 @@ struct announcement_node {
 	// struct announcement_info * next;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct announcement_support_indicator indicator;
-	struct list_head list;
-	// struct announcement_info *info;
+#define foreach_announcement_support_member	\
+	__m1(uint16_t, announcement_support_indicator)	\
+	__mplast(struct announcement_node, announcement_support)
 
-} announcement_support_descriptor_t;
 
-typedef struct {
-	descriptor_t descriptor;
-
-} application_signalling_descriptor_t;
+//TODO
+#define foreach_application_signalling_member
 
 /*adaptation_field_data_descriptor*/
 struct adaptation_field_data_identifier {
@@ -672,89 +544,58 @@ struct adaptation_field_data_identifier {
 	uint8_t reserved : 4;
 };
 
-typedef struct {
-	descriptor_t descriptor;
-	struct adaptation_field_data_identifier identifier;
+#define foreach_adaptation_field_data_member	\
+	__m1(uint8_t, adaptation_field_data_identifier)
 
-} adaptation_field_data_descriptor_t;
+#define foreach_service_identifier_member	
 
-typedef struct {
-	descriptor_t descriptor;
+#define foreach_service_availability_member	\
+	__m(uint8_t, availability_flag, 1)	\
+	__m(uint8_t, reserved, 7)	\
+	__mplast(uint16_t, cell_id)
 
-} service_identifier_descriptor_t;
 
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t availability_flag : 1;
-	uint8_t reserved : 7;
-	uint16_t *cell_id;
+#define foreach_default_authority_member
 
-} service_availability_descriptor_t;
+#define foreach_related_content_member
 
-typedef struct {
-	descriptor_t descriptor;
+#define foreach_TVA_id_member
 
-} default_authority_descriptor_t;
+#define foreach_content_identifier_member
 
-typedef struct {
-	descriptor_t descriptor;
+#define foreach_time_slice_fec_identifier_member
 
-} related_content_descriptor_t;
+#define foreach_ECM_repetition_rate_member
 
-typedef struct {
-	descriptor_t descriptor;
+#define foreach_S2_satellite_delivery_system_member	\
+	__m(uint8_t, scrambling_sequence_selector, 1)	\
+	__m(uint8_t, multiple_input_stream_flag, 1)	\
+	__m(uint8_t, backwards_compatibility_indicator, 1)	\
+	__m(uint8_t, reserved_future_use, 5)	\
+	__mif(uint24_t, scrambling_sequence_index, scrambling_sequence_selector, 1)	\
+	__mif(uint8_t, input_stream_identifier, multiple_input_stream_flag, 1)	
 
-} TVA_id_descriptor_t;
+#define foreach_enhanced_AC3_member	\
+	__m(uint8_t, component_type_flag, 1)	\
+	__m(uint8_t, bsid_flag, 1)	\
+	__m(uint8_t, mainid_flag, 1)	\
+	__m(uint8_t, asvc_flag, 1)	\
+	__m(uint8_t, mixinfoexists, 1)	\
+	__m(uint8_t, substream1_flag, 1)	\
+	__m(uint8_t, substream2_flag, 1)	\
+	__m(uint8_t, substream3_flag, 1)	\
+	__mif(uint8_t, component_type, component_type_flag, 1)	\
+	__mif(uint8_t, bsid, bsid_flag, 1)	\
+	__mif(uint8_t, mainid, mainid_flag, 1)	\
+	__mif(uint8_t, asvc, asvc_flag, 1)	\
+	__mif(uint8_t, substream1, substream1_flag, 1)	\
+	__mif(uint8_t, substream2, substream2_flag, 1)	\
+	__mif(uint8_t, substream3, substream3_flag, 1)	\
+	__mplast(uint8_t, additional_info_byte)
 
-typedef struct {
-	descriptor_t descriptor;
 
-} content_identifier_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-
-} time_slice_fec_identifier_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-
-} ECM_repetition_rate_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t scrambling_sequence_selector : 1;
-	uint8_t multiple_input_stream_flag : 1;
-	uint8_t backwards_compatibility_indicator : 1;
-	uint8_t reserved_future_use : 5;
-	uint32_t reserved : 6;
-	uint32_t scrambling_sequence_index : 18;
-	uint32_t input_stream_identifier : 8;
-} S2_satellite_delivery_system_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t component_type_flag : 1;
-	uint8_t bsid_flag : 1;
-	uint8_t mainid_flag : 1;
-	uint8_t asvc_flag : 1;
-	uint8_t mixinfoexists : 1;
-	uint8_t substream1_flag : 1;
-	uint8_t substream2_flag : 1;
-	uint8_t substream3_flag : 1;
-	uint8_t component_type;
-	uint8_t bsid;
-	uint8_t mainid;
-	uint8_t asvc;
-	uint8_t substream1;
-	uint8_t substream2;
-	uint8_t substream3;
-	uint8_t *additional_info_byte;
-
-} enhanced_AC3_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
+#define foreach_DTS_member
+#if 0
 	// 40bits
 	uint64_t sample_rate_code : 4;
 	uint64_t bit_rate_code : 6;
@@ -764,41 +605,29 @@ typedef struct {
 	uint64_t lfe_flag : 1;
 	uint64_t extended_surround_flag : 2;
 	uint8_t *additional_info_byte;
-} DTS_descriptor_t;
+#endif
 
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t profile_and_level;
-	// valid when descriptor_length >1
-	uint8_t AAC_type_flag : 1;
-	uint8_t SAOC_DE_flag : 1;
-	uint8_t reserved_future_use : 6;
-	uint8_t AAC_type;
-	uint8_t *additional_info_byte;
+#define foreach_AAC_member	\
+	__m1(uint8_t, profile_and_level)	\
+	__m(uint8_t, AAC_type_flag, 1)	\
+	__m(uint8_t, SAOC_DE_flag, 1)	\
+	__m(uint8_t, reserved_future_use, 6)	\
+	__m1(uint8_t, AAC_type)	\
+	__mplast(uint8_t, additional_info_byte)
 
-} AAC_descriptor_t;
 
-typedef struct {
-	descriptor_t descriptor;
+#define foreach_XAIT_location_member
 
-} XAIT_location_descriptor_t;
+#define foreach_FTA_content_management_member	\
+	__m(uint8_t, user_defined, 1)	\
+	__m(uint8_t, reserved_future_use, 3)	\
+	__m(uint8_t, do_not_scramble, 1)	\
+	__m(uint8_t, control_remote_access_over_internet, 2)	\
+	__m(uint8_t, do_not_apply_revocation, 1)
 
-typedef struct { /*0x7E*/
-	descriptor_t descriptor;
-	uint8_t user_defined : 1;
-	uint8_t reserved_future_use : 3;
-	uint8_t do_not_scramble : 1;
-	uint8_t control_remote_access_over_internet : 2;
-	uint8_t do_not_apply_revocation : 1;
-
-} FTA_content_management_descriptor_t;
-
-typedef struct {
-	descriptor_t descriptor;
-	uint8_t descriptor_tag_extension;
-	uint8_t *selector_byte;
-
-} extension_descriptor_t;
+#define foreach_extension_member	\
+	__m1(uint8_t, descriptor_tag_extension)	\
+	__mplast(uint8_t, selector_byte)
 
 /*externsion_descriptors */
 enum extension_tag {

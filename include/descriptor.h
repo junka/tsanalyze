@@ -16,8 +16,8 @@ extern "C" {
 #include "types.h"
 
 /* ISO/IEC 13818-1 */
-/* 0x12 - 0x1A Defined in ISO/IEC 13818-6*/
-/* 0x24 - 0x3F reserved, then EN 300 468*/
+/* 0x12 - 0x1A Defined in ISO/IEC 13818-6 */
+/* 0x24 - 0x3F reserved, then EN 300 468 */
 #define foreach_enum_descriptor                                                                                        \
 	_(video_stream, 0x02)                                                                                              \
 	_(audio_stream, 0x03)                                                                                              \
@@ -44,7 +44,8 @@ extern "C" {
 	_(external_ES_ID, 0x20)                                                                                            \
 	_(muxcode, 0x21)                                                                                                   \
 	_(FmxBufferSize, 0x22)                                                                                             \
-	_(MultiplexBuffer, 0x23)
+	_(MultiplexBuffer, 0x23)	\
+	foreach_enum_dvb_descriptor
 /*0x80 to 0xFE user defined */
 /*0xFF forbidden */
 
@@ -58,22 +59,25 @@ enum descriptor_e {
 	if (strncmp(#name, "reserved", sizeof("reserved")))                                                                \
 	printf("  %s %s : 0x%x\n", str, #name, dr->name)
 
-/* see ISO/IEC 13818-1 chapter 2.6*/
+/* see ISO/IEC 13818-1 chapter 2.6 */
 #define foreach_video_stream_member                                                                                    \
-	__m(uint8_t, multiple_frame_rate_flag, 1, 2) /*'1' indicates that multiple frame rates may be present*/            \
-		__m(uint8_t, frame_rate_code, 4, 2)                                                                            \
-			__m(uint8_t, MPEG_1_only_flag, 1,                                                                          \
-				2) /*'1' indicates that the video stream contains only ISO/IEC 11172-2 data*/                          \
-		__m(uint8_t, constrained_parameter_flag, 1, 2) __m(                                                            \
-			uint8_t, still_picture_flag, 1,                                                                            \
-			2) /*set to '1' indicates that the video stream contains only still pictures.*/ /*exist only when          \
-																							   MPEG_1_only_flag == 0*/ \
-		__m1(uint8_t, profile_and_level_indication, 3) __m(uint8_t, chroma_format, 2, 4)                               \
-			__m(uint8_t, frame_rate_extension_flag, 1, 4) __m(uint8_t, reserved, 5, 4)
+	__m(uint8_t, multiple_frame_rate_flag, 1)                                                                       \
+	__m(uint8_t, frame_rate_code, 4)                                                                                \
+	__m(uint8_t, MPEG_1_only_flag, 1)                                                                               \
+	__m(uint8_t, constrained_parameter_flag, 1)                                                                     \
+	__m(uint8_t, still_picture_flag, 1)                                                                             \
+	__m1(uint8_t, profile_and_level_indication)                                                                     \
+	__m(uint8_t, chroma_format, 2)                                                                                  \
+	__m(uint8_t, frame_rate_extension_flag, 1)                                                                      \
+	__m(uint8_t, reserved, 5)
+/* video stream descriptor */
 
 #define foreach_audio_stream_member                                                                                    \
-	__m(uint8_t, free_format_flag, 1, 2) __m(uint8_t, ID, 1, 2) __m(uint8_t, layer, 2, 2)                              \
-		__m(uint8_t, variable_rate_audio_indicator, 1, 2) __m(uint8_t, reserved, 3, 2)
+	__m(uint8_t, free_format_flag, 1) \
+	__m(uint8_t, ID, 1) \
+	__m(uint8_t, layer, 2)                              \
+	__m(uint8_t, variable_rate_audio_indicator, 1) \
+	__m(uint8_t, reserved, 3)
 
 enum hierarchy_type_e {
 	spatial_scalability = 1,  /*ITU-T Rec. H.262 | ISO/IEC 13818-2 spatial_scalability*/
@@ -87,13 +91,18 @@ enum hierarchy_type_e {
 };
 
 #define foreach_hierarchy_member                                                                                       \
-	__m(uint8_t, reserved, 4, 2) __m(uint8_t, hierarchy_type, 4, 2) /*see definition in @hierarchy_type_e*/            \
-		__m(uint8_t, reserved1, 2, 3) __m(uint8_t, hierarchy_layer_index, 6, 3) __m(uint8_t, reserved2, 2, 4)          \
-			__m(uint8_t, hierarchy_embedded_layer_index, 6, 4) __m(uint8_t, reserved3, 2, 5)                           \
-				__m(uint8_t, hierarchy_channel, 6, 5)
+	__m(uint8_t, reserved, 4) \
+	__m(uint8_t, hierarchy_type, 4)            \
+	__m(uint8_t, reserved1, 2) \
+	__m(uint8_t, hierarchy_layer_index, 6) \
+	__m(uint8_t, reserved2, 2)          \
+	__m(uint8_t, hierarchy_embedded_layer_index, 6) \
+	__m(uint8_t, reserved3, 2)                           \
+	__m(uint8_t, hierarchy_channel, 6)
 
 #define foreach_registration_member                                                                                    \
-	__m1(uint32_t, format_identifier, 2) __m1(uint8_t, additional_identification_info, 6)
+	__m1(uint32_t, format_identifier) \
+	__m1(uint8_t, additional_identification_info)
 
 /* format_identifier 0x41432D33 as AC-3 */
 
@@ -105,19 +114,25 @@ enum video_alignment_type_e {
 	/* 0x05 - 0xFF reserved*/
 };
 
-#define foreach_data_stream_alignment_member __m1(uint8_t, alignment_type, 2)
+#define foreach_data_stream_alignment_member \
+	__m1(uint8_t, alignment_type)
 /* see definition in @video_alignment_type_e */
 
 #define foreach_target_background_grid_member                                                                          \
-	__m(uint32_t, horizontal_size, 14, 2) __m(uint32_t, vertical_size, 14, 2)                                          \
-		__m(uint32_t, aspect_ratio_information, 4, 2)
+	__m(uint32_t, horizontal_size, 14) 											\
+	__m(uint32_t, vertical_size, 14)                                          \
+	__m(uint32_t, aspect_ratio_information, 4)
 
 #define foreach_video_window_member                                                                                    \
-	__m(uint32_t, horizontal_offset, 14, 2) __m(uint32_t, vertical_offset, 14, 2) __m(uint32_t, window_priority, 4, 2)
+	__m(uint32_t, horizontal_offset, 14) \
+	__m(uint32_t, vertical_offset, 14) \
+	__m(uint32_t, window_priority, 4)
 
 #define foreach_CA_member                                                                                              \
-	__m1(uint16_t, CA_system_ID, 2) __m(uint16_t, reserved, 3, 4) __m(uint16_t, CA_PID, 13, 4)                         \
-		__mp(uint8_t, private_data_byte, 6)
+	__m1(uint16_t, CA_system_ID) \
+	__m(uint16_t, reserved, 3) \
+	__m(uint16_t, CA_PID, 13)                         \
+	__mplast(uint8_t, private_data_byte)
 
 enum audio_type_e {
 	undefined = 0x0,
@@ -133,36 +148,49 @@ struct language_node {
 	/*see definition in @audio_type_e */
 };
 
-#define foreach_ISO_639_language_member __mp(uint32_t, languages, 2)
+#define foreach_ISO_639_language_member \
+	__mplast(struct language_node, languages)
 
 #define foreach_system_clock_member                                                                                    \
-	__m(uint8_t, external_clock_reference_indicator, 1, 2) __m(uint8_t, reserved, 1, 2)                                \
-		__m(uint8_t, clock_accuracy_integer, 6, 2) __m(uint8_t, clock_accuracy_exponent, 3, 3)                         \
-			__m(uint8_t, reserved1, 5, 3)
+	__m(uint8_t, external_clock_reference_indicator, 1) \
+	__m(uint8_t, reserved, 1)                                \
+	__m(uint8_t, clock_accuracy_integer, 6) \
+	__m(uint8_t, clock_accuracy_exponent, 3)                         \
+	__m(uint8_t, reserved1, 5)
 
 #define foreach_multiplex_buffer_utilization_member                                                                    \
-	__m(uint16_t, bound_valid_flag, 1, 2) __m(uint16_t, LTW_offset_lower_bound, 15, 2) __m(uint16_t, reserved, 1, 4)   \
-		__m(uint16_t, LTW_offset_upper_bound, 15, 4)
+	__m(uint16_t, bound_valid_flag, 1)     \
+	__m(uint16_t, LTW_offset_lower_bound, 15)   \
+	__m(uint16_t, reserved, 1)   \
+	__m(uint16_t, LTW_offset_upper_bound, 15)
 
-#define foreach_copyright_member __m1(uint32_t, copyright_identifier, 2) __mp(uint8_t, additional_copyright_info, 6)
+#define foreach_copyright_member \
+	__m1(uint32_t, copyright_identifier) \
+	__mplast(uint8_t, additional_copyright_info)
 
-#define foreach_maximum_bitrate_member __m(uint32_t, reserved, 2, 2) __m(uint32_t, maximum_bitrate, 22, 2)
+#define foreach_maximum_bitrate_member \
+	__m(uint32_t, reserved, 2) \
+	__m(uint32_t, maximum_bitrate, 22)
 /* 22bit*/
 
-#define foreach_private_data_indicator_member __m1(uint32_t, private_data_indicator, 2)
+#define foreach_private_data_indicator_member \
+	__m1(uint32_t, private_data_indicator)
 
-#define foreach_smoothing_buffer_member __m(uint32_t, sb_leak_rate, 24, 2) __m(uint32_t, sb_size, 24, 5)
+#define foreach_smoothing_buffer_member __m(uint32_t, sb_leak_rate, 24) __m(uint32_t, sb_size, 24)
 // uint24_t reserved:2;
 // uint24_t sb_leak_rate:22;
 // uint24_t reserved1:2;
 // uint24_t sb_size:22;
 
-#define foreach_STD_member __m(uint8_t, reserved, 7, 2) __m(uint8_t, leak_valid_flag, 1, 2)
+#define foreach_STD_member __m(uint8_t, reserved, 7) __m(uint8_t, leak_valid_flag, 1)
 
 #define foreach_ibp_member                                                                                             \
-	__m(uint16_t, closed_gop_flag, 1, 2) __m(uint16_t, identical_gop_flag, 1, 2) __m(uint16_t, max_gop_length, 14, 2)
+	__m(uint16_t, closed_gop_flag, 1) \
+	__m(uint16_t, identical_gop_flag, 1) \
+	__m(uint16_t, max_gop_length, 14)
 
-#define foreach_MPEG4_video_member __m1(uint8_t, MPEG4_visual_profile_and_level, 2)
+#define foreach_MPEG4_video_member \
+	__m1(uint8_t, MPEG4_visual_profile_and_level)
 
 enum MPEG4_audio_profile_and_level_e {
 	main_profile_lv1 = 0x10,
@@ -172,22 +200,27 @@ enum MPEG4_audio_profile_and_level_e {
 	/*0x14-0x17 reserved */
 };
 
-#define foreach_MPEG4_audio_member __m1(uint8_t, MPEG4_audio_profile_and_level, 2)
+#define foreach_MPEG4_audio_member \
+	__m1(uint8_t, MPEG4_audio_profile_and_level)
 
-#define foreach_IOD_member __m1(uint8_t, Scope_of_IOD_label, 2) __m1(uint8_t, IOD_label, 3)
+#define foreach_IOD_member \
+	__m1(uint8_t, Scope_of_IOD_label) \
+	__m1(uint8_t, IOD_label)
 
-#define foreach_SL_member __m1(uint16_t, ES_ID, 2)
+#define foreach_SL_member \
+	__m1(uint16_t, ES_ID)
 
 struct FMC_node {
 	uint16_t ES_ID;
 	uint8_t FlexMuxChannel;
 } __attribute__((packed));
 
-#define foreach_FMC_member __mp(struct FMC_node, FMCs, 2)
+#define foreach_FMC_member \
+	__mplast(struct FMC_node, FMCs)
 //	struct list_head list;
 // struct FMC_info *FMC_info_list;
 
-#define foreach_external_ES_ID_member __m1(uint16_t, external_ES_ID, 2)
+#define foreach_external_ES_ID_member __m1(uint16_t, external_ES_ID)
 
 /* see ISO/IEC 14496-1 */
 struct MuxCodeSlot {
@@ -210,7 +243,7 @@ struct MuxCodeTableEntry {
 };
 
 #define foreach_muxcode_member
-// __mp(struct MuxCodeTableEntry, entries, 2)
+// __mplast(struct MuxCodeTableEntry, entries, 2)
 
 /* see ISO/IEC 14496-1 */
 struct DefaultFlexMuxBufferDescriptor {
@@ -222,23 +255,28 @@ struct FlexMuxBufferDescriptor {
 	uint32_t FB_BufferSize : 24;
 };
 
-#define foreach_FmxBufferSize_member __m1(uint32_t, FB_DefaultBufferSize, 2) __mp(uint32_t, FlexMuxBufferDescriptor, 5)
+#define foreach_FmxBufferSize_member __m1(uint32_t, FB_DefaultBufferSize) __mplast(uint32_t, FlexMuxBufferDescriptor)
 
-#define foreach_MultiplexBuffer_member __m(uint32_t, MB_buffer_size, 24, 2) __m(uint32_t, TB_leak_rate, 24, 5)
+#define foreach_MultiplexBuffer_member __m(uint32_t, MB_buffer_size, 24) __m(uint32_t, TB_leak_rate, 24)
 /* in units of 400 bits per second the rate at which data is transferred */
 
+#define MAX_TAG_NAME 64
 struct descriptor_ops {
 	uint8_t tag;
-	char tag_name[64];
+	char tag_name[MAX_TAG_NAME];
 	int (*descriptor_parse)(uint8_t *data, uint32_t len, void *ptr);
 	void *(*descriptor_alloc)(void);
 	void (*descriptor_free)(descriptor_t *ptr);
 	void (*descriptor_dump)(const char *str, descriptor_t *ptr);
 };
 
-#define __m(type, name, bits, byte_off) type name : bits;
-#define __m1(type, name, byte_off) type name;
-#define __mp(type, name, byte_off) type *name;
+#define __m(type, name, bits) type name : bits;
+#define __m1(type, name) type name;
+#define __mplast(type, name) type *name;
+#define __mif(type, name, cond, val) type name;
+#define __mrangelv(type, length, name, cond, floor, ceiling) uint8_t length; type* name;
+#define __mlv(type, length, name)	type* name;
+#define __mploop(type, name, length)	uint8_t name##_num; type *name;
 #define _(desname, val)                                                                                                \
 	typedef struct {                                                                                                   \
 		descriptor_t descriptor;                                                                                       \
@@ -247,6 +285,11 @@ struct descriptor_ops {
 
 foreach_enum_descriptor
 #undef _
+#undef __mploop
+#undef __mlv
+#undef __mrangelv
+#undef __mif
+#undef _mplast
 #undef __m1
 #undef __m
 
@@ -279,21 +322,53 @@ foreach_enum_descriptor
 	bytes_off += 2;
 
 /* parse function macros */
-#define __m(type, name, bits, byte_off)                                                                                \
-	dr->name = TS_READ_BITS_##type(buf + byte_off, bits, bits_off);                                                    \
+#define __m(type, name, bits)                                                                                \
+	dr->name = TS_READ_BITS_##type(buf + bytes_off, bits, bits_off);                                                    \
 	bits_off += bits;                                                                                                  \
 	if (bits_off == sizeof(type) * 8) {                                                                                \
 		bits_off = 0;                                                                                                  \
 		bytes_off += sizeof(type);                                                                                     \
 	}
 
-#define __m1(type, name, byte_off)                                                                                     \
-	dr->name = TS_READ_##type(buf + byte_off);                                                                         \
+#define __m1(type, name)                                                                                     \
+	dr->name = TS_READ_##type(buf + bytes_off);                                                                         \
 	bytes_off += sizeof(type);
 
-#define __mp(type, name, byte_off)                                                                                     \
+#define __mplast(type, name)                                                                                     \
 	dr->name = (type *)malloc(sizeof(type));                                                                           \
-	memcpy(dr->name, buf + byte_off, len - byte_off);
+	memcpy(dr->name, buf + bytes_off, len - bytes_off);
+
+#define __mif(type, name, cond, val)	\
+	if(dr->cond == val) { \
+		memcpy(&dr->name, buf+ bytes_off, sizeof(type));	\
+		bytes_off += sizeof(type);	\
+	}
+
+#define __mrangelv(type, length, name, cond, floor, ceiling)	\
+	if(dr->cond >= floor && dr->cond <= ceiling) { \
+		dr->length = TS_READ8(buf + bytes_off);	\
+		bytes_off ++;	\
+		dr->name = (type *)malloc(sizeof(type));	\
+		memcpy(dr->name, buf+ bytes_off, dr->length);	\
+		bytes_off += dr->length;	\
+	}
+
+#define __mlv(type, length, name)	\
+	dr->name = (type *)malloc(dr->length);	\
+	memcpy(dr->name, buf+ bytes_off, dr->length);	\
+	bytes_off += dr->length;
+
+#define __mploop(type, name, length)	\
+	dr->name##_num = 0;	\
+	dr->name = NULL;	\
+	while(len - bytes_off) { \
+		dr->name##_num ++;	\
+		dr->name = (type *)realloc(dr->name, sizeof(type) * dr->name##_num);	\
+		memcpy(dr->name + dr->name##_num, buf+ bytes_off, offsetof(type, length));	\
+		bytes_off += offsetof(type, length);	\
+		dr->name[dr->name##_num - 1].length = TS_READ8(buf+ bytes_off);	\
+		bytes_off += 1 + dr->name[dr->name##_num-1].length;	\
+	}
 
 #define _(desname, val)                                                                                                \
 	static inline int parse_##desname##_descriptor(uint8_t *buf, uint32_t len, void *ptr)                              \
@@ -304,22 +379,27 @@ foreach_enum_descriptor
 	}
 			foreach_enum_descriptor
 #undef _
+#undef __mploop
+#undef __mlv
+#undef __mrangelv
+#undef __mif
+#undef _mplast
 #undef __m1
 #undef __m
 
-	extern struct descriptor_ops des_ops[];
+extern struct descriptor_ops des_ops[];
 
 /* dump function macros*/
-#define __m(type, name, bits, byte_off) DUMP_MEMBER(str, dr, type, name);
+#define __m(type, name, bits) DUMP_MEMBER(str, dr, type, name);
 
-#define __m1(type, name, byte_off) DUMP_MEMBER(str, dr, type, name);
+#define __m1(type, name) DUMP_MEMBER(str, dr, type, name);
 
 #ifdef __APPLE__
 #define MALLOC_SIZE(x) malloc_size(x)
 #else
 #define MALLOC_SIZE(x) malloc_usable_siez(x)
 #endif
-#define __mp(type, name, byte_off)                                                                                     \
+#define __mplast(type, name)                                                                                     \
 	int i = 0, psize = MALLOC_SIZE(dr->name);                                                                          \
 	printf("  %s %s :", str, #name);                                                                                   \
 	while (i < psize) {                                                                                                \
@@ -327,6 +407,17 @@ foreach_enum_descriptor
 		i++;                                                                                                           \
 	}                                                                                                                  \
 	printf("\n");
+
+#define __mif(type, name, cond, val)	\
+	if(dr->cond == val) { \ 
+		printf("\n");	\
+	}
+
+#define __mrangelv(type, length, name, cond, floor, ceiling)	
+
+#define __mlv(type, length, name)
+
+#define __mploop(type, name, length)
 
 #define _(desname, val)                                                                                                \
 	static inline void dump_##desname##_descriptor(const char *str, descriptor_t *p_dr)                                \
@@ -337,8 +428,14 @@ foreach_enum_descriptor
 	}
 foreach_enum_descriptor
 #undef _
+#undef __mploop
+#undef __mlv
+#undef __mrangelv
+#undef __mif
+#undef _mplast
 #undef __m1
 #undef __m
+
 
 void init_descriptor_parsers(void);
 
