@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "descriptor.h"
 #include "ts.h"
 #include "utils.h"
-#include "descriptor.h"
 
 struct descriptor_ops des_ops[256];
 
@@ -59,7 +59,7 @@ int parse_tlv(uint8_t *buf)
 {
 	uint8_t tag = buf[0];
 	uint8_t len = buf[1];
-	return len+2;
+	return len + 2;
 }
 
 void parse_descriptors(struct list_head *h, uint8_t *buf, int len)
@@ -97,8 +97,8 @@ void dump_descriptors(const char *str, struct list_head *list)
 	descriptor_t *p = NULL, *next = NULL;
 	list_for_each_safe(list, p, next, n)
 	{
-		//printf("%s 0x%02x (%s) : len %d\n", str, p->tag, des_ops[p->tag].tag_name, p->length);
-		//printf("%s ", str);
+		// printf("%s 0x%02x (%s) : len %d\n", str, p->tag, des_ops[p->tag].tag_name, p->length);
+		// printf("%s ", str);
 		des_ops[p->tag].descriptor_dump(str, p);
 	}
 }

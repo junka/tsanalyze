@@ -152,7 +152,7 @@ int prog_parse_args(int argc, char **argv)
 		}
 	}
 
-	strncpy(tsaconf.name, argv[argc - 1], 256);
+	snprintf(tsaconf.name, 256, "%s", argv[argc - 1]);
 
 	if (tsaconf.type == UINT8_MAX)
 		return -EINVAL;

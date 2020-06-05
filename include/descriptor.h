@@ -45,7 +45,8 @@ extern "C" {
 	_(muxcode, 0x21)                                                                                                   \
 	_(FmxBufferSize, 0x22)                                                                                             \
 	_(MultiplexBuffer, 0x23)	\
-	foreach_enum_dvb_descriptor
+	foreach_enum_dvb_descriptor	\
+	foreach_enum_atsc_descriptor
 /*0x80 to 0xFE user defined */
 /*0xFF forbidden */
 
@@ -279,10 +280,10 @@ struct descriptor_ops {
 
 #define __m(type, name, bits) type name : bits;
 #define __m1(type, name) type name;
-#define __mplast(type, name) type *name;
+#define __mplast(type, name)    uint8_t name##_len; type *name;
 #define __mif(type, name, cond, val) type name;
 #define __mrangelv(type, length, name, cond, floor, ceiling) uint8_t length; type* name;
-#define __mlv(type, length, name)	type* name;
+#define __mlv(type, length, name)    type* name;
 #define __mploop(type, name, length)	uint8_t name##_num; type *name;
 #define _(desname, val)                                                                                                \
 	typedef struct                                                                                                     \
@@ -348,9 +349,10 @@ foreach_enum_descriptor
 	dr->name = TS_READ_##type(buf + bytes_off);                                                                         \
 	bytes_off += sizeof(type);
 
-#define __mplast(type, name)                                                                                     \
-	dr->name = (type *)malloc(sizeof(type));                                                                           \
-	memcpy(dr->name, buf + bytes_off, len - bytes_off);
+#define __mplast(type, name)                                                                                             \
+	dr->name##_len = len - bytes_off;                                                                                    \
+	dr->name = (type *)malloc(dr->name##_len);                                                                           \
+	memcpy(dr->name, buf + bytes_off, dr->name##_len);
 
 #define __mif(type, name, cond, val)	\
 	if(dr->cond == val) { \
@@ -407,17 +409,15 @@ extern struct descriptor_ops des_ops[];
 
 #define __m1(type, name) DUMP_MEMBER(str, dr, type, name);
 
-#ifdef __APPLE__
-#define MALLOC_SIZE(x) malloc_size(x)
-#else
-#define MALLOC_SIZE(x) malloc_usable_size(x)
-#endif
-#define __mplast(type, name)                                                                                     \
-	int i = 0, psize = MALLOC_SIZE(dr->name);                                                                          \
-	printf("  %s %s :", str, #name);                                                                                   \
-	while (i < psize) {                                                                                                \
-		printf(" 0x%x", *(dr->name + i));                                                                              \
-		i++;                                                                                                           \
+
+#define __mplast(type, name)                                                                                           \
+	int i = 0, psize = dr->name##_len;                                                                                 \
+	if (psize > 0) {                                                                                                   \
+		printf("  %s %s :", str, #name);                                                                                   \
+	    while (i < psize) {                                                                                            \
+		    printf(" 0x%x", *(dr->name + i));                                                                          \
+		    i++;                                                                                                       \
+		}                                                                                                              \
 	}                                                                                                                  \
 	printf("\n");
 
@@ -428,7 +428,15 @@ extern struct descriptor_ops des_ops[];
 
 #define __mrangelv(type, length, name, cond, floor, ceiling)	
 
-#define __mlv(type, length, name)
+#define __mlv(type, length, name)	\
+	int i_##name = 0;	\
+	if (dr->length > 0) {	\
+		printf("  %s %s :", str, #name);                                                                                   \
+	    while (i_##name < dr->length) {                                                                                            \
+		    printf(" 0x%x", *(dr->name + i_##name));                                                                          \
+		    i_##name ++;                                                                                                       \
+		}			\
+	}
 
 #define __mploop(type, name, length)
 
