@@ -26,10 +26,10 @@ void free_reserved(descriptor_t *ptr)
 void dump_reserved(const char *str, descriptor_t *p_descriptor)
 {
 	int i = 0;
-	printf("\"");
+	rout("\"");
 	for (i = 0; i < p_descriptor->length; i++)
-		printf("%s%c", str, p_descriptor->data[i]);
-	printf("\"\n");
+		rout("%s%c", str, p_descriptor->data[i]);
+	rout("\"\n");
 }
 
 void init_descriptor_parsers(void)

@@ -5,22 +5,18 @@
 extern "C" {
 #endif
 
-#ifdef __APPLE__
-#include <sys/malloc.h>
-#else
-#include <malloc.h>
-#endif
 #include "atsc/descriptor.h"
 #include "dvb/descriptor.h"
 #include "ts.h"
 #include "types.h"
+#include "result.h"
 
 /* ISO/IEC 13818-1 */
 /* 0x12 - 0x1A Defined in ISO/IEC 13818-6 */
 /* 0x24 - 0x3F reserved, then EN 300 468 */
 #define foreach_enum_descriptor                                                                                        \
 	_(video_stream, 0x02)                                                                                              \
-	_(audio_stream, 0x03)                                                                                              \ 
+	_(audio_stream, 0x03)                                                                                              \
 	_(hierarchy, 0x04)                                                                                                 \
 	_(registration, 0x05)                                                                                              \
 	_(data_stream_alignment, 0x06)                                                                                     \
@@ -58,7 +54,7 @@ enum descriptor_e {
 
 #define DUMP_MEMBER(str, dr, type, name)                                                                               \
 	if (strncmp(#name, "reserved", sizeof("reserved")))                                                                \
-	printf("  %s %s : 0x%x\n", str, #name, dr->name)
+	rout("  %s %s : 0x%x\n", str, #name, dr->name)
 
 /* see ISO/IEC 13818-1 chapter 2.6 */
 #define foreach_video_stream_member                                                                                    \
@@ -398,7 +394,7 @@ foreach_enum_descriptor
 #undef __mlv
 #undef __mrangelv
 #undef __mif
-#undef _mplast
+#undef __mplast
 #undef __m1
 #undef __m
 
@@ -413,17 +409,17 @@ extern struct descriptor_ops des_ops[];
 #define __mplast(type, name)                                                                                           \
 	int i = 0, psize = dr->name##_len;                                                                                 \
 	if (psize > 0) {                                                                                                   \
-		printf("  %s %s :", str, #name);                                                                                   \
+		rout("  %s %s :", str, #name);                                                                                   \
 	    while (i < psize) {                                                                                            \
-		    printf(" 0x%x", *(dr->name + i));                                                                          \
+		    rout(" 0x%x", *(dr->name + i));                                                                          \
 		    i++;                                                                                                       \
 		}                                                                                                              \
 	}                                                                                                                  \
-	printf("\n");
+	rout("\n");
 
 #define __mif(type, name, cond, val)	\
-	if(dr->cond == val) { \ 
-		printf("\n");	\
+	if(dr->cond == val) { 				\
+		rout("\n");	\
 	}
 
 #define __mrangelv(type, length, name, cond, floor, ceiling)	
@@ -431,11 +427,12 @@ extern struct descriptor_ops des_ops[];
 #define __mlv(type, length, name)	\
 	int i_##name = 0;	\
 	if (dr->length > 0) {	\
-		printf("  %s %s :", str, #name);                                                                                   \
+		rout("  %s %s :", str, #name);                                                                                   \
 	    while (i_##name < dr->length) {                                                                                            \
-		    printf(" 0x%x", *(dr->name + i_##name));                                                                          \
+		    rout(" 0x%x", *(dr->name + i_##name));                                                                          \
 		    i_##name ++;                                                                                                       \
 		}			\
+		rout("\n");	\
 	}
 
 #define __mploop(type, name, length)
@@ -444,7 +441,7 @@ extern struct descriptor_ops des_ops[];
 	static inline void dump_##desname##_descriptor(const char *str, descriptor_t *p_dr)                                \
 	{                                                                                                                  \
 		desname##_descriptor_t *dr = container_of(p_dr, desname##_descriptor_t, descriptor);                           \
-		printf("%s 0x%02x (%s) : len %d\n", str, p_dr->tag, des_ops[p_dr->tag].tag_name, p_dr->length);                \
+		rout("%s 0x%02x (%s) : len %d\n", str, p_dr->tag, des_ops[p_dr->tag].tag_name, p_dr->length);                \
 		foreach_##desname##_member                                                                                     \
 	}
 foreach_enum_descriptor

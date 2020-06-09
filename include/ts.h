@@ -120,6 +120,7 @@ struct tsa_config
 	uint8_t detail : 1;
 	uint8_t mem;
 	uint8_t tables;
+	uint8_t output;
 };
 
 struct tsa_config *get_config(void);

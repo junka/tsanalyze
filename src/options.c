@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "ts.h"
+#include "result.h"
 
 #define OPT_HELP "help"
 #define OPT_FORMAT "format"
@@ -18,6 +19,7 @@
 #define OPT_MEMORY "mem"
 #define OPT_TABLE "table"
 #define OPT_PID "pid"
+#define OPT_OUT "output"
 
 enum {
 	/* long options mapped to a short option */
@@ -29,13 +31,17 @@ enum {
 	OPT_MEMORY_NUM = 'm',
 	OPT_TABLE_NUM = 's',
 	OPT_PID_NUM = 'p',
+	OPT_OUT_NUM = 'o',
 };
 
 static struct tsa_config tsaconf = {
 	.brief = 1,
 };
 
-struct tsa_config *get_config() { return &tsaconf; }
+struct tsa_config *get_config(void) 
+{ 
+	return &tsaconf; 
+}
 
 int check_filepath_valid(char *filename)
 {
@@ -48,31 +54,43 @@ int check_filepath_valid(char *filename)
 	return 0;
 }
 
-int parse_table(const char *table)
+uint8_t parse_table(const char *table)
 {
 #define TABLE_NUM (9)
 	const char *tables[TABLE_NUM] = { "pat", "cat", "pmt", "tsdt", "nit", "sdt", "bat", "tdt", "tot" };
-	int i = 0;
+	uint8_t i = 0;
 	for (i = 0; i < TABLE_NUM; i++) {
 		if (strcmp(table, tables[i]) == 0) {
 			tsaconf.tables = i;
 			return 0;
 		}
 	}
-	return -1;
+	return UINT8_MAX;
 }
 
-int parse_format_type(const char *format)
+uint8_t parse_format_type(const char *format)
 {
 #define FORMAT_NUM (2)
-	int i = 0;
+	uint8_t i = 0;
 	const char *formats[FORMAT_NUM] = { "file", "udp" };
 	for (i = 0; i < FORMAT_NUM; i++) {
 		if (strcmp(formats[i], format) == 0) {
 			return i;
 		}
 	}
-	return -1;
+	return UINT8_MAX;
+}
+
+uint8_t parse_output_type(const char *format)
+{
+	uint8_t i = 0;
+	const char *formats[RES_NUM] = { "stdout", "txt", "json" };
+	for (i = 0; i < RES_NUM; i++) {
+		if (strcmp(formats[i], format) == 0) {
+			return i;
+		}
+	}
+	return UINT8_MAX;
 }
 
 void prog_usage(FILE *fp, const char *pro_name)
@@ -89,6 +107,7 @@ void prog_usage(FILE *fp, const char *pro_name)
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_MEMORY_NUM, ", --" OPT_MEMORY, "memory to use");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_TABLE_NUM, ", --" OPT_TABLE, "Show select tables only");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_PID_NUM, ", --" OPT_PID, "Show select pid only");
+	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_OUT_NUM, ", --" OPT_OUT, "Save output to file in specific format");
 	fprintf(fp, "\n\n");
 }
 
@@ -104,8 +123,9 @@ int prog_parse_args(int argc, char **argv)
 								 "m:" /* memory size */
 								 "v"  /* version */
 								 "s:" /* tables */
-								 "f:" /*format*/
-								 "p:";
+								 "f:" /* format */
+								 "p:" /* pid */
+								 "o:";
 
 	const struct option long_options[] = { { OPT_BRIEF_LIST, 1, NULL, OPT_BRIEF_LIST_NUM },
 										   { OPT_DETAIL_LIST, 0, NULL, OPT_DETAIL_LIST_NUM },
@@ -115,6 +135,7 @@ int prog_parse_args(int argc, char **argv)
 										   { OPT_TABLE, 0, NULL, OPT_TABLE_NUM },
 										   { OPT_FORMAT, 1, NULL, OPT_FORMAT_NUM },
 										   { OPT_PID, 0, NULL, OPT_PID_NUM },
+										   { OPT_OUT, 1, NULL, OPT_OUT_NUM },
 										   { 0, 0, NULL, 0 } };
 
 	if (argc < 2) {
@@ -144,6 +165,9 @@ int prog_parse_args(int argc, char **argv)
 		case 'f':
 			tsaconf.type = parse_format_type(optarg);
 			break;
+		case 'o':
+			tsaconf.output = parse_output_type(optarg);
+			break;
 		case 'v':
 			printf("version 1.0.0rc.\n");
 			break;
@@ -162,6 +186,11 @@ int prog_parse_args(int argc, char **argv)
 			return -ENOENT;
 		}
 	}
+
+	if (tsaconf.output == UINT8_MAX)
+		return -EINVAL;
+	res_settype(tsaconf.output);
+	res_open(argv[argc - 1]);
 
 	return 0;
 }
