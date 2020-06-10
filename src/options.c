@@ -56,12 +56,12 @@ int check_filepath_valid(char *filename)
 
 uint8_t parse_table(const char *table)
 {
-#define TABLE_NUM (9)
-	const char *tables[TABLE_NUM] = { "pat", "cat", "pmt", "tsdt", "nit", "sdt", "bat", "tdt", "tot" };
+#define TABLE_NUM (8)
+	const char *tables[TABLE_NUM] = { "pat", "cat", "pmt", "tsdt", "nit", "sdt", "bat", "tdt" };
 	uint8_t i = 0;
 	for (i = 0; i < TABLE_NUM; i++) {
 		if (strcmp(table, tables[i]) == 0) {
-			tsaconf.tables = i;
+			tsaconf.tables |= 1<<i;
 			return 0;
 		}
 	}
@@ -160,7 +160,7 @@ int prog_parse_args(int argc, char **argv)
 			tsaconf.detail = 1;
 			break;
 		case 's':
-			tsaconf.tables = parse_table(optarg);
+			parse_table(optarg);
 			break;
 		case 'f':
 			tsaconf.type = parse_format_type(optarg);

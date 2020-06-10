@@ -110,6 +110,15 @@ enum PID_e {
 #define TS_READ_BITS_uint64_t(buf, bitlen, off) TS_READ64_BITS(buf, bitlen, off)
 #define TS_READ_BITS_uint24_t(buf, bitlen, off) TS_READ64_BITS(buf, bitlen, off)
 
+#define PAT_SHOW 1
+#define CAT_SHOW 1<<1
+#define PMT_SHOW 1<<2
+#define TSDT_SHOW 1<<3
+#define NIT_SHOW 1<<4
+#define SDT_SHOW 1<<5
+#define BAT_SHOW 1<<6
+#define TDT_SHOW 1<<7
+
 struct tsa_config
 {
 	char name[256]; // filename

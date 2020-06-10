@@ -241,7 +241,7 @@ struct event_item_node {
 	__m(uint32_t, ISO_639_language_code, 24)	\
 	__mplast(uint8_t, text_char)
 
-
+//TODO
 #define foreach_mosaic_member	\
 	__m(uint8_t, mosaic_entry_point, 1)	\
 	__m(uint8_t, number_of_horizontal_elementary_cells, 3)	\

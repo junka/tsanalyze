@@ -32,13 +32,17 @@ int res_open(const char *filename)
 	return 0;
 }
 
-int res_put(const char *fmt, ...)
+int res_put(int lv, const char *fmt, ...)
 {
 	va_list args;
 	char buf[1024];
-	int ret;
+	int ret = 0;
 	va_start(args, fmt);
-	vsnprintf(buf, 1024, fmt, args);
+	while(lv-- > 0)
+	{
+		ret += snprintf(buf+ret, 1024-ret, "  ");
+	}
+	vsnprintf(buf+ret, 1024-ret, fmt, args);
 	ret = fprintf(rops[outtype].f, "%s", buf);
 	va_end(args);
 	return ret;    

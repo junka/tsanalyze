@@ -23,10 +23,10 @@ struct res_ops {
 
 int res_settype(int t);
 int res_open(const char *filename);
-int res_put(const char *fmt, ...);
+int res_put(int lv, const char *fmt, ...);
 int res_close(void);
 
-#define rout(...) res_put(__VA_ARGS__)
+#define rout(l, ...) res_put(l, __VA_ARGS__)
 
 #ifdef __cplusplus
 }

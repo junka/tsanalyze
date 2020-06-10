@@ -23,13 +23,13 @@ void free_reserved(descriptor_t *ptr)
 		free(ptr);
 }
 
-void dump_reserved(const char *str, descriptor_t *p_descriptor)
+void dump_reserved(int lv, descriptor_t *p_descriptor)
 {
 	int i = 0;
-	rout("\"");
+	rout(lv, "\"");
 	for (i = 0; i < p_descriptor->length; i++)
-		rout("%s%c", str, p_descriptor->data[i]);
-	rout("\"\n");
+		rout(lv, "%c", p_descriptor->data[i]);
+	rout(lv, "\"\n");
 }
 
 void init_descriptor_parsers(void)
@@ -70,7 +70,7 @@ void parse_descriptors(struct list_head *h, uint8_t *buf, int len)
 	void *des = NULL;
 	while (l > 0) {
 		// hexdump( ptr, l);
-		// printf("%s : %d, %d\n",des_ops[ptr[0]].tag_name,l,ptr[1]);
+		// printf("%s(0x%x) : %d, %d\n",des_ops[ptr[0]].tag_name, ptr[0], l, ptr[1]);
 		des = des_ops[ptr[0]].descriptor_alloc();
 		more = (descriptor_t *)des;
 		des_ops[ptr[0]].descriptor_parse(ptr, ptr[1] + 2, des);
@@ -92,13 +92,13 @@ void free_descriptors(struct list_head *list)
 	}
 }
 
-void dump_descriptors(const char *str, struct list_head *list)
+void dump_descriptors(int lv, struct list_head *list)
 {
 	descriptor_t *p = NULL, *next = NULL;
 	list_for_each_safe(list, p, next, n)
 	{
 		// printf("%s 0x%02x (%s) : len %d\n", str, p->tag, des_ops[p->tag].tag_name, p->length);
 		// printf("%s ", str);
-		des_ops[p->tag].descriptor_dump(str, p);
+		des_ops[p->tag].descriptor_dump(lv, p);
 	}
 }

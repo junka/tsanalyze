@@ -75,16 +75,16 @@ static void dump_pat(pat_t *p_pat)
 
 	struct program_node *pn = NULL;
 
-	rout("\nPAT\n");
-	rout("  section_length: %d\n", p_pat->section_length);
-	rout("  transport_stream_id : %d\n", p_pat->transport_stream_id);
-	rout("  version_number      : %d\n", p_pat->version_number);
-	rout("    | program_number @ PMT_PID\n");
+	rout(0,"\nPAT\n");
+	rout(1,"section_length: %d\n", p_pat->section_length);
+	rout(1,"transport_stream_id : %d\n", p_pat->transport_stream_id);
+	rout(1,"version_number      : %d\n", p_pat->version_number);
+	rout(2,"program_number @ PMT_PID\n");
 	list_for_each(&p_pat->h, pn, n)
 	{
-		rout("    | %14d @ 0x%x (%d)\n", pn->program_number, pn->program_map_PID, pn->program_map_PID);
+		rout(2,"%14d @ 0x%x (%d)\n", pn->program_number, pn->program_map_PID, pn->program_map_PID);
 	}
-	rout("  active              : 0x%x\n", p_pat->current_next_indicator);
+	rout(1,"  active              : 0x%x\n", p_pat->current_next_indicator);
 }
 
 static void dump_cat(cat_t *p_cat)
@@ -92,51 +92,47 @@ static void dump_cat(cat_t *p_cat)
 	descriptor_t *pn = NULL;
 	CA_descriptor_t *ca = NULL;
 
-	rout("\n");
-	rout("CAT\n");
-	rout("  version number %d\n", p_cat->version_number);
+	rout(0,"\nCAT\n");
+	rout(1,"version number %d\n", p_cat->version_number);
 	list_for_each(&(p_cat->list), pn, n)
 	{
 		ca = (CA_descriptor_t *)pn;
 		uint16_t system_id = ca->CA_system_ID;
 		uint16_t emm_pid = ca->CA_PID;
 		// p_stream->ca_num++;
-		rout("  cat system id 0x%04x    emm pid 0x%04x\n", system_id, emm_pid);
+		rout(2,"cat system id 0x%04x    emm pid 0x%04x\n", system_id, emm_pid);
 	}
 }
 
 static void dump_tdt(tdt_t *p_tdt)
 {
-	rout("\n");
-	rout("TDT: Time and Date Table\n");
-	rout("\tUTC time       : %s\n", convert_UTC(&p_tdt->utc_time));
+	rout(0,"\nTDT: Time and Date Table\n");
+	rout(1,"UTC time       : %s\n", convert_UTC(&p_tdt->utc_time));
 }
 
 static void dump_tot(tot_t *p_tot)
 {
-	rout("\n");
-	rout("TOT: Time Offset Table\n");
-	rout("\tUTC time       : %s\n", convert_UTC(&p_tot->utc_time));
+	rout(0, "\nTOT: Time Offset Table\n");
+	rout(1,"UTC time       : %s\n", convert_UTC(&p_tot->utc_time));
 
-	dump_descriptors("\t  |  ]", &(p_tot->list));
+	dump_descriptors(2, &(p_tot->list));
 }
 
 static void dump_pmt(pmt_t *p_pmt, uint16_t pid)
 {
 	struct es_node *pn = NULL;
 
-	rout("\n");
-	rout("active PMT\n");
-	rout("  program_number : %d  => pmt pid 0x%x\n", p_pmt->program_number, pid);
-	rout("  version_number : %d\n", p_pmt->version_number);
-	rout("  PCR_PID        : 0x%x (%d)\n", p_pmt->PCR_PID, p_pmt->PCR_PID);
-	dump_descriptors("    ]", &(p_pmt->list));
-	rout("  components\n");
-	rout("    | type @ elementary_PID\n");
+	rout(0,"\nactive PMT\n");
+	rout(1,"program_number : %d  => pmt pid 0x%x\n", p_pmt->program_number, pid);
+	rout(1,"version_number : %d\n", p_pmt->version_number);
+	rout(1,"PCR_PID        : 0x%x (%d)\n", p_pmt->PCR_PID, p_pmt->PCR_PID);
+	dump_descriptors(2, &(p_pmt->list));
+	rout(1,"components\n");
+	rout(2,"type @ elementary_PID\n");
 	list_for_each(&(p_pmt->h), pn, n)
 	{
-		rout("    | 0x%02x (%s) @ 0x%x\n", pn->stream_type, get_stream_type(pn->stream_type), pn->elementary_PID);
-		dump_descriptors("    |  ]", &(pn->list));
+		rout(2,"0x%02x (%s) @ 0x%x\n", pn->stream_type, get_stream_type(pn->stream_type), pn->elementary_PID);
+		dump_descriptors(3, &(pn->list));
 	}
 }
 
@@ -147,25 +143,25 @@ static void dump_sdt(sdt_t *p_sdt)
 	struct service_node *pn = NULL;
 
 	if(p_sdt->table_id == SDT_ACTUAL_TID)
-		rout("\nSDT ACTUAL tid 0x%x\n", SDT_ACTUAL_TID);
+		rout(0,"\nSDT ACTUAL tid 0x%x\n", SDT_ACTUAL_TID);
 	else if (p_sdt->table_id == SDT_OTHER_TID)
-		rout("\nSDT OTHER tid 0x%x\n", SDT_OTHER_TID);
+		rout(0,"\nSDT OTHER tid 0x%x\n", SDT_OTHER_TID);
 
-	rout("  transport_stream_id : 0x%x\n", p_sdt->transport_stream_id);
-	rout("  section_length: %d\n", p_sdt->section_length);
-	rout("  version_number      : %d\n", p_sdt->version_number);
-	rout("  Current next   : %s\n", p_sdt->current_next_indicator ? "yes" : "no");
-	rout("  original_network_id : 0x%x\n", p_sdt->original_network_id);
+	rout(1,"transport_stream_id : 0x%x\n", p_sdt->transport_stream_id);
+	rout(1,"section_length: %d\n", p_sdt->section_length);
+	rout(1,"version_number      : %d\n", p_sdt->version_number);
+	rout(1,"Current next   : %s\n", p_sdt->current_next_indicator ? "yes" : "no");
+	rout(1,"original_network_id : 0x%x\n", p_sdt->original_network_id);
 	if (!list_empty(&(p_sdt->h)))
 	{
 		list_for_each(&(p_sdt->h), pn, n)
 		{
-			rout("    | service_id 0x%04x(%d) \n", pn->service_id, pn->service_id);
-			rout("        | EIT_schedule_flag 0x%x \n", pn->EIT_schedule_flag);
-			rout("        | EIT_present_following_flag 0x%x \n", pn->EIT_present_following_flag);
-			rout("        | running_status 0x%x \n", pn->running_status);
-			rout("        | free_CA_mode 0x%x \n", pn->free_CA_mode);
-			dump_descriptors("            | ]", &(pn->list));
+			rout(2,"service_id 0x%04x(%d) \n", pn->service_id, pn->service_id);
+			rout(3,"EIT_schedule_flag 0x%x \n", pn->EIT_schedule_flag);
+			rout(3,"EIT_present_following_flag 0x%x \n", pn->EIT_present_following_flag);
+			rout(3,"running_status 0x%x \n", pn->running_status);
+			rout(3,"free_CA_mode 0x%x \n", pn->free_CA_mode);
+			dump_descriptors(4, &(pn->list));
 		}
 	}
 }
@@ -176,21 +172,21 @@ static void dump_bat(bat_t *p_bat)
 		return;
 	struct transport_stream_node *pn = NULL;
 
-	rout("\nBAT\n");
-	rout("  section_length: %d\n", p_bat->section_length);
-	rout("  bouquet_id : 0x%x\n", p_bat->bouquet_id);
-	rout("  version_number      : %d\n", p_bat->version_number);
-	rout("  Current next   : %s\n", p_bat->current_next_indicator ? "yes" : "no");
-	dump_descriptors("    | ]", &(p_bat->list));
+	rout(0,"\nBAT\n");
+	rout(1,"section_length: %d\n", p_bat->section_length);
+	rout(1,"bouquet_id : 0x%x\n", p_bat->bouquet_id);
+	rout(1,"version_number      : %d\n", p_bat->version_number);
+	rout(1,"Current next   : %s\n", p_bat->current_next_indicator ? "yes" : "no");
+	dump_descriptors(2, &(p_bat->list));
 	if(p_bat->transport_stream_loop_length)
 	{
-		rout("    | transport_streams: \n");
+		rout(1,"transport_streams: \n");
 		list_for_each(&(p_bat->h), pn, n)
 		{
-			rout("    | 0x%04x(%d) \n", pn->transport_stream_id, pn->transport_stream_id);
-			rout("    | original_network_id %x \n", pn->original_network_id);
+			rout(2,"0x%04x(%d) \n", pn->transport_stream_id, pn->transport_stream_id);
+			rout(3,"original_network_id %x \n", pn->original_network_id);
 			if(pn->transport_descriptors_length)
-				dump_descriptors("            | ]", &(pn->list));
+				dump_descriptors(4, &(pn->list));
 		}
 	}
 }
@@ -202,20 +198,20 @@ static void dump_nit(nit_t *p_nit)
 	struct transport_stream_node *pn = NULL;
 
 	if (p_nit->table_id == NIT_ACTUAL_TID)
-		rout("\nNIT ACTUAL tid 0x%x\n", p_nit->table_id);
+		rout(0,"\nNIT ACTUAL tid 0x%x\n", p_nit->table_id);
 	if (p_nit->table_id == NIT_OTHER_TID)
-		rout("\nNIT OTHER tid 0x%x\n", p_nit->table_id);
-	rout("  section_length: %d\n", p_nit->section_length);
-	rout("  network_id : 0x%x\n", p_nit->network_id);
-	rout("  version_number      : %d\n", p_nit->version_number);
-	rout("  Current next   : %s\n", p_nit->current_next_indicator ? "yes" : "no");
-	dump_descriptors("  [", &(p_nit->list));
-	rout("    | transport_stream \n");
+		rout(0,"\nNIT OTHER tid 0x%x\n", p_nit->table_id);
+	rout(1,"section_length: %d\n", p_nit->section_length);
+	rout(1,"network_id : 0x%x\n", p_nit->network_id);
+	rout(1,"version_number      : %d\n", p_nit->version_number);
+	rout(1,"Current next   : %s\n", p_nit->current_next_indicator ? "yes" : "no");
+	dump_descriptors(2, &(p_nit->list));
+	rout(2, "transport_stream \n");
 	list_for_each(&(p_nit->h), pn, n)
 	{
-		rout("        | transport_stream_id 0x%x \n", pn->transport_stream_id);
-		rout("            | original_network_id 0x%x \n", pn->original_network_id);
-		dump_descriptors("            | ]", &(pn->list));
+		rout(3,"transport_stream_id 0x%x \n", pn->transport_stream_id);
+		rout(4,"original_network_id 0x%x \n", pn->original_network_id);
+		dump_descriptors(5, &(pn->list));
 	}
 }
 
@@ -224,34 +220,38 @@ void dump_tables(void)
 	struct tsa_config *tsaconf = get_config();
 	if (tsaconf->brief == 0)
 		return;
+	if (tsaconf->tables == 0)
+		tsaconf->tables = UINT8_MAX;
 
 	int i = 0;
 
-	if (psi.stats.pat_sections)
+	if (psi.stats.pat_sections && (tsaconf->tables & PAT_SHOW))
 		dump_pat(&psi.pat);
-	if (psi.ca_num > 0) {
+	if (psi.ca_num > 0 && (tsaconf->tables & CAT_SHOW)) {
 		dump_cat(&psi.cat);
 	}
 	// pid
-	for (i = 0x10; i < 0x2000; i++) {
-		if (psi.pmt_bitmap[i / 64] & ((uint64_t)1 << (i % 64))) {
-			dump_pmt(&psi.pmt[i], i);
+	if (tsaconf->tables & PMT_SHOW) {
+		for (i = 0x10; i < 0x2000; i++) {
+			if (psi.pmt_bitmap[i / 64] & ((uint64_t)1 << (i % 64))) {
+				dump_pmt(&psi.pmt[i], i);
+			}
 		}
 	}
 
-	if (psi.stats.sdt_actual_sections)
+	if (psi.stats.sdt_actual_sections && (tsaconf->tables & SDT_SHOW))
 		dump_sdt(&psi.sdt_actual);
-	if (psi.stats.sdt_other_sections)
+	if (psi.stats.sdt_other_sections && (tsaconf->tables & SDT_SHOW))
 		dump_sdt(&psi.sdt_other);
-	if (psi.stats.nit_actual_sections)
+	if (psi.stats.nit_actual_sections && (tsaconf->tables & NIT_SHOW))
 		dump_nit(&psi.nit_actual);
-	if (psi.stats.nit_other_sections)
+	if (psi.stats.nit_other_sections && (tsaconf->tables & NIT_SHOW))
 		dump_nit(&psi.nit_other);
-	if (psi.stats.bat_sections)
+	if (psi.stats.bat_sections && (tsaconf->tables & BAT_SHOW))
 		dump_bat(&psi.bat);
-	if (psi.stats.tdt_sections)
+	if (psi.stats.tdt_sections && (tsaconf->tables & TDT_SHOW))
 		dump_tdt(&psi.tdt);
-	if (psi.stats.tot_sections)
+	if (psi.stats.tot_sections && (tsaconf->tables & TDT_SHOW))
 		dump_tot(&psi.tot);
 	
 	res_close();

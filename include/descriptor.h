@@ -7,6 +7,7 @@ extern "C" {
 
 #include "atsc/descriptor.h"
 #include "dvb/descriptor.h"
+#include "isdb/descriptor.h"
 #include "ts.h"
 #include "types.h"
 #include "result.h"
@@ -32,6 +33,13 @@ extern "C" {
 	_(smoothing_buffer, 0x10)                                                                                          \
 	_(STD, 0x11)                                                                                                       \
 	_(ibp, 0x12)                                                                                                       \
+    _(carousel_identifier, 0x13)    \
+    _(association_tag, 0x14) \
+    _(deferred_association_tags, 0x15)  \
+	_(NPTRefrence, 0x17)	\
+	_(NPTEndpoint, 0x18)	\
+	_(StreamMode, 0x19)		\
+	_(StreamEvent, 0x1A)	\
 	_(MPEG4_video, 0x1B)                                                                                               \
 	_(MPEG4_audio, 0x1C)                                                                                               \
 	_(IOD, 0x1D)                                                                                                       \
@@ -40,10 +48,11 @@ extern "C" {
 	_(external_ES_ID, 0x20)                                                                                            \
 	_(muxcode, 0x21)                                                                                                   \
 	_(FmxBufferSize, 0x22)                                                                                             \
-	_(MultiplexBuffer, 0x23)	\
-	foreach_enum_dvb_descriptor	\
-	foreach_enum_atsc_descriptor
-/*0x80 to 0xFE user defined */
+	_(MultiplexBuffer, 0x23)	    \
+	foreach_enum_dvb_descriptor	    \
+	foreach_enum_atsc_descriptor	\
+	foreach_enum_isdb_descriptor
+
 /*0xFF forbidden */
 
 enum descriptor_e {
@@ -52,9 +61,9 @@ enum descriptor_e {
 #undef _
 };
 
-#define DUMP_MEMBER(str, dr, type, name)                                                                               \
+#define DUMP_MEMBER(lv, dr, type, name)                                                                               \
 	if (strncmp(#name, "reserved", sizeof("reserved")))                                                                \
-	rout("  %s %s : 0x%x\n", str, #name, dr->name)
+		rout(lv+1, "%s : 0x%x\n", #name, dr->name)
 
 /* see ISO/IEC 13818-1 chapter 2.6 */
 #define foreach_video_stream_member                                                                                    \
@@ -187,6 +196,52 @@ struct language_node
 	__m(uint16_t, identical_gop_flag, 1) \
 	__m(uint16_t, max_gop_length, 14)
 
+#define foreach_carousel_identifier_member	\
+	__m1(uint32_t, carousel_id)	\
+	__mplast(uint8_t, private_data_byte)
+
+#define foreach_association_tag_member	\
+	__m1(uint16_t, association_tag)	\
+	__m1(uint16_t, use)	\
+	__m1(uint8_t, selector_byte_length)	\
+	__mlv(uint8_t, selector_byte_length, selector_byte)	\
+	__mplast(uint8_t, private_data_byte)
+
+#define foreach_deferred_association_tags_member	\
+	__m1(uint8_t, association_tags_loop_length)	    \
+	__mlv(uint16_t, association_tags_loop_length, association_tag)	\
+	__m1(uint16_t, tansport_stream_id)	\
+	__m1(uint16_t, program_number)	\
+	__mplast(uint8_t, private_data_byte)
+
+#define foreach_NPTRefrence_member	\
+	__m(uint8_t, postDiscontinuityIndicator, 1)	\
+	__m(uint8_t, contentId, 7)	\
+	__m(uint8_t, reserved, 7)	\
+	__m(uint8_t, STC_Reference, 1)	\
+	__m1(uint32_t, STC_Reference_2)	\
+	__m(uint64_t, reserved1, 31)	\
+	__m(uint64_t, NPT_Reference, 33)	\
+	__m1(uint16_t, scaleNumerator)		\
+	__m1(uint16_t, scaleDenominator)
+
+#define foreach_NPTEndpoint_member	\
+	__m(uint16_t, reserved, 15)	\
+	__m(uint16_t, startNPT, 1)	\
+	__m1(uint32_t, startNPT_2)	\
+	__m(uint64_t, reserved1, 31)	\
+	__m(uint64_t, stopNPT, 33)
+
+#define foreach_StreamMode_member	\
+	__m1(uint8_t, streamMode)	\
+	__m1(uint8_t, reserved)
+
+#define foreach_StreamEvent_member	\
+	__m1(uint16_t, eventId)	\
+	__m(uint64_t, reserved, 31)	\
+	__m(uint64_t, eventNPT, 33)	\
+	__mplast(uint8_t, privateDataByte)
+
 #define foreach_MPEG4_video_member \
 	__m1(uint8_t, MPEG4_visual_profile_and_level)
 
@@ -271,7 +326,7 @@ struct descriptor_ops {
 	int (*descriptor_parse)(uint8_t *data, uint32_t len, void *ptr);
 	void *(*descriptor_alloc)(void);
 	void (*descriptor_free)(descriptor_t *ptr);
-	void (*descriptor_dump)(const char *str, descriptor_t *ptr);
+	void (*descriptor_dump)(int lv, descriptor_t *ptr);
 };
 
 #define __m(type, name, bits) type name : bits;
@@ -401,25 +456,25 @@ foreach_enum_descriptor
 extern struct descriptor_ops des_ops[];
 
 /* dump function macros*/
-#define __m(type, name, bits) DUMP_MEMBER(str, dr, type, name);
+#define __m(type, name, bits) DUMP_MEMBER(lv, dr, type, name);
 
-#define __m1(type, name) DUMP_MEMBER(str, dr, type, name);
+#define __m1(type, name) DUMP_MEMBER(lv, dr, type, name);
 
 
 #define __mplast(type, name)                                                                                           \
 	int i = 0, psize = dr->name##_len;                                                                                 \
 	if (psize > 0) {                                                                                                   \
-		rout("  %s %s :", str, #name);                                                                                   \
+		rout(lv+1, "%s :", #name);                                                                                   \
 	    while (i < psize) {                                                                                            \
-		    rout(" 0x%x", *(dr->name + i));                                                                          \
+		    rout(0, " 0x%x", *(dr->name + i));                                                                          \
 		    i++;                                                                                                       \
 		}                                                                                                              \
 	}                                                                                                                  \
-	rout("\n");
+	rout(lv+1, "\n");
 
 #define __mif(type, name, cond, val)	\
 	if(dr->cond == val) { 				\
-		rout("\n");	\
+		rout(lv+1,"\n");	\
 	}
 
 #define __mrangelv(type, length, name, cond, floor, ceiling)	
@@ -427,21 +482,21 @@ extern struct descriptor_ops des_ops[];
 #define __mlv(type, length, name)	\
 	int i_##name = 0;	\
 	if (dr->length > 0) {	\
-		rout("  %s %s :", str, #name);                                                                                   \
+		rout(lv+1, "%s :", #name);                                                                                   \
 	    while (i_##name < dr->length) {                                                                                            \
-		    rout(" 0x%x", *(dr->name + i_##name));                                                                          \
+		    rout(0, "0x%x ", *(dr->name + i_##name));                                                                          \
 		    i_##name ++;                                                                                                       \
 		}			\
-		rout("\n");	\
+		rout(lv+1, "\n");	\
 	}
 
 #define __mploop(type, name, length)
 
 #define _(desname, val)                                                                                                \
-	static inline void dump_##desname##_descriptor(const char *str, descriptor_t *p_dr)                                \
+	static inline void dump_##desname##_descriptor(int lv, descriptor_t *p_dr)                                \
 	{                                                                                                                  \
 		desname##_descriptor_t *dr = container_of(p_dr, desname##_descriptor_t, descriptor);                           \
-		rout("%s 0x%02x (%s) : len %d\n", str, p_dr->tag, des_ops[p_dr->tag].tag_name, p_dr->length);                \
+		rout(lv, "0x%02x (%s) : len %d\n", dr->descriptor.tag, des_ops[p_dr->tag].tag_name, p_dr->length);                \
 		foreach_##desname##_member                                                                                     \
 	}
 foreach_enum_descriptor
@@ -450,7 +505,7 @@ foreach_enum_descriptor
 #undef __mlv
 #undef __mrangelv
 #undef __mif
-#undef _mplast
+#undef __mplast
 #undef __m1
 #undef __m
 
@@ -460,7 +515,7 @@ void init_descriptor_parsers(void);
 
 void free_descriptors(struct list_head *list);
 
-void dump_descriptors(const char *str, struct list_head *list);
+void dump_descriptors(int lv, struct list_head *list);
 
 void parse_descriptors(struct list_head *h, uint8_t *buf, int len);
 
