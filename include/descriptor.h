@@ -63,7 +63,7 @@ enum descriptor_e {
 
 #define DUMP_MEMBER(lv, dr, type, name)                                                                               \
 	if (strncmp(#name, "reserved", sizeof("reserved")))                                                                \
-		rout(lv+1, "%s : 0x%x\n", #name, dr->name)
+		rout(lv+1, "%s : 0x%x", #name, dr->name)
 
 /* see ISO/IEC 13818-1 chapter 2.6 */
 #define foreach_video_stream_member                                                                                    \
@@ -462,32 +462,32 @@ extern struct descriptor_ops des_ops[];
 
 
 #define __mplast(type, name)                                                                                           \
-	int i = 0, psize = dr->name##_len;                                                                                 \
+	int i = 0, psize = dr->name##_len, ret_##name = 0;															\
+	char buf_##name[512];	\
 	if (psize > 0) {                                                                                                   \
-		rout(lv+1, "%s :", #name);                                                                                   \
-	    while (i < psize) {                                                                                            \
-		    rout(0, " 0x%x", *(dr->name + i));                                                                          \
+		while (i < psize) {                                                                                            \
+		    ret_##name += snprintf(buf_##name + ret_##name, 512-ret_##name, " 0x%x", *(dr->name + i));                 \
 		    i++;                                                                                                       \
 		}                                                                                                              \
 	}                                                                                                                  \
-	rout(lv+1, "\n");
+	rout(lv+1, "%s:%s", #name, buf_##name);
 
 #define __mif(type, name, cond, val)	\
 	if(dr->cond == val) { 				\
-		rout(lv+1,"\n");	\
+		rout(lv+1,"");	\
 	}
 
 #define __mrangelv(type, length, name, cond, floor, ceiling)	
 
 #define __mlv(type, length, name)	\
-	int i_##name = 0;	\
-	if (dr->length > 0) {	\
-		rout(lv+1, "%s :", #name);                                                                                   \
-	    while (i_##name < dr->length) {                                                                                            \
-		    rout(0, "0x%x ", *(dr->name + i_##name));                                                                          \
+	int i_##name = 0, ret_##name = 0;	\
+	char buf_##name[512];	\
+	if (dr->length > 0) {	                                                                                       \
+	    while (i_##name < dr->length) {                                                                                         \
+			ret_##name += snprintf(buf_##name + ret_##name, 512-ret_##name, " 0x%x", *(dr->name + i_##name));                                        \
 		    i_##name ++;                                                                                                       \
 		}			\
-		rout(lv+1, "\n");	\
+		rout(lv+1, "%s:%s", #name, buf_##name);							\
 	}
 
 #define __mploop(type, name, length)
@@ -496,7 +496,7 @@ extern struct descriptor_ops des_ops[];
 	static inline void dump_##desname##_descriptor(int lv, descriptor_t *p_dr)                                \
 	{                                                                                                                  \
 		desname##_descriptor_t *dr = container_of(p_dr, desname##_descriptor_t, descriptor);                           \
-		rout(lv, "0x%02x (%s) : len %d\n", dr->descriptor.tag, des_ops[p_dr->tag].tag_name, p_dr->length);                \
+		rout(lv, "0x%02x (%s) : len %d", dr->descriptor.tag, des_ops[p_dr->tag].tag_name, p_dr->length);                \
 		foreach_##desname##_member                                                                                     \
 	}
 foreach_enum_descriptor

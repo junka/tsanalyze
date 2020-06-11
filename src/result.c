@@ -38,11 +38,16 @@ int res_put(int lv, const char *fmt, ...)
 	char buf[1024];
 	int ret = 0;
 	va_start(args, fmt);
+	if (lv == 0)
+	{
+		ret += snprintf(buf+ret, 1024-ret, "\n");
+	}
 	while(lv-- > 0)
 	{
 		ret += snprintf(buf+ret, 1024-ret, "  ");
 	}
-	vsnprintf(buf+ret, 1024-ret, fmt, args);
+	ret += vsnprintf(buf+ret, 1024-ret, fmt, args);
+	ret += snprintf(buf+ret, 1024-ret, "\n");
 	ret = fprintf(rops[outtype].f, "%s", buf);
 	va_end(args);
 	return ret;    

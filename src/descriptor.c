@@ -25,11 +25,11 @@ void free_reserved(descriptor_t *ptr)
 
 void dump_reserved(int lv, descriptor_t *p_descriptor)
 {
-	int i = 0;
-	rout(lv, "\"");
+	int i = 0, ret = 0;
+	char buf[512];
 	for (i = 0; i < p_descriptor->length; i++)
-		rout(lv, "%c", p_descriptor->data[i]);
-	rout(lv, "\"\n");
+		ret += snprintf(buf+ret, 512-ret, "%c", p_descriptor->data[i]);
+	rout(lv, buf);
 }
 
 void init_descriptor_parsers(void)
@@ -70,7 +70,7 @@ void parse_descriptors(struct list_head *h, uint8_t *buf, int len)
 	void *des = NULL;
 	while (l > 0) {
 		// hexdump( ptr, l);
-		// printf("%s(0x%x) : %d, %d\n",des_ops[ptr[0]].tag_name, ptr[0], l, ptr[1]);
+		// printf("%s(0x%x) : %d, %d",des_ops[ptr[0]].tag_name, ptr[0], l, ptr[1]);
 		des = des_ops[ptr[0]].descriptor_alloc();
 		more = (descriptor_t *)des;
 		des_ops[ptr[0]].descriptor_parse(ptr, ptr[1] + 2, des);
