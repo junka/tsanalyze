@@ -257,9 +257,105 @@ void dump_tables(void)
 	res_close();
 }
 
-void unregister_pmt_ops(uint16_t pid);
+void free_tables(void)
+{
+	int i = 0;
+	struct program_node *pn, *pat_next = NULL;
+	struct es_node *no, *pmt_next = NULL;
+	struct service_node *sn = NULL, *sdt_next = NULL;
+	struct transport_stream_node *tn, *nit_next = NULL, *bat_next = NULL;
+	if (psi.stats.pat_sections){
+		if (!list_empty(&(psi.pat.h))) {
+			list_for_each_safe(&psi.pat.h, pn, pat_next, n)
+			{
+				unregister_pmt_ops(pn->program_map_PID);
+				list_del(&pn->n);
+				free(pn);
+			}
+		}
+	}
+	if (psi.ca_num > 0) {
+		free_descriptors(&psi.cat.list);
+	}
+	// pid
+	for (i = 0x10; i < 0x2000; i++) {
+		if (psi.pmt_bitmap[i / 64] & ((uint64_t)1 << (i % 64))) {
+			list_for_each_safe(&(psi.pmt[i].h), no, pmt_next, n)
+			{
+				free_descriptors(&(no->list));
+				list_del(&(no->n));
+				free(no);
+			}
+			free_descriptors(&(psi.pmt[i].list));
+		}
+	}
 
-void register_pmt_ops(uint16_t pid);
+	if (psi.stats.sdt_actual_sections) {
+		if (!list_empty(&(psi.sdt_actual.h))) {
+			list_for_each_safe(&psi.sdt_actual.h, sn, sdt_next, n)
+			{
+				free_descriptors(&sn->list);
+				list_del(&sn->n);
+				free(sn);
+			}
+		}
+	}
+	sdt_next = NULL;
+	if (psi.stats.sdt_other_sections) {
+		if (!list_empty(&(psi.sdt_other.h))) {
+			list_for_each_safe(&psi.sdt_other.h, sn, sdt_next, n)
+			{
+				free_descriptors(&sn->list);
+				list_del(&sn->n);
+				free(sn);
+			}
+		}
+	}
+	if (psi.stats.nit_actual_sections ) {
+		if (!list_empty(&(psi.nit_actual.list)))
+			free_descriptors(&(psi.nit_actual.list));
+		if (!list_empty(&(psi.nit_actual.h))) {
+			list_for_each_safe(&(psi.nit_actual.h), tn, nit_next, n)
+			{
+				free_descriptors(&tn->list);
+				list_del(&(tn->n));
+				free(tn);
+			}
+		}
+	}
+	nit_next = NULL;
+	if (psi.stats.nit_other_sections) {
+		if (!list_empty(&(psi.nit_other.list)))
+			free_descriptors(&(psi.nit_other.list));
+		if (!list_empty(&(psi.nit_other.h))) {
+			list_for_each_safe(&(psi.nit_other.h), tn, nit_next, n)
+			{
+				free_descriptors(&tn->list);
+				list_del(&(tn->n));
+				free(tn);
+			}
+		}
+	}
+	if (psi.stats.bat_sections) {
+		if (!list_empty(&(psi.bat.list)))
+			free_descriptors(&(psi.bat.list));
+		if (!list_empty(&(psi.bat.h))) {
+			list_for_each_safe(&(psi.bat.h), tn, bat_next, n)
+			{
+				free_descriptors(&tn->list);
+				list_del(&(tn->n));
+				free(tn);
+			}
+		}
+	}
+	
+	if (psi.stats.tot_sections) {
+		if (!list_empty(&(psi.tot.list)))
+			free_descriptors(&(psi.tot.list));
+	}
+
+	res_close();
+}
 
 int parse_pat(uint8_t *pbuf, uint16_t buf_size, pat_t *pPAT)
 {
@@ -683,7 +779,6 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 
 		parse_descriptors(&(pn->list), pdata, (int)(pn->descriptors_loop_length));
 		pdata += pn->descriptors_loop_length;
-		// printf("desc len %d",si->descriptors_loop_length);
 		loop_len -= (5 + pn->descriptors_loop_length);
 		list_add(&(pSDT->h), &(pn->n));
 	}

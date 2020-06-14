@@ -4,7 +4,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#include <stdlib.h>
 #include "atsc/descriptor.h"
 #include "dvb/descriptor.h"
 #include "isdb/descriptor.h"
@@ -183,13 +183,17 @@ struct language_node
 #define foreach_private_data_indicator_member \
 	__m1(uint32_t, private_data_indicator)
 
-#define foreach_smoothing_buffer_member __m(uint32_t, sb_leak_rate, 24) __m(uint32_t, sb_size, 24)
+#define foreach_smoothing_buffer_member \
+	__m(uint32_t, sb_leak_rate, 24) \
+	__m(uint32_t, sb_size, 24)
 // uint24_t reserved:2;
 // uint24_t sb_leak_rate:22;
 // uint24_t reserved1:2;
 // uint24_t sb_size:22;
 
-#define foreach_STD_member __m(uint8_t, reserved, 7) __m(uint8_t, leak_valid_flag, 1)
+#define foreach_STD_member \
+	__m(uint8_t, reserved, 7) \
+	__m(uint8_t, leak_valid_flag, 1)
 
 #define foreach_ibp_member                                                                                             \
 	__m(uint16_t, closed_gop_flag, 1) \
@@ -274,7 +278,8 @@ struct FMC_node
 //	struct list_head list;
 // struct FMC_info *FMC_info_list;
 
-#define foreach_external_ES_ID_member __m1(uint16_t, external_ES_ID)
+#define foreach_external_ES_ID_member \
+	__m1(uint16_t, external_ES_ID)
 
 /* see ISO/IEC 14496-1 */
 struct MuxCodeSlot
@@ -314,9 +319,13 @@ struct FlexMuxBufferDescriptor
 	uint32_t FB_BufferSize : 24;
 };
 
-#define foreach_FmxBufferSize_member __m1(uint32_t, FB_DefaultBufferSize) __mplast(uint32_t, FlexMuxBufferDescriptor)
+#define foreach_FmxBufferSize_member \
+	__m1(uint32_t, FB_DefaultBufferSize) \
+	__mplast(uint32_t, FlexMuxBufferDescriptor)
 
-#define foreach_MultiplexBuffer_member __m(uint32_t, MB_buffer_size, 24) __m(uint32_t, TB_leak_rate, 24)
+#define foreach_MultiplexBuffer_member \
+	__m(uint32_t, MB_buffer_size, 24) \
+	__m(uint32_t, TB_leak_rate, 24)
 /* in units of 400 bits per second the rate at which data is transferred */
 
 #define MAX_TAG_NAME 64
@@ -349,7 +358,7 @@ foreach_enum_descriptor
 #undef __mlv
 #undef __mrangelv
 #undef __mif
-#undef _mplast
+#undef __mplast
 #undef __m1
 #undef __m
 
@@ -369,9 +378,30 @@ foreach_enum_descriptor
 foreach_enum_descriptor
 #undef _
 
-#define _(a, b) FREE(a)
+#define __m(type, name, bits) 
+#define __m1(type, name) 
+#define __mplast(type, name)    free(dr->name);
+#define __mif(type, name, cond, val)
+#define __mrangelv(type, length, name, cond, floor, ceiling) free(dr->name);
+#define __mlv(type, length, name)    free(dr->name);
+#define __mploop(type, name, length)	free(dr->name);
+#define _(desname, val)                                                                                                \
+	static inline void free_##desname##_descriptor(descriptor_t *ptr)                                                  \
+	{                                                                                                                  \
+        desname##_descriptor_t *dr = (desname##_descriptor_t *)ptr;	\
+        foreach_##desname##_member                                                                                     \
+		free(dr);                                                                                                     \
+	}
+
 foreach_enum_descriptor
 #undef _
+#undef __mploop
+#undef __mlv
+#undef __mrangelv
+#undef __mif
+#undef __mplast
+#undef __m1
+#undef __m
 
 #define INVALID_DR_RETURN(a, buf)                                                                                      \
 	do {                                                                                                               \
@@ -441,7 +471,10 @@ foreach_enum_descriptor
 	static inline int parse_##desname##_descriptor(uint8_t *buf, uint32_t len, void *ptr)                              \
 	{                                                                                                                  \
 		INVALID_DR_RETURN(desname, buf);                                                                               \
-		DR_TAG(desname, buf, ptr) foreach_##desname##_member return 0;                                                 \
+		DR_TAG(desname, buf, ptr)  \
+		foreach_##desname##_member	\
+		assert(bits_off == 0);	\
+		return 0;                                                 \
 	}
 foreach_enum_descriptor
 #undef _
@@ -483,8 +516,8 @@ extern struct descriptor_ops des_ops[];
 	int i_##name = 0, ret_##name = 0;	\
 	char buf_##name[512];	\
 	if (dr->length > 0) {	                                                                                       \
-	    while (i_##name < dr->length) {                                                                                         \
-			ret_##name += snprintf(buf_##name + ret_##name, 512-ret_##name, " 0x%x", *(dr->name + i_##name));                                        \
+	    while (i_##name < (int)dr->length) {                                                                                         \
+			ret_##name += snprintf(buf_##name + ret_##name, 512-ret_##name, " 0x%x", *(dr->name + i_##name));                        \
 		    i_##name ++;                                                                                                       \
 		}			\
 		rout(lv+1, "%s:%s", #name, buf_##name);							\

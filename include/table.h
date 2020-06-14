@@ -195,7 +195,6 @@ struct es_node
 	uint16_t elementary_PID : 13;
 	uint16_t reserved1 : 4;
 	uint16_t ES_info_length : 12;
-	// struct descriptor * descriptor_list;
 	struct list_head list;
 	struct list_node n;
 };
@@ -217,7 +216,6 @@ typedef struct
 	uint16_t PCR_PID : 13;
 	uint16_t reserved3 : 4;
 	uint16_t program_info_length : 12;
-	// struct descriptor * desriptor_list;
 	struct list_head list;
 	struct list_head h;
 	uint32_t crc32;
@@ -250,7 +248,6 @@ typedef struct
 	uint16_t reserved2 : 4;
 	uint16_t network_descriptors_length : 12;
 	struct list_head list;
-	// struct descriptor * network_desriptor_list;
 	uint16_t reserved3 : 4;
 	uint16_t transport_stream_loop_length : 12;
 	struct list_head h;
@@ -369,7 +366,6 @@ typedef struct
 	UTC_time_t utc_time;
 	uint16_t reserved1 : 4;
 	uint16_t descriptors_loop_length : 12;
-	// struct descriptor * time_offset_descriptor_list;
 	struct list_head list;
 	uint32_t crc32;
 } tot_t;
@@ -425,6 +421,10 @@ typedef struct
 	stats_t stats;
 } mpeg_psi_t;
 
+void unregister_pmt_ops(uint16_t pid);
+
+void register_pmt_ops(uint16_t pid);
+
 void init_table_ops(void);
 
 void uninit_table_ops(void);
@@ -432,6 +432,8 @@ void uninit_table_ops(void);
 bool check_pmt_pid(uint16_t pid);
 
 void dump_tables(void);
+
+void free_tables(void);
 
 #ifdef __cplusplus
 }

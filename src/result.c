@@ -4,7 +4,7 @@
 
 #include "result.h"
 
-static uint8_t outtype;
+static uint8_t outtype = RES_STD;
 
 struct res_ops rops[RES_NUM];
 
@@ -16,7 +16,7 @@ int res_settype(int t)
 
 int res_open(const char *filename)
 {
-	char outfile[1024];
+	char outfile[1024] = {0};
 	if(outtype == RES_STD)
 		rops[outtype].f = stdout;
 	else if (outtype == RES_TXT)
@@ -35,20 +35,18 @@ int res_open(const char *filename)
 int res_put(int lv, const char *fmt, ...)
 {
 	va_list args;
-	char buf[1024];
+	char buf[1024] = {0};
 	int ret = 0;
 	va_start(args, fmt);
-	if (lv == 0)
-	{
-		ret += snprintf(buf+ret, 1024-ret, "\n");
+	if (lv == 0) {
+		ret += snprintf(buf + ret, 1024 - ret, "\n");
 	}
-	while(lv-- > 0)
-	{
-		ret += snprintf(buf+ret, 1024-ret, "  ");
+	while(lv-- > 0) {
+		ret += snprintf(buf + ret, 1024 - ret, "  ");
 	}
-	ret += vsnprintf(buf+ret, 1024-ret, fmt, args);
-	ret += snprintf(buf+ret, 1024-ret, "\n");
-	ret = fprintf(rops[outtype].f, "%s", buf);
+	ret += vsnprintf(buf + ret, 1024 - ret, fmt, args);
+	ret += snprintf(buf + ret, 1024 - ret, "\n");
+	ret = fprintf(rops[outtype].f, buf);
 	va_end(args);
 	return ret;    
 }

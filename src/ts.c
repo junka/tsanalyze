@@ -286,7 +286,10 @@ int init_pid_processor(void)
 	return 0;
 }
 
-void uninit_pid_processor(void) { uninit_table_ops(); }
+void uninit_pid_processor(void) 
+{
+	uninit_table_ops();
+}
 
 int ts_process()
 {
@@ -317,7 +320,7 @@ int ts_process()
 
 	// hexdump(ptr, 188);
 	analyze(ptr, ts_pktlen * 2, ts_pktlen, &start_index);
-	printf("Ts starting at offset %d\n", start_index);
+	//printf("Ts starting at offset %d\n", start_index);
 	// hexdump(ptr+start_index, ts_pktlen);
 
 	ptr += start_index;

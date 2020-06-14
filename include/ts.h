@@ -101,7 +101,7 @@ enum PID_e {
 #define TS_READ8_BITS(buf, bitlen, off) ((TS_READ8(buf) >> (8 - off - bitlen)) & ((1 << bitlen) - 1))
 #define TS_READ16_BITS(buf, bitlen, off) ((TS_READ16(buf) >> (16 - off - bitlen)) & ((1 << bitlen) - 1))
 #define TS_READ32_BITS(buf, bitlen, off) ((TS_READ32(buf) >> (32 - off - bitlen)) & ((1 << bitlen) - 1))
-#define TS_READ64_BITS(buf, bitlen, off) ((TS_READ64(buf) >> (64 - off - bitlen)) & ((1 << bitlen) - 1))
+#define TS_READ64_BITS(buf, bitlen, off) ((TS_READ64(buf) >> (64 - off - bitlen)) & (((uint64_t)1 << bitlen) - 1))
 #define TS_READ24_BITS(buf, bitlen, off) ((TS_READ24(buf) >> (24 - off - bitlen)) & ((1 << bitlen) - 1))
 
 #define TS_READ_BITS_uint8_t(buf, bitlen, off) TS_READ8_BITS(buf, bitlen, off)
@@ -110,14 +110,14 @@ enum PID_e {
 #define TS_READ_BITS_uint64_t(buf, bitlen, off) TS_READ64_BITS(buf, bitlen, off)
 #define TS_READ_BITS_uint24_t(buf, bitlen, off) TS_READ64_BITS(buf, bitlen, off)
 
-#define PAT_SHOW 1
-#define CAT_SHOW 1<<1
-#define PMT_SHOW 1<<2
-#define TSDT_SHOW 1<<3
-#define NIT_SHOW 1<<4
-#define SDT_SHOW 1<<5
-#define BAT_SHOW 1<<6
-#define TDT_SHOW 1<<7
+#define PAT_SHOW 	1
+#define CAT_SHOW 	1<<1
+#define PMT_SHOW 	1<<2
+#define TSDT_SHOW 	1<<3
+#define NIT_SHOW 	1<<4
+#define SDT_SHOW 	1<<5
+#define BAT_SHOW 	1<<6
+#define TDT_SHOW 	1<<7
 
 struct tsa_config
 {
