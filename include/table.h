@@ -163,6 +163,7 @@ typedef struct
 	uint8_t current_next_indicator : 1;
 	uint8_t section_number;
 	uint8_t last_section_number;
+	uint64_t section_bitmap[4];
 	uint64_t program_bitmap[1024];
 	struct list_head h;
 	uint32_t crc32;
@@ -182,6 +183,7 @@ typedef struct
 	uint8_t current_next_indicator : 1;
 	uint8_t section_number;
 	uint8_t last_section_number;
+	uint64_t section_bitmap[4];
 	// struct descriptor *list; /*may have multicrypt CA descriptor here*/
 	struct list_head list;
 	uint32_t crc32;
@@ -212,6 +214,7 @@ typedef struct
 	uint8_t current_next_indicator : 1;
 	uint8_t section_number;
 	uint8_t last_section_number;
+	uint64_t section_bitmap[4];
 	uint16_t reserved2 : 3;
 	uint16_t PCR_PID : 13;
 	uint16_t reserved3 : 4;
@@ -245,6 +248,7 @@ typedef struct
 	uint8_t current_next_indicator : 1;
 	uint8_t section_number;
 	uint8_t last_section_number;
+	uint64_t section_bitmap[4];
 	uint16_t reserved2 : 4;
 	uint16_t network_descriptors_length : 12;
 	struct list_head list;
@@ -268,6 +272,7 @@ typedef struct
 	uint8_t current_next_indicator : 1;
 	uint8_t section_number;
 	uint8_t last_section_number;
+	uint64_t section_bitmap[4];
 	uint16_t reserved2 : 4;
 	uint16_t bouquet_descriptors_length : 12;
 	// struct descriptor * bouquet_desriptor_list;
@@ -304,9 +309,9 @@ typedef struct
 	uint8_t reserved1 : 2;
 	uint8_t version_number : 5;
 	uint8_t current_next_indicator : 1;
-	uint64_t section_bitmap[4];
 	uint8_t section_number;
 	uint8_t last_section_number;
+	uint64_t section_bitmap[4];
 	uint16_t original_network_id;
 	uint8_t reserved2;
 	struct list_head h;
@@ -338,6 +343,7 @@ typedef struct
 	uint8_t current_next_indicator : 1;
 	uint8_t section_number;
 	uint8_t last_section_number;
+	uint64_t section_bitmap[4];
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	uint8_t segment_last_section_number;
@@ -439,4 +445,4 @@ void free_tables(void);
 }
 #endif
 
-#endif
+#endif /* _TABLE_H_ */

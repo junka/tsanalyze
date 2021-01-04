@@ -79,8 +79,8 @@ extern "C" {
 
 struct service_info{
 	uint16_t service_id;
-	uint16_t service_type;
-};
+	uint8_t service_type;
+} __attribute__((packed));
 
 #define foreach_service_list_member	\
 	__mplast(struct service_info, services)

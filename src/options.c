@@ -178,8 +178,10 @@ int prog_parse_args(int argc, char **argv)
 
 	snprintf(tsaconf.name, 256, "%s", argv[argc - 1]);
 
-	if (tsaconf.type == UINT8_MAX)
+	if (tsaconf.type == UINT8_MAX) {
+		printf("file type not specified\n");
 		return -EINVAL;
+	}
 	if (tsaconf.type == 0) {
 		if (check_filepath_valid(argv[argc - 1]) < 0) {
 			printf("no such file or invalid filepath\n");
@@ -187,8 +189,10 @@ int prog_parse_args(int argc, char **argv)
 		}
 	}
 
-	if (tsaconf.output == UINT8_MAX)
+	if (tsaconf.output == UINT8_MAX) {
+		printf("output format not specified\n");
 		return -EINVAL;
+	}
 	res_settype(tsaconf.output);
 	res_open(argv[argc - 1]);
 

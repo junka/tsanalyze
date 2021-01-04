@@ -61,8 +61,9 @@ enum descriptor_e {
 #undef _
 };
 
+/* dump and skip reserved member field */
 #define DUMP_MEMBER(lv, dr, type, name)                                                                               \
-	if (strncmp(#name, "reserved", sizeof("reserved")))                                                                \
+	if (strncmp(#name, "reserved", sizeof("reserved")-1))                                                                \
 		rout(lv+1, "%s : 0x%x", #name, dr->name)
 
 /* see ISO/IEC 13818-1 chapter 2.6 */
@@ -495,19 +496,20 @@ extern struct descriptor_ops des_ops[];
 
 
 #define __mplast(type, name)                                                                                           \
-	int i = 0, psize = dr->name##_len, ret_##name = 0;															\
-	char buf_##name[512];	\
+	int i = 0, j = 0, psize = dr->name##_len, ret_##name = 0;                                                          \
+	char buf_##name[512];                                                                                              \
 	if (psize > 0) {                                                                                                   \
 		while (i < psize) {                                                                                            \
-		    ret_##name += snprintf(buf_##name + ret_##name, 512-ret_##name, " 0x%x", *(dr->name + i));                 \
-		    i++;                                                                                                       \
+		    ret_##name += snprintf(buf_##name + ret_##name, 512-ret_##name, " 0x%x", *(dr->name + j));                 \
+		    i += 8 * sizeof(type);                                                                                         \
+			j ++;                                                                                                      \
 		}                                                                                                              \
 	}                                                                                                                  \
 	rout(lv+1, "%s:%s", #name, buf_##name);
 
 #define __mif(type, name, cond, val)	\
 	if(dr->cond == val) { 				\
-		rout(lv+1,"");	\
+		DUMP_MEMBER(lv, dr, type, name);	\
 	}
 
 #define __mrangelv(type, length, name, cond, floor, ceiling)	

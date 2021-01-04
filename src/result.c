@@ -4,6 +4,7 @@
 
 #include "result.h"
 
+#define LINE_LEN (1024)
 static uint8_t outtype = RES_STD;
 
 struct res_ops rops[RES_NUM];
@@ -16,17 +17,17 @@ int res_settype(int t)
 
 int res_open(const char *filename)
 {
-	char outfile[1024] = {0};
+	char outfile[LINE_LEN] = {0};
 	if(outtype == RES_STD)
 		rops[outtype].f = stdout;
 	else if (outtype == RES_TXT)
 	{
-		snprintf(outfile, 1024, "%s.txt", filename);
+		snprintf(outfile, LINE_LEN, "%s.txt", filename);
 		rops[outtype].f = fopen(outfile, "w");
 	}
 	else if (outtype == RES_JSON)
 	{
-		snprintf(outfile, 1024, "%s.json", filename);
+		snprintf(outfile, LINE_LEN, "%s.json", filename);
 		rops[outtype].f = fopen(outfile, "w");
 	}
 	return 0;
@@ -35,17 +36,17 @@ int res_open(const char *filename)
 int res_put(int lv, const char *fmt, ...)
 {
 	va_list args;
-	char buf[1024] = {0};
+	char buf[LINE_LEN] = {0};
 	int ret = 0;
 	va_start(args, fmt);
 	if (lv == 0) {
-		ret += snprintf(buf + ret, 1024 - ret, "\n");
+		ret += snprintf(buf + ret, LINE_LEN - ret, "\n");
 	}
 	while(lv-- > 0) {
-		ret += snprintf(buf + ret, 1024 - ret, "  ");
+		ret += snprintf(buf + ret, LINE_LEN - ret, "  ");
 	}
-	ret += vsnprintf(buf + ret, 1024 - ret, fmt, args);
-	ret += snprintf(buf + ret, 1024 - ret, "\n");
+	ret += vsnprintf(buf + ret, LINE_LEN - ret, fmt, args);
+	ret += snprintf(buf + ret, LINE_LEN - ret, "\n");
 	ret = fprintf(rops[outtype].f, buf);
 	va_end(args);
 	return ret;    
