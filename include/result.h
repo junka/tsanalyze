@@ -26,6 +26,9 @@ int res_open(const char *filename);
 int res_put(int lv, const char *fmt, ...);
 int res_close(void);
 
+
+void res_hexdump(int lv, char * title, uint8_t *buf, uint32_t len);
+
 #define rout(l, ...) res_put(l, __VA_ARGS__)
 
 #ifdef __cplusplus
