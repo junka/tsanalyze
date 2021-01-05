@@ -648,18 +648,17 @@ struct crid {
 	__mplast(uint8_t, additional_info_byte)
 
 
-#define foreach_DTS_member
-#if 0
-	// 40bits
-	uint64_t sample_rate_code : 4;
-	uint64_t bit_rate_code : 6;
-	uint64_t nblks : 7;
-	uint64_t fsize : 14;
-	uint64_t surround_mode : 6;
-	uint64_t lfe_flag : 1;
-	uint64_t extended_surround_flag : 2;
-	uint8_t *additional_info_byte;
-#endif
+#define foreach_DTS_member	\
+	__m(uint32_t, sample_rate_code, 4)	\
+	__m(uint32_t, bit_rate_code, 6)	\
+	__m(uint32_t, nblks, 7)		\
+	__m(uint32_t, fsize, 14)	\
+	__m(uint32_t, surround_mode_h, 1)	\
+	__m(uint8_t, surround_mode, 5)	\
+	__m(uint8_t, lfe_flag, 1)	\
+	__m(uint8_t, extended_surround_flag, 2)	\
+	__mplast(uint8_t, additional_info_byte)
+
 
 #define foreach_AAC_member	\
 	__m1(uint8_t, profile_and_level)	\

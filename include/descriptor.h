@@ -212,6 +212,7 @@ struct language_node
 	__mlv(uint8_t, selector_byte_length, selector_byte)	\
 	__mplast(uint8_t, private_data_byte)
 
+/* see TR 101 202*/
 #define foreach_deferred_association_tags_member	\
 	__m1(uint8_t, association_tags_loop_length)	    \
 	__mlv(uint16_t, association_tags_loop_length, association_tag)	\
@@ -496,18 +497,19 @@ extern struct descriptor_ops des_ops[];
 
 #define __m1(type, name) DUMP_MEMBER(lv, dr, type, name);
 
-
 #define __mplast(type, name)                                                                                           \
 	int i = 0, j = 0, psize = dr->name##_len, ret_##name = 0;                                                          \
-	char buf_##name[512];                                                                                              \
-	if (psize > 0) {                                                                                                   \
-		while (i < psize) {                                                                                            \
-		    ret_##name += snprintf(buf_##name + ret_##name, 512-ret_##name, " 0x%x", *(dr->name + j));                 \
-		    i += 8 * sizeof(type);                                                                                     \
-			j ++;                                                                                                      \
+	if (sizeof(type) == 1) {                                                                                           \
+		res_hexdump(lv+1, #name, dr->name, psize);                                                                     \
+	} else {                                                                                                           \
+			char buf_##name[2048];                                                                                     \
+			while (i < psize) {                                                                                        \
+			ret_##name += snprintf(buf_##name + ret_##name, 2048-ret_##name, " 0x%x", *(dr->name + j));               \
+			i += sizeof(type);                                                                                        \
+			j ++;                                                                                                     \
 		}                                                                                                              \
-	}                                                                                                                  \
-	rout(lv+1, "%s:%s", #name, buf_##name);
+		rout(lv+1, "%s:%s", #name, buf_##name);                                                                        \
+	}
 
 #define __mif(type, name, cond, val)	\
 	if(dr->cond == val) { 				\
@@ -517,20 +519,25 @@ extern struct descriptor_ops des_ops[];
 #define __mrangelv(type, length, name, cond, floor, ceiling)	
 
 #define __mlv(type, length, name)	\
-	int i_##name = 0, ret_##name = 0;	\
-	char buf_##name[512];	\
-	if (dr->length > 0) {	                                                                                       \
-	    while (i_##name < (int)dr->length) {                                                                                         \
-			ret_##name += snprintf(buf_##name + ret_##name, 512-ret_##name, " 0x%x", *(dr->name + i_##name));                        \
-		    i_##name ++;                                                                                                       \
-		}			\
-		rout(lv+1, "%s:%s", #name, buf_##name);							\
+	int i_##name = 0, j_##name = 0, ret_##name = 0;	\
+	if (sizeof(type) == 1) {                                                                                           \
+		res_hexdump(lv+1, #name, dr->name, dr->length);                                                                     \
+	} else{   \
+		char buf_##name[512];	\
+		if (dr->length > 0) {	                                                                                        \
+			while (i_##name < (int)dr->length) {                                                                         \
+				ret_##name += snprintf(buf_##name + ret_##name, 512-ret_##name, " 0x%x", *(dr->name + j_##name));        \
+				i_##name += sizeof(type);                                                                                             \
+				j_##name ++ ;	\
+			}			\
+			rout(lv+1, "%s:%s", #name, buf_##name);							\
+		}	\
 	}
 
 #define __mploop(type, name, length)
 
 #define _(desname, val)                                                                                                \
-	static inline void dump_##desname##_descriptor(int lv, descriptor_t *p_dr)                                \
+	static void dump_##desname##_descriptor(int lv, descriptor_t *p_dr)                                \
 	{                                                                                                                  \
 		desname##_descriptor_t *dr = container_of(p_dr, desname##_descriptor_t, descriptor);                           \
 		rout(lv, "0x%02x (%s) : len %d", dr->descriptor.tag, des_ops[p_dr->tag].tag_name, p_dr->length);                \
