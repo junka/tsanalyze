@@ -425,9 +425,11 @@ struct multilingual_service_node {
 #define foreach_DSNG_member	\
 	__mplast(uint8_t, byte)
 
+/* see definition in EN 300 468, modified to algin*/
 #define foreach_PDC_member	\
-	__m(uint32_t, reserved_for_futrue, 4)	\
-	__m(uint32_t, programme_identification_label, 20) // 20bit
+	__m(uint8_t, reserved_for_futrue, 4)	\
+	__m(uint8_t, programme_identification_label_h, 4)	\
+	__m1(uint16_t, programme_identification_label) // 20bit
 
 #define foreach_AC3_member	\
 	__m(uint8_t, component_type_flag, 1)	\
@@ -496,7 +498,8 @@ struct cell_frequency_node {
 };
 
 //TODO
-#define foreach_cell_frequency_link_member	
+#define foreach_cell_frequency_link_member 
+
 
 /*Announcement support descriptor*/
 struct announcement_support_indicator {
@@ -531,9 +534,16 @@ struct announcement_node {
 	__m1(uint16_t, announcement_support_indicator)	\
 	__mplast(struct announcement_node, announcement_support)
 
+struct application_signalling {
+	uint16_t reserved:1;
+	uint16_t application_type:15;
+	uint8_t reserved1:3;
+	uint8_t AIT_version_number:5;
+}__attribute__((packed));
 
-//TODO
-#define foreach_application_signalling_member
+/*see definition in ETSI TS 102 809*/
+#define foreach_application_signalling_member	\
+	__mplast(struct application_signalling, signalling)
 
 /*adaptation_field_data_descriptor*/
 struct adaptation_field_data_identifier {
@@ -547,7 +557,9 @@ struct adaptation_field_data_identifier {
 #define foreach_adaptation_field_data_member	\
 	__m1(uint8_t, adaptation_field_data_identifier)
 
-#define foreach_service_identifier_member	
+/*see definition in ETSI TS 102 812*/
+#define foreach_service_identifier_member \
+	__mplast(uint8_t, textual_service_identifier_bytes)
 
 #define foreach_service_availability_member	\
 	__m(uint8_t, availability_flag, 1)	\
@@ -555,17 +567,59 @@ struct adaptation_field_data_identifier {
 	__mplast(uint16_t, cell_id)
 
 
-#define foreach_default_authority_member
+/* see ETSI TS 102 323 for TV-Anytime information below */
+#define foreach_default_authority_member	\
+	__mplast(uint8_t, default_authority_byte)
 
-#define foreach_related_content_member
+//TODO
+/*see ETSI TS 102 323*/
+#define foreach_related_content_member	\
+	__mplast(uint8_t, related_content_bytes)
 
-#define foreach_TVA_id_member
 
-#define foreach_content_identifier_member
+struct TVA_id {
+	uint16_t TVA_id;
+	uint8_t reserved : 5;
+	uint8_t running_status : 3;
+}__attribute__((packed));
 
-#define foreach_time_slice_fec_identifier_member
+/*see ETSI TS 102 323*/
+#define foreach_TVA_id_member	\
+	__mplast(struct TVA_id, TVA_ids)
 
-#define foreach_ECM_repetition_rate_member
+struct crid {
+	uint8_t type : 6;
+	uint8_t location : 2;
+	union {
+		struct {
+			uint8_t length;
+			uint8_t byte[0]; 
+		};
+		uint16_t ref;
+	};
+};
+
+//TODO
+/*see ETSI TS 102 323*/
+#define foreach_content_identifier_member	\
+	__mplast(uint8_t, content_identifier_byte)
+
+/*see ETSI EN 301 192 */
+#define foreach_time_slice_fec_identifier_member	\
+	__m(uint8_t, time_slicing, 1)	\
+	__m(uint8_t, mpe_fec, 2)	\
+	__m(uint8_t, reserved, 2)	\
+	__m(uint8_t, frame_size, 3)	\
+	__m1(uint8_t, max_burst_duration) \
+	__m(uint8_t, max_average_rate, 4)	\
+	__m(uint8_t, time_slice_fec_id, 4)	\
+	__mplast(uint8_t, id_selector_byte)
+
+/*see ETSI EN 301 192 */
+#define foreach_ECM_repetition_rate_member	\
+	__m1(uint16_t, CA_system_ID)	\
+	__m1(uint16_t, ECM_repetition_rate)	\
+	__mplast(uint8_t, private_data_byte)
 
 #define foreach_S2_satellite_delivery_system_member	\
 	__m(uint8_t, scrambling_sequence_selector, 1)	\
@@ -615,8 +669,12 @@ struct adaptation_field_data_identifier {
 	__m1(uint8_t, AAC_type)	\
 	__mplast(uint8_t, additional_info_byte)
 
-
-#define foreach_XAIT_location_member
+/*see definition in ETSI TS 102 727 */
+#define foreach_XAIT_location_member \
+	__m1(uint16_t, xait_original_network_id)	\
+	__m1(uint16_t, xait_service_id)	\
+	__m(uint8_t, xait_version_number, 5)	\
+	__m(uint8_t, xait_update_policy, 3)
 
 #define foreach_FTA_content_management_member	\
 	__m(uint8_t, user_defined, 1)	\

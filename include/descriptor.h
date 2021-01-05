@@ -276,8 +276,6 @@ struct FMC_node
 
 #define foreach_FMC_member \
 	__mplast(struct FMC_node, FMCs)
-//	struct list_head list;
-// struct FMC_info *FMC_info_list;
 
 #define foreach_external_ES_ID_member \
 	__m1(uint16_t, external_ES_ID)
@@ -462,10 +460,14 @@ foreach_enum_descriptor
 	while(len - bytes_off) { \
 		dr->name##_num ++;	\
 		dr->name = (type *)realloc(dr->name, sizeof(type) * dr->name##_num);	\
-		memcpy(dr->name + dr->name##_num, buf+ bytes_off, offsetof(type, length));	\
+		memcpy(dr->name + dr->name##_num - 1, buf + bytes_off, offsetof(type, length));	\
 		bytes_off += offsetof(type, length);	\
-		dr->name[dr->name##_num - 1].length = TS_READ8(buf+ bytes_off);	\
-		bytes_off += 1 + dr->name[dr->name##_num-1].length;	\
+		dr->name[dr->name##_num - 1].length = TS_READ8(buf + bytes_off);	\
+		bytes_off += 1;	\
+		uint8_t *v = (uint8_t *)(dr->name + dr->name##_num - 1); \
+		v += offsetof(type, length) + sizeof(dr->name[dr->name##_num - 1].length); \
+		memcpy(v, buf + bytes_off, dr->name[dr->name##_num - 1].length);	\
+		bytes_off += dr->name[dr->name##_num - 1].length; \
 	}
 
 #define _(desname, val)                                                                                                \
@@ -501,7 +503,7 @@ extern struct descriptor_ops des_ops[];
 	if (psize > 0) {                                                                                                   \
 		while (i < psize) {                                                                                            \
 		    ret_##name += snprintf(buf_##name + ret_##name, 512-ret_##name, " 0x%x", *(dr->name + j));                 \
-		    i += 8 * sizeof(type);                                                                                         \
+		    i += 8 * sizeof(type);                                                                                     \
 			j ++;                                                                                                      \
 		}                                                                                                              \
 	}                                                                                                                  \

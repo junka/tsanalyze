@@ -58,7 +58,7 @@ struct caption_service_info {
     uint16_t easy_reader : 1;
     uint16_t wide_aspect_ratio : 1;
     uint16_t reserved1 : 14;
-};
+}__attribute__((packed));
 
 #define foreach_caption_service_member \
     __m(uint8_t, reserved, 3)   \

@@ -5,3 +5,13 @@ build/*
 autom4te.cache/*
 config*
 src/.deps/*
+src/.dirstamp
+depcomp
+tsanalyze
+missing
+install-sh
+compile
+*.m4
+stamp-h1
+Makefile.in
+Makefile

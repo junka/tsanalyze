@@ -15,3 +15,6 @@ options: -f [udp][file]   support file and udp stream analyze
 options: -s [pat][cat][pmt][tsdt][nit][sdt][bat][tdt] output table selected
 options: -o [stdout][txt][json] output to file or terminal format
 ```
+
+# descriptor
+not all descriptor implemented now, see ```doc/descriptor.md``` to add new descriptors

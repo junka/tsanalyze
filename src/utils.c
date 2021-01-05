@@ -33,7 +33,7 @@ void hexdump(uint8_t *buf, uint32_t len)
 
 char *convert_UTC(UTC_time_t *t)
 {
-	static char str[19] = { 0 };
+	static char str[20] = { 0 };
 	/*16bits lsb MJB + 24 bits BCD*/
 	uint16_t mjd = (((uint16_t)t->time[0] << 8) | (t->time[1]));
 	uint8_t hour = t->time[2];
@@ -53,6 +53,6 @@ char *convert_UTC(UTC_time_t *t)
 	Y = Y1 + K + 1900;
 	M = M1 - 1 - K * 12;
 
-	snprintf(str, 18, "%d/%d/%d %02x:%02x:%02x", Y, M, D, hour, min, sec);
+	snprintf(str, 20, "%04d/%02d/%02d %02d:%02d:%02d", Y, M, D, hour, min, sec);
 	return str;
 }
