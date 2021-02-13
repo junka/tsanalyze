@@ -358,6 +358,56 @@ void free_tables(void)
 	res_close();
 }
 
+/* refer to wiki of psi, also see iso 13818-1 */
+int parse_section_header(uint8_t *pbuf, uint16_t buf_size, void *ptable)
+{
+	if (unlikely(pbuf == NULL || ptable == NULL)) {
+		return NULL_PTR;
+	}
+	uint16_t section_len = 0;
+	uint8_t current_next_indicator;
+	uint8_t version_num, last_sec, cur_sec;
+	uint8_t *pdata = pbuf;
+	
+	uint16_t tableid_ext;  //PAT uses this for tsid and PMT use this for program number
+
+	uint8_t tableid = TS_READ8(pdata);
+	pdata += 1;
+
+	/* A flag indicates if the syntax section follows the section length,
+	 the PAT, PMT, and CAT all set this to 1 */
+	uint8_t syntax_bit = TS_READ_BIT(pdata, 7);
+
+	// the PAT, PMT, and CAT all set this to 0, others set this to 1
+	uint8_t private_bit = TS_READ_BIT(pdata, 6);
+	//skip two bits for reserved
+
+	/* section length  the first two bits of which shall be '00'.
+	 The remaining 10 bits specify the number of bytes of the section, 
+	 starting immediately following the section_length field, and 
+	 including the CRC. The value in this field shall not exceed 1021 (0x3FD).*/
+	section_len = TS_READ16(pdata) & 0x0FFF;
+	pdata += 2;
+	if (unlikely(section_len > 0x3FD))
+	{
+		return INVALID_SEC_LEN;
+	}
+	tableid_ext = TS_READ16(pdata);
+	pdata += 2;
+	version_num = TS_READ8_BITS(pdata, 5, 1);
+	current_next_indicator = TS_READ_BIT(pdata, 0);
+	pdata += 1;
+	cur_sec =  TS_READ8(pdata);
+	pdata += 1;
+	last_sec =  TS_READ8(pdata);
+	pdata += 1;
+	
+	/*syntax section, table data. concat them if there are multiple sections */
+	
+
+	return 0;
+}
+
 int parse_pat(uint8_t *pbuf, uint16_t buf_size, pat_t *pPAT)
 {
 	uint16_t section_len = 0;
@@ -931,16 +981,21 @@ static int nit_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t
 
 static int sdt_bat_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
 {
-	if (pkt[0] == BAT_TID) {
+	switch (pkt[0]) {
+	case BAT_TID:
 		psi.stats.bat_sections++;
 		parse_bat(pkt, len, &(psi.bat));
-	} else if (pkt[0] == SDT_ACTUAL_TID) {
+		break;
+	case SDT_ACTUAL_TID:
 		psi.stats.sdt_actual_sections++;
 		parse_sdt(pkt, len, &(psi.sdt_actual));
-	} else if (pkt[0] == SDT_OTHER_TID) {
+		break;
+	case SDT_OTHER_TID:
 		psi.stats.sdt_other_sections++;
 		parse_sdt(pkt, len, &(psi.sdt_other));
-
+		break;
+	default:
+		break;
 	}
 	return 0;
 }
@@ -954,12 +1009,15 @@ static int eit_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t
 
 static int tdt_tot_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
 {
-	if (TDT_TID == pkt[0]) {
+	switch (pkt[0]) {
+	case TDT_TID:
 		psi.stats.tdt_sections++;
 		parse_tdt(pkt, len, &psi.tdt);
-	} else if (TOT_TID == pkt[0]) {
+		break;
+	case TOT_TID:
 		psi.stats.tot_sections++;
 		parse_tot(pkt, len, &psi.tot);
+		break;
 	}
 	return 0;
 }

@@ -537,7 +537,7 @@ extern struct descriptor_ops des_ops[];
 #define __mploop(type, name, length)
 
 #define _(desname, val)                                                                                                \
-	static void dump_##desname##_descriptor(int lv, descriptor_t *p_dr)                                \
+	inline static void dump_##desname##_descriptor(int lv, descriptor_t *p_dr)                                \
 	{                                                                                                                  \
 		desname##_descriptor_t *dr = container_of(p_dr, desname##_descriptor_t, descriptor);                           \
 		rout(lv, "0x%02x (%s) : len %d", dr->descriptor.tag, des_ops[p_dr->tag].tag_name, p_dr->length);                \
