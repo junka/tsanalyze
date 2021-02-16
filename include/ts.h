@@ -11,6 +11,7 @@ extern "C" {
 #define TS_DVHS_PACKET_SIZE 192
 #define TS_FEC_PACKET_SIZE 204
 #define TS_MAX_PACKET_SIZE 204
+#define TS_MAX_PID 8191
 
 #define TS_SYNC_BYTE (0x47)
 
@@ -122,8 +123,7 @@ enum PID_e {
 struct tsa_config
 {
 	char name[256]; // filename
-	uint16_t pids[4096];
-	uint8_t tids[256];
+	uint8_t pids[TS_MAX_PID];
 	uint8_t type;
 	uint8_t brief : 1;
 	uint8_t detail : 1;

@@ -141,6 +141,27 @@ typedef enum {
 	/* 0x80 - 0xFF: User Private */
 } StreamType_E;
 
+
+struct table_header
+{
+	uint8_t table_id; /* 0x00 */
+	uint16_t section_syntax_indicator : 1;
+	uint16_t private_bit : 1;
+	uint16_t reserved : 2;
+	uint16_t section_length : 12;
+	uint16_t table_id_ext;
+	uint8_t reserved1 : 2;
+	uint8_t version_number : 5;
+	uint8_t current_next_indicator : 1;
+	uint8_t section_number;
+	uint8_t last_section_number;
+	uint64_t section_bitmap[4];
+	uint64_t program_bitmap[1024];
+	struct list_head h;
+	uint8_t private_data_byte[4096];
+	uint32_t crc32;
+};
+
 /* INFO int PAT */
 struct program_node
 {

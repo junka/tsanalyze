@@ -221,6 +221,8 @@ void dump_tables(void)
 	struct tsa_config *tsaconf = get_config();
 	if (tsaconf->brief == 0)
 		return;
+
+	/*show all tables in default */
 	if (tsaconf->tables == 0)
 		tsaconf->tables = UINT8_MAX;
 
@@ -358,8 +360,8 @@ void free_tables(void)
 	res_close();
 }
 
-/* refer to wiki of psi, also see iso 13818-1 */
-int parse_section_header(uint8_t *pbuf, uint16_t buf_size, void *ptable)
+/* refer to wiki of psi, also see iso 13818-1 Table 2-30 */
+int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *ptable)
 {
 	if (unlikely(pbuf == NULL || ptable == NULL)) {
 		return NULL_PTR;
@@ -380,6 +382,7 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, void *ptable)
 
 	// the PAT, PMT, and CAT all set this to 0, others set this to 1
 	uint8_t private_bit = TS_READ_BIT(pdata, 6);
+
 	//skip two bits for reserved
 
 	/* section length  the first two bits of which shall be '00'.
@@ -388,23 +391,52 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, void *ptable)
 	 including the CRC. The value in this field shall not exceed 1021 (0x3FD).*/
 	section_len = TS_READ16(pdata) & 0x0FFF;
 	pdata += 2;
-	if (unlikely(section_len > 0x3FD))
+	if (syntax_bit == 1 && (section_len > 0x3FD))
 	{
 		return INVALID_SEC_LEN;
 	}
-	tableid_ext = TS_READ16(pdata);
-	pdata += 2;
-	version_num = TS_READ8_BITS(pdata, 5, 1);
-	current_next_indicator = TS_READ_BIT(pdata, 0);
-	pdata += 1;
-	cur_sec =  TS_READ8(pdata);
-	pdata += 1;
-	last_sec =  TS_READ8(pdata);
-	pdata += 1;
-	
-	/*syntax section, table data. concat them if there are multiple sections */
-	
+	else if (syntax_bit == 0 && (section_len > 0xFFD))
+	{
+		return INVALID_SEC_LEN;
+	}
 
+	
+	if (syntax_bit == 0) {
+		// if (buf_size - 3 > section_len)
+			memcpy(ptable->private_data_byte, pdata, buf_size - 3);
+	} else {
+		tableid_ext = TS_READ16(pdata);
+		pdata += 2;
+		version_num = TS_READ8_BITS(pdata, 5, 1);
+		current_next_indicator = TS_READ_BIT(pdata, 0);
+		pdata += 1;
+		cur_sec =  TS_READ8(pdata);
+		pdata += 1;
+		last_sec =  TS_READ8(pdata);
+		pdata += 1;
+		
+		/*syntax section, table data. concat them if there are multiple sections */
+
+		/* clear list when version update */
+		if (version_num > ptable->version_number ||
+				(ptable->version_number == 0x1F && version_num != 0x1F)) {
+			
+		}
+
+		if (version_num == ptable->version_number && last_sec == ptable->last_section_number && !list_empty(&(ptable->h))) {
+			return -1;
+		}
+
+		if ((ptable->section_bitmap[cur_sec / 64] & ((uint64_t)1 << (cur_sec % 64)))) {
+			return -1;
+		}
+		ptable->section_bitmap[cur_sec / 64] |= ((uint64_t)1 << (cur_sec % 64));
+		memcpy(ptable->private_data_byte, pdata, buf_size - 8);
+		
+		
+		/*tell us buffering*/
+		return 1;
+	}
 	return 0;
 }
 
@@ -1022,6 +1054,34 @@ static int tdt_tot_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint
 	return 0;
 }
 
+static int default_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
+{
+	switch (pid)
+	{
+		case PAT_PID:
+			pat_proc(pid, pkt, len);
+			break;
+		case CAT_PID:
+			cat_proc(pid, pkt, len);
+			break;
+		case NIT_PID:
+			nit_proc(pid, pkt, len);
+			break;
+		case EIT_PID:
+			eit_proc(pid, pkt, len);
+			break;
+		case SDT_PID:
+			sdt_bat_proc(pid, pkt, len);
+			break;
+		case TDT_PID:
+			tdt_tot_proc(pid, pkt, len);
+			break;
+		default:
+			break;
+	}
+	return 0;
+}
+
 static void init_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask, filter_cb func)
 {
 	filter_t *f = filter_alloc(pid);
@@ -1048,7 +1108,18 @@ static void uninit_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask)
 
 void init_table_ops(void)
 {
+	struct tsa_config *tsaconf = get_config();
+	int pid = 0;
 	psi_table_init();
+	for (int i = 0; i < TS_MAX_PID; i ++) {
+		if (tsaconf->pids[i] == 1)
+		{
+			pid = 1;
+			init_table_filter(i, 0, 0, default_proc);
+		}
+	}
+	if (pid == 1)
+		return;
 
 	init_table_filter(PAT_PID, PAT_TID, 0xFF, pat_proc);
 	init_table_filter(CAT_PID, CAT_TID, 0xFF, cat_proc);

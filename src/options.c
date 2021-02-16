@@ -93,6 +93,15 @@ uint8_t parse_output_type(const char *format)
 	return UINT8_MAX;
 }
 
+/* return the number of pids*/
+void parse_selected_pids(const char *format)
+{
+	int pid = atoi(format);
+	if (pid < 0 || pid > TS_MAX_PID)
+		return;
+	tsaconf.pids[pid] = 1;
+}
+
 void prog_usage(FILE *fp, const char *pro_name)
 {
 	if (fp == NULL)
@@ -102,9 +111,9 @@ void prog_usage(FILE *fp, const char *pro_name)
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_HELP_NUM, ", --" OPT_HELP, "Show this help");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_FORMAT_NUM, ", --" OPT_FORMAT, "Select input format [udp][file]");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_BRIEF_LIST_NUM, ", --" OPT_BRIEF_LIST, "Show all infos in brief");
-	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_DETAIL_LIST_NUM, ", --" OPT_DETAIL_LIST, "Show all infos in detail");
+	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_DETAIL_LIST_NUM, ", --" OPT_DETAIL_LIST, "Show all ts infos");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_VERSION_NUM, ", --" OPT_VERSION, "Show version");
-	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_MEMORY_NUM, ", --" OPT_MEMORY, "memory to use");
+	/*fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_MEMORY_NUM, ", --" OPT_MEMORY, "memory to use");*/
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_TABLE_NUM, ", --" OPT_TABLE, "Show table [pat][cat][pmt][tsdt][nit][sdt][bat][tdt]");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_PID_NUM, ", --" OPT_PID, "Show select pid only");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_OUT_NUM, ", --" OPT_OUT, "Save output to [stdout][txt][json]");
@@ -170,6 +179,9 @@ int prog_parse_args(int argc, char **argv)
 			break;
 		case 'v':
 			printf("version 1.0.0rc.\n");
+			break;
+		case 'p':
+			parse_selected_pids(optarg);
 			break;
 		default:
 			break;
