@@ -15,6 +15,10 @@ static mpeg_psi_t psi;
 int psi_table_init(void)
 {
 	int i = 0;
+
+	memset(psi.pat.pat_header.section_bitmap, 0, sizeof(uint64_t) * 4);
+	psi.pat.pat_header.version_number = 0x1F;
+
 	list_head_init(&(psi.pat.h));
 	list_head_init(&(psi.cat.list));
 	for (i = 0; i < 8192; i++) {
@@ -68,6 +72,18 @@ static char const *get_stream_type(uint8_t type)
 		return "User Private";
 }
 
+static void dump_section_header(const char *table_name, struct table_header *hdr)
+{
+	if (hdr == NULL)
+		return;
+	rout(0,"%s", table_name);
+	rout(1,"section_length: %d", hdr->section_length);
+	if (hdr->section_syntax_indicator == 1)
+		rout(1,"transport_stream_id : %d", hdr->table_id_ext);
+	rout(1,"version_number      : %d", hdr->version_number);
+	rout(1,"active              : 0x%x", hdr->current_next_indicator);
+}
+
 static void dump_pat(pat_t *p_pat)
 {
 	if (p_pat == NULL)
@@ -75,16 +91,12 @@ static void dump_pat(pat_t *p_pat)
 
 	struct program_node *pn = NULL;
 
-	rout(0,"PAT");
-	rout(1,"section_length: %d", p_pat->section_length);
-	rout(1,"transport_stream_id : %d", p_pat->transport_stream_id);
-	rout(1,"version_number      : %d", p_pat->version_number);
+	dump_section_header("PAT", &p_pat->pat_header);
 	rout(2,"program_number @ PMT_PID");
 	list_for_each(&p_pat->h, pn, n)
 	{
 		rout(2,"%14d @ 0x%x (%d)", pn->program_number, pn->program_map_PID, pn->program_map_PID);
 	}
-	rout(1,"  active              : 0x%x", p_pat->current_next_indicator);
 }
 
 static void dump_cat(cat_t *p_cat)
@@ -92,8 +104,7 @@ static void dump_cat(cat_t *p_cat)
 	descriptor_t *pn = NULL;
 	CA_descriptor_t *ca = NULL;
 
-	rout(0,"CAT");
-	rout(1,"version number %d", p_cat->version_number);
+	dump_section_header("CAT", &p_cat->cat_header);
 	list_for_each(&(p_cat->list), pn, n)
 	{
 		ca = (CA_descriptor_t *)pn;
@@ -226,8 +237,6 @@ void dump_tables(void)
 	if (tsaconf->tables == 0)
 		tsaconf->tables = UINT8_MAX;
 
-	int i = 0;
-
 	if (psi.stats.pat_sections && (tsaconf->tables & PAT_SHOW))
 		dump_pat(&psi.pat);
 	if (psi.ca_num > 0 && (tsaconf->tables & CAT_SHOW)) {
@@ -235,7 +244,7 @@ void dump_tables(void)
 	}
 	// pid
 	if (tsaconf->tables & PMT_SHOW) {
-		for (i = 0x10; i < 0x2000; i++) {
+		for (int i = 0x10; i < 0x2000; i++) {
 			if (psi.pmt_bitmap[i / 64] & ((uint64_t)1 << (i % 64))) {
 				dump_pmt(&psi.pmt[i], i);
 			}
@@ -263,10 +272,10 @@ void dump_tables(void)
 void free_tables(void)
 {
 	int i = 0;
-	struct program_node *pn, *pat_next = NULL;
-	struct es_node *no, *pmt_next = NULL;
+	struct program_node *pn = NULL, *pat_next = NULL;
+	struct es_node *no = NULL, *pmt_next = NULL;
 	struct service_node *sn = NULL, *sdt_next = NULL;
-	struct transport_stream_node *tn, *nit_next = NULL, *bat_next = NULL;
+	struct transport_stream_node *tn = NULL, *nit_next = NULL, *bat_next = NULL;
 	if (psi.stats.pat_sections){
 		if (!list_empty(&(psi.pat.h))) {
 			list_for_each_safe(&psi.pat.h, pn, pat_next, n)
@@ -360,28 +369,56 @@ void free_tables(void)
 	res_close();
 }
 
+static void clear_sections(struct section_node *nodes, int num)
+{
+	for (int i = 0; i < num; i ++)
+	{
+		if (nodes[i].ptr != NULL)
+			free(nodes[i].ptr);
+		nodes[i].len = 0;
+	}
+}
+
+static uint8_t * concat_sections(struct section_node *nodes, int total_length, int num)
+{
+	int len = 0;
+	uint8_t *ret = malloc(total_length);
+	for (int i = 0; i < num; i ++)
+	{
+		memcpy(ret + len, nodes[i].ptr, nodes[i].len); 
+		len += nodes[i].len;
+	}
+	if (len != total_length)
+	{
+		free(ret);
+		return NULL;
+	}
+	clear_sections(nodes, num);
+	return ret;
+}
+
 /* refer to wiki of psi, also see iso 13818-1 Table 2-30 */
 int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *ptable)
 {
+
 	if (unlikely(pbuf == NULL || ptable == NULL)) {
 		return NULL_PTR;
 	}
 	uint16_t section_len = 0;
-	uint8_t current_next_indicator;
-	uint8_t version_num, last_sec, cur_sec;
 	uint8_t *pdata = pbuf;
 	
-	uint16_t tableid_ext;  //PAT uses this for tsid and PMT use this for program number
-
 	uint8_t tableid = TS_READ8(pdata);
 	pdata += 1;
+	ptable->table_id = tableid;
 
 	/* A flag indicates if the syntax section follows the section length,
 	 the PAT, PMT, and CAT all set this to 1 */
 	uint8_t syntax_bit = TS_READ_BIT(pdata, 7);
+	ptable->section_syntax_indicator = syntax_bit;
 
 	// the PAT, PMT, and CAT all set this to 0, others set this to 1
 	uint8_t private_bit = TS_READ_BIT(pdata, 6);
+	ptable->private_bit = private_bit;
 
 	//skip two bits for reserved
 
@@ -391,20 +428,26 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 	 including the CRC. The value in this field shall not exceed 1021 (0x3FD).*/
 	section_len = TS_READ16(pdata) & 0x0FFF;
 	pdata += 2;
-	if (syntax_bit == 1 && (section_len > 0x3FD))
-	{
+	if (syntax_bit == 1 && (section_len > 0x3FD)) {
+		return INVALID_SEC_LEN;
+	} else if (syntax_bit == 0 && (section_len > 0xFFD)) {
 		return INVALID_SEC_LEN;
 	}
-	else if (syntax_bit == 0 && (section_len > 0xFFD))
-	{
-		return INVALID_SEC_LEN;
-	}
-
 	
 	if (syntax_bit == 0) {
-		// if (buf_size - 3 > section_len)
-			memcpy(ptable->private_data_byte, pdata, buf_size - 3);
+		ptable->section_length = section_len;
+		if (ptable->sections[0].ptr)
+			free(ptable->sections[0].ptr);
+		ptable->sections[0].len = buf_size - 3;
+		ptable->sections[0].ptr = malloc(buf_size - 3);
+		memcpy(ptable->sections[0].ptr, pdata, buf_size - 3);
+		ptable->private_data_byte = ptable->sections[0].ptr;
 	} else {
+
+		uint8_t current_next_indicator;
+		uint8_t version_num, last_sec, cur_sec;
+		uint16_t tableid_ext;  //PAT uses this for tsid and PMT use this for program number
+
 		tableid_ext = TS_READ16(pdata);
 		pdata += 2;
 		version_num = TS_READ8_BITS(pdata, 5, 1);
@@ -415,27 +458,42 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 		last_sec =  TS_READ8(pdata);
 		pdata += 1;
 		
+		// printf("%d, %d\n", version_num, last_sec);
 		/*syntax section, table data. concat them if there are multiple sections */
 
 		/* clear list when version update */
 		if (version_num > ptable->version_number ||
-				(ptable->version_number == 0x1F && version_num != 0x1F)) {
-			
+			(ptable->version_number == 0x1F && version_num != 0x1F))
+		{
+			if (ptable->private_data_byte)
+				free(ptable->private_data_byte);
+			clear_sections(ptable->sections, ptable->last_section_number + 1);
+			memset(ptable->section_bitmap, 0, sizeof(uint64_t) * 4);
+			ptable->version_number = version_num;
 		}
 
-		if (version_num == ptable->version_number && last_sec == ptable->last_section_number && !list_empty(&(ptable->h))) {
-			return -1;
-		}
+		ptable->section_length = section_len;
+		ptable->table_id_ext = tableid_ext;
+		ptable->last_section_number = last_sec;
+		ptable->current_next_indicator = current_next_indicator;
 
+		//old data come again, ignore
 		if ((ptable->section_bitmap[cur_sec / 64] & ((uint64_t)1 << (cur_sec % 64)))) {
-			return -1;
+			return DUPLICATE_DATA;
 		}
 		ptable->section_bitmap[cur_sec / 64] |= ((uint64_t)1 << (cur_sec % 64));
-		memcpy(ptable->private_data_byte, pdata, buf_size - 8);
-		
+
+
+		ptable->sections[cur_sec].len = buf_size - 3;
+		ptable->sections[cur_sec].ptr = malloc(buf_size - 3);
+		memcpy(ptable->sections[cur_sec].ptr, pdata, buf_size - 8);
 		
 		/*tell us buffering*/
-		return 1;
+		if(bitmap64_full(ptable->section_bitmap, last_sec) != 0)
+			return 1;
+		
+		ptable->private_data_byte = concat_sections(ptable->sections, ptable->section_length,
+				 ptable->last_section_number + 1);
 	}
 	return 0;
 }
@@ -443,69 +501,32 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 int parse_pat(uint8_t *pbuf, uint16_t buf_size, pat_t *pPAT)
 {
 	uint16_t section_len = 0;
-	uint8_t version_num, last_sec, cur_sec;
 	uint16_t program_num, program_map_PID;
-	uint8_t *pdata = pbuf;
+	uint8_t *pdata = NULL;
 	uint16_t ts_id;
 	struct program_node *pn = NULL, *next = NULL;
 
-	if (unlikely(pbuf == NULL || pPAT == NULL)) {
-		return NULL_PTR;
+	int ret = parse_section_header(pbuf, buf_size, &pPAT->pat_header);
+	if (ret != 0) {
+		// printf("aaa ret %d\n", ret);
+		return ret;
 	}
-
-	pPAT->table_id = TS_READ8(pdata);
-	if (unlikely(pPAT->table_id != PAT_TID)) {
-		return INVALID_TID;
-	}
-
-	section_len = ((pdata[1] << 8) | pdata[2]) & 0x0FFF;
-	if (unlikely(section_len > 0x3FD)) // For pat , maximum
-	{
-		return INVALID_SEC_LEN;
-	}
-	if (!(pdata[5] & 0x01)) {
-		return -1;
-	}
-	version_num = (pdata[5] >> 1) & 0x1F;
-
-	// Transport Stream ID
-	pdata += 3;
-	ts_id = TS_READ16(pdata);
-	pdata += 2;
-	pPAT->current_next_indicator = TS_READ8(pdata) & 0x01;
-	pdata += 1;
-	cur_sec = TS_READ8(pdata);
-	pdata += 1;
-	last_sec = TS_READ8(pdata);
-	pdata += 1;
 
 	/* clear list when version update */
-	if (version_num > pPAT->version_number || (pPAT->version_number == 0x1F && version_num != 0x1F)) {
-		if (!list_empty(&(pPAT->h))) {
-			list_for_each_safe(&(pPAT->h), pn, next, n)
-			{
-				list_del(&(pn->n));
-				free(pn);
-			}
+	if (!list_empty(&(pPAT->h))) {
+		list_for_each_safe(&(pPAT->h), pn, next, n)
+		{
+			list_del(&(pn->n));
+			free(pn);
 		}
 	}
-
-	if (version_num == pPAT->version_number && last_sec == pPAT->last_section_number && !list_empty(&(pPAT->h))) {
-		return -1;
-	}
-	if ((pPAT->section_bitmap[cur_sec / 64] & ((uint64_t)1 << (cur_sec % 64)))) {
-		return -1;
-	}
-	pPAT->transport_stream_id = ts_id;
-	pPAT->section_length = section_len;
-	section_len -= (5 + 4); // exclude crc 4bytes
-	// hexdump(pbuf, buf_size);
-	pPAT->section_bitmap[cur_sec / 64] |= ((uint64_t)1 << (cur_sec % 64));
-	pPAT->section_number = cur_sec;
-	pPAT->last_section_number = last_sec;
-	pPAT->version_number = version_num;
+	
+	// ts_id = pPAT->pat_header.table_id_ext;
 	// TODO: limit program total length
+	section_len = pPAT->pat_header.section_length;
+	pdata = pPAT->pat_header.private_data_byte;
 
+	section_len -= (5 + 4);
 	while (section_len > 0) {
 		program_num = TS_READ16(pdata);
 		pdata += 2;
@@ -537,60 +558,24 @@ int parse_pat(uint8_t *pbuf, uint16_t buf_size, pat_t *pPAT)
 
 int parse_cat(uint8_t *pbuf, uint16_t buf_size, cat_t *pCAT)
 {
-	uint16_t section_len = 0, ts_id;
-	uint8_t version_num, last_sec, cur_sec;
+	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
-	if (unlikely(pbuf == NULL || pCAT == NULL)) {
-		return NULL_PTR;
-	}
+	int ret = parse_section_header(pbuf, buf_size, &pCAT->cat_header);
+	if (ret != 0)
+		return ret;
 
-	pCAT->table_id = TS_READ8(pdata);
-	if (unlikely(pdata[0] != CAT_TID)) {
-		return -1;
-	}
+	// // Transport Stream ID
+	// ts_id = pCAT->cat_header.table_id_ext;
+	section_len = pCAT->cat_header.section_length;
 
-	section_len = ((pdata[1] << 8) | pdata[2]) & 0x0FFF;
-	if (unlikely(section_len > 0x3FD)) { 
-		// For cat , maximum
-		return -1;
-	}
+	pdata += 6;
+	section_len -= (5 + 4);
 
-	pdata += 3;
-	// Transport Stream ID
-	ts_id = TS_READ16(pdata);
-
-	pdata += 2;
-	version_num = (TS_READ8(pdata) >> 1) & 0x1F;
-	pCAT->current_next_indicator = (TS_READ8(pdata) & 0x01);
-	if (!(pCAT->current_next_indicator)) {
-		return -1;
-	}
-	pdata += 1;
-	cur_sec = TS_READ8(pdata);
-	pdata += 1;
-	last_sec = TS_READ8(pdata);
-	pdata += 1;
-	section_len -= 5 + 4;
-
-	if (version_num > pCAT->version_number || (pCAT->version_number == 0x1F && version_num != 0x1F)) {
+	//clear descriptors
+	if (&(pCAT->list)) {
 		free_descriptors(&(pCAT->list));
 	}
-
-	if (version_num == pCAT->version_number && last_sec == pCAT->last_section_number && !list_empty(&(pCAT->list))) {
-		// printf("error here");
-		return -1;
-	}
-	if ((pCAT->section_bitmap[cur_sec / 64] & ((uint64_t)1 << (cur_sec % 64)))) {
-		return -1;
-	}
-
-	pCAT->section_bitmap[cur_sec / 64] |= ((uint64_t)1 << (cur_sec % 64));
-	pCAT->section_length = section_len;
-	pCAT->version_number = version_num;
-	pCAT->section_number = cur_sec;
-	pCAT->last_section_number = last_sec;
-	pCAT->transport_stream_id = ts_id;
 
 	parse_descriptors(&(pCAT->list), pdata, section_len);
 

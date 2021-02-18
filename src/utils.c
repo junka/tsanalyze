@@ -29,3 +29,19 @@ char *convert_UTC(UTC_time_t *t)
 	snprintf(str, 20, "%04d/%02d/%02d %02d:%02d:%02d", Y, M, D, hour, min, sec);
 	return str;
 }
+
+int bitmap64_full(uint64_t *bitmap, uint64_t last)
+{
+	uint64_t mask = ((uint64_t)1 << ((last + 1) % 64)) - 1;
+	if (last >= 64)
+	{
+		for (uint64_t i = 0; i < last / 64; i ++)
+		{
+			if (bitmap[i] != UINT64_MAX)
+				return -1;
+		}
+	}
+	if ((bitmap[last % 64] & mask) != mask)
+		return -1;
+	return 0;
+}

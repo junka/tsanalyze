@@ -7,9 +7,9 @@
 extern "C" {
 #endif
 
-void hexdump(uint8_t *buf, uint32_t len);
-
 char *convert_UTC(UTC_time_t *t);
+
+int bitmap64_full(uint64_t *bitmap, uint64_t last);
 
 #ifdef __cplusplus
 }

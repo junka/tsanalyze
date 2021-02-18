@@ -8,6 +8,7 @@ extern "C" {
 #define NULL_PTR -1
 #define INVALID_TID -2
 #define INVALID_SEC_LEN -3
+#define DUPLICATE_DATA -4
 
 #ifdef __cplusplus
 }

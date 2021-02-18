@@ -141,10 +141,15 @@ typedef enum {
 	/* 0x80 - 0xFF: User Private */
 } StreamType_E;
 
+struct section_node
+{
+	uint16_t len;
+	uint8_t *ptr;
+};
 
 struct table_header
 {
-	uint8_t table_id; /* 0x00 */
+	uint8_t table_id;
 	uint16_t section_syntax_indicator : 1;
 	uint16_t private_bit : 1;
 	uint16_t reserved : 2;
@@ -156,9 +161,8 @@ struct table_header
 	uint8_t section_number;
 	uint8_t last_section_number;
 	uint64_t section_bitmap[4];
-	uint64_t program_bitmap[1024];
-	struct list_head h;
-	uint8_t private_data_byte[4096];
+	struct section_node sections[256]; /* section list */
+	uint8_t *private_data_byte;
 	uint32_t crc32;
 };
 
@@ -173,40 +177,18 @@ struct program_node
 
 typedef struct
 {
-	uint8_t table_id; /* 0x00 */
-	uint16_t section_syntax_indicator : 1;
-	uint16_t z : 1;
-	uint16_t reserved : 2;
-	uint16_t section_length : 12;
-	uint16_t transport_stream_id;
-	uint8_t reserved1 : 2;
-	uint8_t version_number : 5;
-	uint8_t current_next_indicator : 1;
-	uint8_t section_number;
-	uint8_t last_section_number;
-	uint64_t section_bitmap[4];
+	struct table_header pat_header;
 	uint64_t program_bitmap[1024];
-	struct list_head h;
+	struct list_head h; /* pmt list */
 	uint32_t crc32;
 } pat_t;
 
 /* INFO int CAT */
 typedef struct
 {
-	uint8_t table_id; /* 0x00 */
-	uint16_t section_syntax_indicator : 1;
-	uint16_t z : 1;
-	uint16_t reserved : 2;
-	uint16_t section_length : 12;
-	uint16_t transport_stream_id;
-	uint8_t reserved1 : 2;
-	uint8_t version_number : 5;
-	uint8_t current_next_indicator : 1;
-	uint8_t section_number;
-	uint8_t last_section_number;
-	uint64_t section_bitmap[4];
-	// struct descriptor *list; /*may have multicrypt CA descriptor here*/
-	struct list_head list;
+	struct table_header cat_header;
+	// struct descriptor *list; /* may have multicrypt CA descriptor here */
+	struct list_head list; /* ca_descriptor list */
 	uint32_t crc32;
 } cat_t;
 
