@@ -195,15 +195,16 @@ struct ts_information{
 };
 
 /*0xCD*///TODO
-#define foreach_TS_information_member   \
+#define foreach_TS_information_member   
+/*
     __m1(uint8_t, remote_control_key_identification)    \
     __m(uint8_t, length_of_TS_name, 6)  \
     __m(uint8_t, transmission_type_count, 2)   \
     __mlv(uint8_t, length_of_TS_name, TS_name) \
     __mploop(struct ts_information, info, transmission_type_count)  \
     __mplast(uint8_t, reserved_for_future)
-
-struct __attribute__((packed)) broadcaster_id{
+*/
+struct __attribute__((packed)) broadcaster_id {
     uint16_t original_network_id;
     uint8_t broadcaster_id;
 };
