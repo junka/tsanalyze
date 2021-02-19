@@ -206,26 +206,26 @@ struct es_node
 
 typedef struct
 {
-	uint8_t table_id; /* 0x02 */
-	uint16_t section_syntax_indicator : 1;
-	uint16_t z : 1;
-	uint16_t reserved : 2;
-	uint16_t section_length : 12;
+	/* 0x02 */
+	struct table_header pmt_header;
 	uint16_t program_number;
-	uint8_t reserved1 : 2;
-	uint8_t version_number : 5;
-	uint8_t current_next_indicator : 1;
-	uint8_t section_number;
-	uint8_t last_section_number;
-	uint64_t section_bitmap[4];
+
 	uint16_t reserved2 : 3;
 	uint16_t PCR_PID : 13;
 	uint16_t reserved3 : 4;
 	uint16_t program_info_length : 12;
-	struct list_head list;
+	struct list_head list; /*program info list*/
 	struct list_head h;
 	uint32_t crc32;
 } pmt_t;
+
+
+typedef struct
+{
+	/* 0x03 */
+	struct table_header tsdt_header;
+	struct list_head list; /* ca_descriptor list */
+} tsdt_t;
 
 /*infos int nit and bat*/
 struct transport_stream_node
@@ -240,21 +240,13 @@ struct transport_stream_node
 
 typedef struct
 {
-	uint8_t table_id; /* 0x40,0x41 */
-	uint16_t section_syntax_indicator : 1;
-	uint16_t reserved_future_use : 1;
-	uint16_t reserved : 2;
-	uint16_t section_length : 12;
+	/* 0x40,0x41 */
 	uint16_t network_id;
-	uint8_t reserved1 : 2;
-	uint8_t version_number : 5;
-	uint8_t current_next_indicator : 1;
-	uint8_t section_number;
-	uint8_t last_section_number;
-	uint64_t section_bitmap[4];
+	struct table_header nit_header;
+
 	uint16_t reserved2 : 4;
 	uint16_t network_descriptors_length : 12;
-	struct list_head list;
+	struct list_head list; /*list of network descriptor*/
 	uint16_t reserved3 : 4;
 	uint16_t transport_stream_loop_length : 12;
 	struct list_head h;
@@ -264,22 +256,14 @@ typedef struct
 /*infos in bat*/
 typedef struct
 {
-	uint8_t table_id; /* 0x4A */
-	uint16_t section_syntax_indicator : 1;
-	uint16_t reserved_future_use : 1;
-	uint16_t reserved : 2;
-	uint16_t section_length : 12;
+	/* 0x4A */
+
+	struct table_header bat_header;
 	uint16_t bouquet_id;
-	uint8_t reserved1 : 2;
-	uint8_t version_number : 5;
-	uint8_t current_next_indicator : 1;
-	uint8_t section_number;
-	uint8_t last_section_number;
-	uint64_t section_bitmap[4];
+
 	uint16_t reserved2 : 4;
 	uint16_t bouquet_descriptors_length : 12;
-	// struct descriptor * bouquet_desriptor_list;
-	struct list_head list;
+	struct list_head list; /*bouquet desriptor list */
 	uint16_t reserved3 : 4;
 	uint16_t transport_stream_loop_length : 12;
 	struct list_head h;
@@ -303,18 +287,8 @@ struct service_node
 
 typedef struct
 {
-	uint8_t table_id; /* 0x42,0x46 */
-	uint16_t section_syntax_indicator : 1;
-	uint16_t reserved_future_use : 1;
-	uint16_t reserved : 2;
-	uint16_t section_length : 12;
-	uint16_t transport_stream_id;
-	uint8_t reserved1 : 2;
-	uint8_t version_number : 5;
-	uint8_t current_next_indicator : 1;
-	uint8_t section_number;
-	uint8_t last_section_number;
-	uint64_t section_bitmap[4];
+	/* 0x42,0x46 */
+	struct table_header sdt_header;
 	uint16_t original_network_id;
 	uint8_t reserved2;
 	struct list_head h;
@@ -335,18 +309,8 @@ struct event_node
 
 typedef struct
 {
-	uint8_t table_id; /* 0x4E,0x4F,0x50-0x5F,0x60-0x6F */
-	uint16_t section_syntax_indicator : 1;
-	uint16_t reserved_future_use : 1;
-	uint16_t reserved : 2;
-	uint16_t section_length : 12;
-	uint16_t service_id;
-	uint8_t reserved1 : 2;
-	uint8_t version_number : 5;
-	uint8_t current_next_indicator : 1;
-	uint8_t section_number;
-	uint8_t last_section_number;
-	uint64_t section_bitmap[4];
+	/* 0x4E,0x4F,0x50-0x5F,0x60-0x6F */
+	struct table_header eit_header;
 	uint16_t transport_stream_id;
 	uint16_t original_network_id;
 	uint8_t segment_last_section_number;
@@ -414,6 +378,7 @@ typedef struct
 {
 	pat_t pat;
 	cat_t cat;
+	tsdt_t tsdt;
 	int ca_num;
 	int pmt_num;
 	uint64_t pmt_bitmap[128];

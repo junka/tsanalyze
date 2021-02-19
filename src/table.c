@@ -135,7 +135,7 @@ static void dump_pmt(pmt_t *p_pmt, uint16_t pid)
 
 	rout(0,"active PMT");
 	rout(1,"program_number : %d  => pmt pid 0x%x", p_pmt->program_number, pid);
-	rout(1,"version_number : %d", p_pmt->version_number);
+	rout(1,"version_number : %d", p_pmt->pmt_header.version_number);
 	rout(1,"PCR_PID        : 0x%x (%d)", p_pmt->PCR_PID, p_pmt->PCR_PID);
 	dump_descriptors(2, &(p_pmt->list));
 	rout(1,"components");
@@ -153,15 +153,15 @@ static void dump_sdt(sdt_t *p_sdt)
 		return;
 	struct service_node *pn = NULL;
 
-	if(p_sdt->table_id == SDT_ACTUAL_TID)
+	if(p_sdt->sdt_header.table_id == SDT_ACTUAL_TID)
 		rout(0,"SDT ACTUAL tid 0x%x", SDT_ACTUAL_TID);
-	else if (p_sdt->table_id == SDT_OTHER_TID)
+	else if (p_sdt->sdt_header.table_id == SDT_OTHER_TID)
 		rout(0,"SDT OTHER tid 0x%x", SDT_OTHER_TID);
 
-	rout(1,"transport_stream_id : 0x%x", p_sdt->transport_stream_id);
-	rout(1,"section_length: %d", p_sdt->section_length);
-	rout(1,"version_number      : %d", p_sdt->version_number);
-	rout(1,"Current next   : %s", p_sdt->current_next_indicator ? "yes" : "no");
+	rout(1,"transport_stream_id : 0x%x", p_sdt->sdt_header.table_id_ext);
+	rout(1,"section_length: %d", p_sdt->sdt_header.section_length);
+	rout(1,"version_number      : %d", p_sdt->sdt_header.version_number);
+	rout(1,"Current next   : %s", p_sdt->sdt_header.current_next_indicator ? "yes" : "no");
 	rout(1,"original_network_id : 0x%x", p_sdt->original_network_id);
 	if (!list_empty(&(p_sdt->h)))
 	{
@@ -184,10 +184,10 @@ static void dump_bat(bat_t *p_bat)
 	struct transport_stream_node *pn = NULL;
 
 	rout(0,"BAT");
-	rout(1,"section_length: %d", p_bat->section_length);
+	rout(1,"section_length: %d", p_bat->bat_header.section_length);
 	rout(1,"bouquet_id : 0x%x", p_bat->bouquet_id);
-	rout(1,"version_number      : %d", p_bat->version_number);
-	rout(1,"Current next   : %s", p_bat->current_next_indicator ? "yes" : "no");
+	rout(1,"version_number      : %d", p_bat->bat_header.version_number);
+	rout(1,"Current next   : %s", p_bat->bat_header.current_next_indicator ? "yes" : "no");
 	rout(1,"bouquet descriptor length   : %d", p_bat->bouquet_descriptors_length );
 	dump_descriptors(2, &(p_bat->list));
 	if(p_bat->transport_stream_loop_length)
@@ -209,14 +209,14 @@ static void dump_nit(nit_t *p_nit)
 		return;
 	struct transport_stream_node *pn = NULL;
 
-	if (p_nit->table_id == NIT_ACTUAL_TID)
-		rout(0,"NIT ACTUAL tid 0x%x", p_nit->table_id);
-	if (p_nit->table_id == NIT_OTHER_TID)
-		rout(0,"NIT OTHER tid 0x%x", p_nit->table_id);
-	rout(1,"section_length: %d", p_nit->section_length);
+	if (p_nit->nit_header.table_id == NIT_ACTUAL_TID)
+		rout(0,"NIT ACTUAL tid 0x%x", p_nit->nit_header.table_id);
+	if (p_nit->nit_header.table_id == NIT_OTHER_TID)
+		rout(0,"NIT OTHER tid 0x%x", p_nit->nit_header.table_id);
+	rout(1,"section_length: %d", p_nit->nit_header.section_length);
 	rout(1,"network_id : 0x%x", p_nit->network_id);
-	rout(1,"version_number      : %d", p_nit->version_number);
-	rout(1,"Current next   : %s", p_nit->current_next_indicator ? "yes" : "no");
+	rout(1,"version_number      : %d", p_nit->nit_header.version_number);
+	rout(1,"Current next   : %s", p_nit->nit_header.current_next_indicator ? "yes" : "no");
 	dump_descriptors(2, &(p_nit->list));
 	rout(2, "transport_stream ");
 	list_for_each(&(p_nit->h), pn, n)
@@ -400,7 +400,6 @@ static uint8_t * concat_sections(struct section_node *nodes, int total_length, i
 /* refer to wiki of psi, also see iso 13818-1 Table 2-30 */
 int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *ptable)
 {
-
 	if (unlikely(pbuf == NULL || ptable == NULL)) {
 		return NULL_PTR;
 	}
@@ -413,8 +412,7 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 
 	/* A flag indicates if the syntax section follows the section length,
 	 the PAT, PMT, and CAT all set this to 1 */
-	uint8_t syntax_bit = TS_READ_BIT(pdata, 7);
-	ptable->section_syntax_indicator = syntax_bit;
+	ptable->section_syntax_indicator = TS_READ_BIT(pdata, 7);
 
 	// the PAT, PMT, and CAT all set this to 0, others set this to 1
 	uint8_t private_bit = TS_READ_BIT(pdata, 6);
@@ -428,13 +426,13 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 	 including the CRC. The value in this field shall not exceed 1021 (0x3FD).*/
 	section_len = TS_READ16(pdata) & 0x0FFF;
 	pdata += 2;
-	if (syntax_bit == 1 && (section_len > 0x3FD)) {
+	if (ptable->section_syntax_indicator == 1 && (section_len > 0x3FD)) {
 		return INVALID_SEC_LEN;
-	} else if (syntax_bit == 0 && (section_len > 0xFFD)) {
+	} else if (ptable->section_syntax_indicator == 0 && (section_len > 0xFFD)) {
 		return INVALID_SEC_LEN;
 	}
 	
-	if (syntax_bit == 0) {
+	if (ptable->section_syntax_indicator == 0) {
 		ptable->section_length = section_len;
 		if (ptable->sections[0].ptr)
 			free(ptable->sections[0].ptr);
@@ -458,9 +456,7 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 		last_sec =  TS_READ8(pdata);
 		pdata += 1;
 		
-		// printf("%d, %d\n", version_num, last_sec);
 		/*syntax section, table data. concat them if there are multiple sections */
-
 		/* clear list when version update */
 		if (version_num > ptable->version_number ||
 			(ptable->version_number == 0x1F && version_num != 0x1F))
@@ -470,11 +466,11 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 			clear_sections(ptable->sections, ptable->last_section_number + 1);
 			memset(ptable->section_bitmap, 0, sizeof(uint64_t) * 4);
 			ptable->version_number = version_num;
+			ptable->last_section_number = last_sec;
 		}
 
 		ptable->section_length = section_len;
 		ptable->table_id_ext = tableid_ext;
-		ptable->last_section_number = last_sec;
 		ptable->current_next_indicator = current_next_indicator;
 
 		//old data come again, ignore
@@ -501,9 +497,7 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 int parse_pat(uint8_t *pbuf, uint16_t buf_size, pat_t *pPAT)
 {
 	uint16_t section_len = 0;
-	uint16_t program_num, program_map_PID;
 	uint8_t *pdata = NULL;
-	uint16_t ts_id;
 	struct program_node *pn = NULL, *next = NULL;
 
 	int ret = parse_section_header(pbuf, buf_size, &pPAT->pat_header);
@@ -520,14 +514,15 @@ int parse_pat(uint8_t *pbuf, uint16_t buf_size, pat_t *pPAT)
 			free(pn);
 		}
 	}
-	
-	// ts_id = pPAT->pat_header.table_id_ext;
+
 	// TODO: limit program total length
 	section_len = pPAT->pat_header.section_length;
 	pdata = pPAT->pat_header.private_data_byte;
 
 	section_len -= (5 + 4);
 	while (section_len > 0) {
+		uint16_t program_num, program_map_PID;
+
 		program_num = TS_READ16(pdata);
 		pdata += 2;
 		program_map_PID = TS_READ16(pdata) & 0x1FFF;
@@ -569,7 +564,7 @@ int parse_cat(uint8_t *pbuf, uint16_t buf_size, cat_t *pCAT)
 	// ts_id = pCAT->cat_header.table_id_ext;
 	section_len = pCAT->cat_header.section_length;
 
-	pdata += 6;
+	pdata = pCAT->cat_header.private_data_byte;
 	section_len -= (5 + 4);
 
 	//clear descriptors
@@ -582,30 +577,40 @@ int parse_cat(uint8_t *pbuf, uint16_t buf_size, cat_t *pCAT)
 	return 0;
 }
 
+int parse_tsdt(uint8_t *pbuf, uint16_t buf_size, tsdt_t *pTSDT)
+{
+	uint16_t section_len = 0;
+	uint8_t *pdata = pbuf;
+
+	int ret = parse_section_header(pbuf, buf_size, &pTSDT->tsdt_header);
+	if (ret != 0)
+		return ret;
+
+	section_len = pTSDT->tsdt_header.section_length;
+
+	pdata = pTSDT->tsdt_header.private_data_byte;
+
+	section_len -= (5 + 4);
+
+	if (&(pTSDT->list)) {
+		free_descriptors(&(pTSDT->list));
+	}
+
+	parse_descriptors(&(pTSDT->list), pdata, section_len);
+
+	return 0;
+}
+
 int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 {
 	int16_t section_len = 0;
-	uint8_t version_num;
-	uint8_t *pdata = pbuf;
+	uint8_t *pdata = NULL;
 	struct es_node *pn = NULL, *next = NULL;
 
-	if (unlikely(pbuf == NULL || pPMT == NULL)) {
-		return -1;
-	}
+	int ret = parse_section_header(pbuf, buf_size, &pPMT->pmt_header);
+	if (ret != 0)
+		return ret;
 
-	pPMT->table_id = TS_READ8(pdata);
-	if (unlikely(pPMT->table_id != PMT_TID)) {
-		return -1;
-	}
-	section_len = (int16_t)(((int16_t)pdata[1] << 8) | pdata[2]) & 0x0FFF;
-	if (unlikely(section_len > 0x3FD)) // For pmt , maximum
-	{
-		return -1;
-	}
-	version_num = (pdata[5] >> 1) & 0x1F;
-	if (version_num == pPMT->version_number && !list_empty(&(pPMT->h))) {
-		return -1;
-	}
 	if (!list_empty(&(pPMT->h))) {
 		list_for_each_safe(&(pPMT->h), pn, next, n)
 		{
@@ -614,25 +619,18 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 		}
 	}
 
-	pPMT->section_length = section_len;
+	section_len = pPMT->pmt_header.section_length;
+
 	// Transport Stream ID
-	pPMT->program_number = (pdata[3] << 8) | pdata[4];
-	pPMT->version_number = version_num;
+	pPMT->program_number = pPMT->pmt_header.table_id_ext;
 
-	if ((pdata[5] & 0x01) == 0) // current_next_indicator
-	{
-		return -1;
-	}
-
-	pPMT->section_number = pdata[6];
-	pPMT->last_section_number = pdata[7];
 
 	section_len -= 5 + 4;
-	pdata += 8;
+	pdata = pPMT->pmt_header.private_data_byte;
 
 	pPMT->PCR_PID = TS_READ16(pdata) & 0x1FFF;
-	section_len -= 2;
 	pdata += 2;
+	section_len -= 2;
 	pPMT->program_info_length = TS_READ16(pdata) & 0x0FFF;
 
 	pdata += 2;
@@ -641,10 +639,8 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 		free_descriptors(&(pPMT->list));
 
 	parse_descriptors(&(pPMT->list), pdata, pPMT->program_info_length);
-	section_len -= 2 + pPMT->program_info_length;
 	pdata += pPMT->program_info_length;
-
-	// rout("section_len %d",section_len);
+	section_len -= 2 + pPMT->program_info_length;
 
 	while (section_len > 0) {
 		pn = malloc(sizeof(struct es_node));
@@ -667,33 +663,19 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 int parse_nit(uint8_t *pbuf, uint16_t buf_size, nit_t *pNIT)
 {
 	int16_t section_len = 0;
-	uint8_t version_num;
-	uint8_t *pdata = pbuf;
+	uint8_t *pdata = NULL;
 	struct transport_stream_node *pn = NULL, *next = NULL;
 
-	if (unlikely(pbuf == NULL || pNIT == NULL)) {
-		return NULL_PTR;
-	}
+	int ret = parse_section_header(pbuf, buf_size, &pNIT->nit_header);
+	if (ret != 0)
+		return ret;
 
-	if (unlikely(pdata[0] != NIT_OTHER_TID && pdata[0] != NIT_ACTUAL_TID)) {
-		return INVALID_TID;
-	}
+	section_len = pNIT->nit_header.section_length;
 
-	pNIT->table_id = TS_READ8(pdata);
-	section_len = (int16_t)((pdata[1] << 8) | pdata[2]) & 0x0FFF;
-	if (unlikely(section_len > 0x3FD)) // For nit , maximum
-	{
-		return INVALID_SEC_LEN;
-	}
-	version_num = (pdata[5] >> 1) & 0x1F;
-	if (unlikely(version_num == pNIT->version_number && !list_empty(&(pNIT->h)))) {
-		return -1;
-	}
-	pNIT->section_length = section_len;
-	pNIT->version_number = version_num;
-	pNIT->network_id = (pdata[3] << 8) | pdata[4];
-	pdata += 8;
-	pNIT->network_descriptors_length = TS_READ16(pdata) & 0xFFF;
+	pdata = pNIT->nit_header.private_data_byte;
+
+	section_len -= (5 + 4);
+
 	if (!list_empty(&(pNIT->list)))
 		free_descriptors(&(pNIT->list));
 	if (!list_empty(&(pNIT->h))) {
@@ -703,12 +685,15 @@ int parse_nit(uint8_t *pbuf, uint16_t buf_size, nit_t *pNIT)
 			free(pn);
 		}
 	}
-	pdata += 2 + pNIT->network_descriptors_length;
-	pNIT->transport_stream_loop_length = TS_READ16(pdata) & 0xFFF;
-	section_len -= 10;
-	section_len -= pNIT->network_descriptors_length;
-	section_len -= 4;
+
+	pNIT->network_descriptors_length = TS_READ16(pdata) & 0xFFF;	
 	pdata += 2;
+	parse_descriptors(&(pNIT->list), pdata, (int)pNIT->network_descriptors_length);
+	pdata += pNIT->network_descriptors_length;
+	pNIT->transport_stream_loop_length = TS_READ16(pdata) & 0xFFF;
+	pdata += 2;
+	section_len -= 4 + pNIT->network_descriptors_length;;
+
 	while (section_len > 0) {
 		pn = malloc(sizeof(struct transport_stream_node));
 		list_head_init(&(pn->list));
@@ -729,63 +714,38 @@ int parse_nit(uint8_t *pbuf, uint16_t buf_size, nit_t *pNIT)
 int parse_bat(uint8_t *pbuf, uint16_t buf_size, bat_t *pBAT)
 {
 	int16_t section_len = 0;
-	uint8_t version_num, cur_sec, last_sec;
-	uint8_t *pdata = pbuf;
+	uint8_t *pdata = NULL;
 	struct transport_stream_node *pn = NULL, *next = NULL;
 
-	if (unlikely(pbuf == NULL || pBAT == NULL)) {
-		return NULL_PTR;
-	}
+	int ret = parse_section_header(pbuf, buf_size, &pBAT->bat_header);
+	if (ret != 0)
+		return ret;
 
-	if (unlikely(pdata[0] != BAT_TID)) {
-		return INVALID_TID;
-	}
+	section_len = pBAT->bat_header.section_length;
+	pBAT->bouquet_id = pBAT->bat_header.table_id;
+	pdata = pBAT->bat_header.private_data_byte;
 
-	pBAT->table_id = TS_READ8(pdata);
-	pdata += 1;
-	section_len = TS_READ16(pdata) & 0x0FFF;
-	pdata += 2;
-	if (unlikely(section_len > 0x3FD)) // For bat , maximum
-	{
-		return INVALID_SEC_LEN;
-	}
+	section_len -= 5 + 4;
 
-	pBAT->bouquet_id = TS_READ16(pdata);
-	pdata += 2;
-	version_num = (TS_READ8(pdata) >> 1) & 0x1F;
-	if (version_num > pBAT->version_number || (pBAT->version_number == 0x1F && version_num != 0x1F)) {
-		if (!list_empty(&(pBAT->h))) {
-			list_for_each_safe(&(pBAT->h), pn, next, n)
-			{
-				list_del(&(pn->n));
-				free(pn);
-			}
-		}	
-		if (!list_empty(&(pBAT->list)))
-			free_descriptors(&(pBAT->list));
-	}
-	pdata += 1;
-	cur_sec = TS_READ8(pdata);
-	pdata += 1;
-	last_sec = TS_READ8(pdata);
-	pdata += 1;
+	if (!list_empty(&(pBAT->h))) {
+		list_for_each_safe(&(pBAT->h), pn, next, n)
+		{
+			list_del(&(pn->n));
+			free(pn);
+		}
+	}	
+	if (!list_empty(&(pBAT->list)))
+		free_descriptors(&(pBAT->list));
 
-	if (version_num == pBAT->version_number && last_sec == pBAT->last_section_number && !list_empty(&(pBAT->h))) {
-		return -1;
-	}
-
-	pBAT->section_length = section_len;
-	pBAT->version_number = version_num;
 	pBAT->bouquet_descriptors_length = TS_READ16(pdata) & 0xFFF;
 	pdata += 2;
 	parse_descriptors(&(pBAT->list), pdata, pBAT->bouquet_descriptors_length);
 	pdata += pBAT->bouquet_descriptors_length;
-	section_len -= 7;
+	section_len -= 2;
 	section_len -= pBAT->bouquet_descriptors_length;
 	pBAT->transport_stream_loop_length = TS_READ16(pdata) & 0xFFF;
 	pdata += 2;
 	section_len -= 2;
-	section_len -= 4;
 	while (section_len > 0) {
 		pn = malloc(sizeof(struct transport_stream_node));
 		list_head_init(&(pn->list));
@@ -806,75 +766,32 @@ int parse_bat(uint8_t *pbuf, uint16_t buf_size, bat_t *pBAT)
 
 int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 {
-	int16_t section_len = 0, loop_len;
-	uint8_t version_num;
-	uint8_t *pdata = pbuf;
-	uint8_t last_sec, cur_sec;
-	uint16_t ts_id;
+	int16_t section_len = 0;
+	uint8_t *pdata = NULL;
 	struct service_node *pn = NULL, *next = NULL;
 
-	if (unlikely(pbuf == NULL || pSDT == NULL)) {
-		return NULL_PTR;
-	}
-	if (unlikely(pdata[0] != SDT_ACTUAL_TID && pdata[0] != SDT_OTHER_TID)) {
-		return INVALID_TID;
-	}
+	int ret = parse_section_header(pbuf, buf_size, &pSDT->sdt_header);
+	if (ret != 0)
+		return ret;
 
-	pSDT->table_id = TS_READ8(pdata);
-	section_len = (((int16_t)pdata[1] << 8) | pdata[2]) & 0x0FFF;
-	if (unlikely(section_len > 0x3FD)) // For sdt , maximum
-	{
-		return -1;
-	}
-	version_num = (pdata[5] >> 1) & 0x1F;
+	section_len = pSDT->sdt_header.section_length;
+	pdata = pSDT->sdt_header.private_data_byte;
 
-	pdata += 3;
-	ts_id = TS_READ16(pdata);
-	pdata += 2;
-	pdata += 1;
-	cur_sec = TS_READ8(pdata);
-	pdata += 1;
-	last_sec = TS_READ8(pdata);
-	pdata += 1;
+	section_len -= (5 + 4);
 
-	if (version_num > pSDT->version_number || (pSDT->version_number == 0x1F && version_num != 0x1F)) {
-		if (!list_empty(&(pSDT->h))) {
-			list_for_each_safe(&(pSDT->h), pn, next, n)
-			{
-				list_del(&(pn->n));
-				free(pn);
-			}
+	if (!list_empty(&(pSDT->h))) {
+		list_for_each_safe(&(pSDT->h), pn, next, n)
+		{
+			list_del(&(pn->n));
+			free(pn);
 		}
 	}
 
-	if (version_num == pSDT->version_number && last_sec == pSDT->last_section_number && !list_empty(&(pSDT->h))) {
-		// printf("error here");
-		return -1;
-	}
-	pSDT->transport_stream_id = ts_id;
-	pSDT->section_length = section_len;
-	pSDT->version_number = version_num;
 	pSDT->original_network_id = TS_READ16(pdata);
-	pSDT->last_section_number = last_sec;
-	
-
-	if ((pSDT->section_bitmap[cur_sec / 64] & ((uint64_t)1 << (cur_sec % 64)))) {
-		return -1;
-	}
-	// hexdump(pbuf, buf_size);
-	pSDT->section_bitmap[cur_sec / 64] |= ((uint64_t)1 << (cur_sec % 64));
-	pSDT->section_number = cur_sec;
 	pdata += 3;
-	section_len -= 8;
-	section_len -= 4; // crc
-	if (buf_size - 11 - 4 < section_len) {
-		loop_len = buf_size - 11 - 4;
-	} else {
-		loop_len = section_len;
-	}
-
-	while (loop_len > 0) {
-		// printf("ptr %x section len %d", pdata, section_len);
+	section_len -= 3;
+	
+	while (section_len > 0) {
 		pn = malloc(sizeof(struct service_node));
 		list_head_init(&(pn->list));
 		pn->service_id = TS_READ16(pdata);
@@ -889,7 +806,7 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 
 		parse_descriptors(&(pn->list), pdata, (int)(pn->descriptors_loop_length));
 		pdata += pn->descriptors_loop_length;
-		loop_len -= (5 + pn->descriptors_loop_length);
+		section_len -= (5 + pn->descriptors_loop_length);
 		list_add_tail(&(pSDT->h), &(pn->n));
 	}
 
@@ -899,21 +816,28 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 static int parse_eit(uint8_t *pbuf, uint16_t buf_size, eit_t *pEIT)
 {
 	uint16_t section_len = 0;
-	uint8_t *pdata = pbuf;
+	uint8_t *pdata = NULL;
 	// struct event_node *pn = NULL;
 
-	if (unlikely(pbuf == NULL || pEIT == NULL)) {
-		return -1;
-	}
+	int ret = parse_section_header(pbuf, buf_size, &pEIT->eit_header);
+	if (ret != 0)
+		return ret;
 
+
+	pdata = pEIT->eit_header.private_data_byte;
+	section_len = pEIT->eit_header.section_length;
+
+	section_len -= (5 + 4);
+	pEIT->transport_stream_id = TS_READ16(pdata);
+	pdata += 2;
+	pEIT->original_network_id = TS_READ16(pdata);
+	pdata += 2;
+	pEIT->segment_last_section_number = TS_READ8(pdata);
 	pdata += 1;
-	section_len = TS_READ16(pdata) & 0xFFF;
+	pEIT->last_table_id = TS_READ8(pdata);
+	pdata += 1;
+	section_len -= 6;
 
-	if (section_len > 0xFFD) // For eit , maximum
-	{
-		return -1;
-	}
-	pEIT->section_length = section_len;
 
 	return 0;
 }
@@ -975,6 +899,13 @@ static int cat_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t
 {
 	psi.stats.cat_sections++;
 	parse_cat(pkt, len, &psi.cat);
+	return 0;
+}
+
+static int tsdt_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
+{
+	psi.stats.tsdt_sections++;
+	parse_tsdt(pkt, len, &psi.tsdt);
 	return 0;
 }
 
@@ -1108,6 +1039,7 @@ void init_table_ops(void)
 
 	init_table_filter(PAT_PID, PAT_TID, 0xFF, pat_proc);
 	init_table_filter(CAT_PID, CAT_TID, 0xFF, cat_proc);
+	init_table_filter(TSDT_PID, TSDT_TID, 0xFF, tsdt_proc);
 
 	//filter nit actual and other at same time
 	init_table_filter(NIT_PID, NIT_ACTUAL_TID, 0xFE, nit_proc);
