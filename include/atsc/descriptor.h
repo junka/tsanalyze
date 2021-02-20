@@ -7,14 +7,14 @@ extern "C" {
 
 #include "types.h"
 
-#define foreach_enum_atsc_descriptor                                                                                   \
-	_(atsc_stuffing, 0x80)                                                                                             \
+#define foreach_enum_atsc_descriptor                                                                              \
+	_(atsc_stuffing, 0x80)                                                                                        \
     _(AC3_audio_stream, 0x81)                                                                                     \
 	_(caption_service, 0x86)                                                                                      \
 	_(content_advisory, 0x87)                                                                                     \
 	_(extended_channel_name, 0xA0)                                                                                \
     _(service_location, 0xA1)                                                                                     \
-    _(atsc_time_shifted_service, 0xA2)                                                                                 \
+    _(atsc_time_shifted_service, 0xA2)                                                                            \
     _(component_name, 0xA3)                                                                                       \
     _(dcc_departing_request, 0xA8)                                                                                \
     _(dcc_arriving_request, 0xA9)                                                                                 \

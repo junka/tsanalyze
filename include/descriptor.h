@@ -498,13 +498,18 @@ extern struct descriptor_ops des_ops[];
 #define __m1(type, name) DUMP_MEMBER(lv, dr, type, name);
 
 #define __mplast(type, name)                                                                                           \
-	int i = 0, j = 0, psize = dr->name##_len, ret_##name = 0;                                                          \
+	size_t i = 0, j = 0, psize = dr->name##_len, ret_##name = 0;                                                   \
 	if (sizeof(type) == 1) {                                                                                           \
-		res_hexdump(lv+1, #name, dr->name, psize);                                                                     \
+		res_hexdump(lv + 1, #name, (uint8_t *)dr->name, psize);                                                        \
 	} else {                                                                                                           \
 			char buf_##name[2048];                                                                                     \
-			while (i < psize) {                                                                                        \
-			ret_##name += snprintf(buf_##name + ret_##name, 2048-ret_##name, " 0x%x", *(dr->name + j));               \
+			while (i < psize) {	\
+				size_t k = 0;                         \
+				uint8_t *addr = (uint8_t *)(dr->name + j); \
+				while (k < sizeof(type)) {                                                                            \
+					ret_##name += snprintf(buf_##name + ret_##name, 2048 - ret_##name, " 0x%x", addr[k]);      \
+					k ++;      \
+				}                         \
 			i += sizeof(type);                                                                                        \
 			j ++;                                                                                                     \
 		}                                                                                                              \
@@ -519,18 +524,23 @@ extern struct descriptor_ops des_ops[];
 #define __mrangelv(type, length, name, cond, floor, ceiling)	
 
 #define __mlv(type, length, name)	\
-	int i_##name = 0, j_##name = 0, ret_##name = 0;	\
+	size_t i_##name = 0, j_##name = 0, ret_##name = 0;	\
 	if (sizeof(type) == 1) {                                                                                           \
-		res_hexdump(lv+1, #name, dr->name, dr->length);                                                                     \
+		res_hexdump(lv+1, #name, (uint8_t *)dr->name, dr->length);                                                                     \
 	} else{   \
 		char buf_##name[512];	\
 		if (dr->length > 0) {	                                                                                        \
-			while (i_##name < (int)dr->length) {                                                                         \
-				ret_##name += snprintf(buf_##name + ret_##name, 512-ret_##name, " 0x%x", *(dr->name + j_##name));        \
+			while (i_##name < dr->length) {                      \
+				size_t k_##name = 0;                                     \
+				uint8_t *addr = (uint8_t *)(dr->name + j_##name);                                                                       \
+				while(k_##name > sizeof(type)) { \
+					ret_##name += snprintf(buf_##name + ret_##name, 512 - ret_##name, " 0x%x", addr[k_##name]);        \
+					k_##name ++;\
+				} \
 				i_##name += sizeof(type);                                                                                             \
-				j_##name ++ ;	\
-			}			\
-			rout(lv+1, "%s:%s", #name, buf_##name);							\
+				j_##name ++ ;   \
+			}            \
+			rout(lv+1, "%s:%s", #name, buf_##name);	                   \
 		}	\
 	}
 

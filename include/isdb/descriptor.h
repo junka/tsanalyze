@@ -7,6 +7,8 @@ extern "C" {
 
 #include "types.h"
 
+//see ARIB STD - B10 Version 4.6-E2
+
 #define foreach_enum_isdb_descriptor    \
     _(AVC_video, 0x28)  \
     _(AVC_timing_and_HRD, 0x2A) \
@@ -23,7 +25,7 @@ extern "C" {
     _(CA_emm_ts, 0xCA)  \
     _(CA_contract_info, 0xCB)    \
     _(CA_service, 0xCC) \
-    _(TS_information, 0xCD) \
+    _(ts_information, 0xCD) \
     _(extended_broadcaster, 0xCE)   \
     _(logo_transmission, 0xCF)  \
     _(basic_local_event, 0xD0)  \
@@ -97,7 +99,7 @@ struct component_control {
 
 //TODO
 /*0xC1*/
-#define foreach_digital_copy_control_member \
+#define foreach_digital_copy_control_member     \
     __m(uint8_t, digital_copy_control_info, 2)  \
     __m(uint8_t, maximum_bitrate_flag, 1)   \
     __m(uint8_t, component_control_flag, 1)   \
@@ -105,6 +107,7 @@ struct component_control {
     __mif(uint8_t, maximum_bitrate, maximum_bitrate_flag, 1)    \
     __mif(uint8_t, component_control_length, component_control_flag, 1)    \
     __mplast(struct component_control, coponents)
+
 
 /*0xC2*/
 #define foreach_network_identification_member
@@ -181,6 +184,7 @@ struct component_control {
     __m1(uint8_t, fee_name_length)  \
     __mlv(uint8_t, fee_name_length, fee_name)
 
+
 /*0xCC*/
 #define foreach_CA_service_member   \
     __m1(uint16_t, CA_system_id)    \
@@ -189,21 +193,22 @@ struct component_control {
     __mplast(uint16_t, service_id)
 
 struct ts_information{
-    uint8_t transmission_type_count;
-    uint8_t service_number;
-    uint16_t* service_identification;
+    uint8_t transmission_type_info;
+    uint8_t num;
+    uint16_t* service_id;
 };
 
-/*0xCD*///TODO
-#define foreach_TS_information_member   
+/*0xCD*/ /* Table 6-28 in STD-B10v4_6 */
+#define foreach_ts_information_member   
 /*
     __m1(uint8_t, remote_control_key_identification)    \
-    __m(uint8_t, length_of_TS_name, 6)  \
+    __m(uint8_t, length_of_ts_name, 6)  \
     __m(uint8_t, transmission_type_count, 2)   \
-    __mlv(uint8_t, length_of_TS_name, TS_name) \
-    __mploop(struct ts_information, info, transmission_type_count)  \
+    __mlv(uint8_t, length_of_ts_name, TS_name) \
+    __mpcount(struct ts_information, info, transmission_type_count)  \
     __mplast(uint8_t, reserved_for_future)
 */
+
 struct __attribute__((packed)) broadcaster_id {
     uint16_t original_network_id;
     uint8_t broadcaster_id;

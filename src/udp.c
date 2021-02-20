@@ -26,9 +26,9 @@ void parse_url(const char *url, const char *protocl, uint32_t *addr, uint32_t *p
 {
 	if (url == NULL)
 		return;
-	char *url_dup = malloc(strlen(url) + 1);
+	char *url_dup = (char *)malloc(strlen(url) + 1);
 	char *p_colon = NULL;
-	char *start = 0;
+	char *start = NULL;
 	memcpy(url_dup, url, strlen(url) + 1);
 	if (strncmp(url_dup, protocl, strlen(protocl)) == 0) {
 		start = url_dup + strlen(protocl) + 3;
@@ -68,7 +68,6 @@ int udp_open(const char *urlpath)
 		ip_shift -= 8;
 	}
 	snprintf(ipstr, 16, "%u.%u.%u.%u", ip[3], ip[2], ip[1], ip[0]);
-	printf("ip addr %s, port %d \n", ipstr, surl->port);
 
 	int ret;
 	struct sockaddr_in addr;

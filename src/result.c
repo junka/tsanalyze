@@ -38,7 +38,7 @@ void res_hexdump(int lv, char * title, uint8_t *buf, uint32_t len)
 {
 	unsigned int i, out = 0, ofs, j = lv;
 	const unsigned char *data = buf;
-	char line[LINE_LEN]; /* space needed 8+16*3+3+16 == 75 */
+	char line[LINE_LEN] = {0}; /* space needed 8+16*3+3+16 == 75 */
 
 	ofs = 0;
 	if (j == 0) {
@@ -47,7 +47,7 @@ void res_hexdump(int lv, char * title, uint8_t *buf, uint32_t len)
 	while(j-- > 0) {
 		out += snprintf(line + out, LINE_LEN - out, "  ");
 	}
-	out += snprintf(line + out, LINE_LEN - out, "%s: len %d\n", title, len);
+	out += snprintf(line + out, LINE_LEN - out, "%s: len %u\n", title, len);
 
 	while (ofs < len) {
 		j = lv;
@@ -67,7 +67,7 @@ void res_hexdump(int lv, char * title, uint8_t *buf, uint32_t len)
 			out += snprintf(line + out, LINE_LEN - out, "%c", c);
 		}
 		out += snprintf(line + out, LINE_LEN - out, "\n");
-		out = fprintf(rops[outtype].f, line);
+		fprintf(rops[outtype].f, "%s", line);
 		out = 0;
 	}
 }
@@ -86,7 +86,7 @@ int res_put(int lv, const char *fmt, ...)
 	}
 	ret += vsnprintf(buf + ret, LINE_LEN - ret, fmt, args);
 	ret += snprintf(buf + ret, LINE_LEN - ret, "\n");
-	ret = fprintf(rops[outtype].f, buf);
+	ret = fprintf(rops[outtype].f, "%s", buf);
 	va_end(args);
 	return ret;
 }

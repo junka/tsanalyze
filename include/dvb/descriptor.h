@@ -184,6 +184,8 @@ struct extend_event_linkage_info{
 };
 
 #define foreach_linkage_member	\
+
+/*
 	__m1(uint16_t, transport_stream_id)	\
 	__m1(uint16_t, original_network_id)	\
 	__m1(uint16_t, service_id)	\
@@ -192,7 +194,7 @@ struct extend_event_linkage_info{
 	__mif(struct extend_event_linkage_info, event_linkage, linkage_type, 0x0D)	\
 	__mrangelv(struct extend_event_linkage_subinfo, loop_length, extend_event_linkage, linkage_type, 0x0E, 0x1F)	\
 	__mplast(uint8_t, private_data_byte)
-
+*/
 
 struct NVOD_reference_node {
 	uint16_t transport_stream_id;

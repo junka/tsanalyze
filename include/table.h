@@ -147,6 +147,8 @@ struct section_node
 	uint8_t *ptr;
 };
 
+#define MAX_SECTION_NUM 256
+
 struct table_header
 {
 	uint8_t table_id;
@@ -161,7 +163,7 @@ struct table_header
 	uint8_t section_number;
 	uint8_t last_section_number;
 	uint64_t section_bitmap[4];
-	struct section_node sections[256]; /* section list */
+	struct section_node sections[MAX_SECTION_NUM]; /* section list */
 	uint8_t *private_data_byte;
 	uint32_t crc32;
 };

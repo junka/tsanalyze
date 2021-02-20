@@ -19,6 +19,10 @@ int psi_table_init(void)
 	memset(psi.pat.pat_header.section_bitmap, 0, sizeof(uint64_t) * 4);
 	psi.pat.pat_header.version_number = 0x1F;
 
+	memset(psi.sdt_actual.sdt_header.section_bitmap, 0, sizeof(uint64_t) * 4);
+	psi.sdt_actual.sdt_header.version_number = 0x1F;
+	memset(psi.sdt_actual.sdt_header.sections, 0, sizeof(struct section_node *) * MAX_SECTION_NUM);
+
 	list_head_init(&(psi.pat.h));
 	list_head_init(&(psi.cat.list));
 	for (i = 0; i < 8192; i++) {
@@ -371,9 +375,11 @@ void free_tables(void)
 
 static void clear_sections(struct section_node *nodes, int num)
 {
+	if (num > MAX_SECTION_NUM)
+		num = MAX_SECTION_NUM;
 	for (int i = 0; i < num; i ++)
 	{
-		if (nodes[i].ptr != NULL)
+		if (nodes[i].len == 0 && nodes[i].ptr != NULL)
 			free(nodes[i].ptr);
 		nodes[i].len = 0;
 	}
@@ -615,6 +621,8 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 		list_for_each_safe(&(pPMT->h), pn, next, n)
 		{
 			list_del(&(pn->n));
+			if (!list_empty(&(pn->list)))
+				free_descriptors(&(pn->list));
 			free(pn);
 		}
 	}
@@ -645,6 +653,7 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 	while (section_len > 0) {
 		pn = malloc(sizeof(struct es_node));
 		list_head_init(&(pn->list));
+		list_node_init(&(pn->n));
 		pn->stream_type = TS_READ8(pdata);
 		pdata += 1;
 		pn->elementary_PID = TS_READ16(pdata) & 0x1FFF;
@@ -678,6 +687,7 @@ int parse_nit(uint8_t *pbuf, uint16_t buf_size, nit_t *pNIT)
 
 	if (!list_empty(&(pNIT->list)))
 		free_descriptors(&(pNIT->list));
+
 	if (!list_empty(&(pNIT->h))) {
 		list_for_each_safe(&(pNIT->h), pn, next, n)
 		{
@@ -749,6 +759,7 @@ int parse_bat(uint8_t *pbuf, uint16_t buf_size, bat_t *pBAT)
 	while (section_len > 0) {
 		pn = malloc(sizeof(struct transport_stream_node));
 		list_head_init(&(pn->list));
+		list_node_init(&(pn->n));
 		pn->transport_stream_id = TS_READ16(pdata);
 		pdata += 2;
 		pn->original_network_id = TS_READ16(pdata);
@@ -783,6 +794,8 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 		list_for_each_safe(&(pSDT->h), pn, next, n)
 		{
 			list_del(&(pn->n));
+			if (!list_empty(&(pn->list)))
+				free_descriptors(&(pn->list));
 			free(pn);
 		}
 	}
@@ -794,6 +807,7 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 	while (section_len > 0) {
 		pn = malloc(sizeof(struct service_node));
 		list_head_init(&(pn->list));
+		list_node_init(&(pn->n));
 		pn->service_id = TS_READ16(pdata);
 		pdata += 2;
 		pn->EIT_schedule_flag = (TS_READ8(pdata) >> 1) & 0x1;
