@@ -16,12 +16,15 @@ int psi_table_init(void)
 {
 	int i = 0;
 
+	memset(&psi, 0, sizeof(psi));
+
 	memset(psi.pat.pat_header.section_bitmap, 0, sizeof(uint64_t) * 4);
 	psi.pat.pat_header.version_number = 0x1F;
 
 	memset(psi.sdt_actual.sdt_header.section_bitmap, 0, sizeof(uint64_t) * 4);
 	psi.sdt_actual.sdt_header.version_number = 0x1F;
 	memset(psi.sdt_actual.sdt_header.sections, 0, sizeof(struct section_node *) * MAX_SECTION_NUM);
+
 
 	list_head_init(&(psi.pat.h));
 	list_head_init(&(psi.cat.list));
@@ -289,9 +292,13 @@ void free_tables(void)
 				free(pn);
 			}
 		}
+		if (psi.pat.pat_header.private_data_byte)
+			free(psi.pat.pat_header.private_data_byte);
 	}
 	if (psi.ca_num > 0) {
 		free_descriptors(&psi.cat.list);
+		if (psi.cat.cat_header.private_data_byte)
+			free(psi.cat.cat_header.private_data_byte);
 	}
 	// pid
 	for (i = 0x10; i < 0x2000; i++) {
@@ -303,6 +310,8 @@ void free_tables(void)
 				free(no);
 			}
 			free_descriptors(&(psi.pmt[i].list));
+			if (psi.pmt[i].pmt_header.private_data_byte)
+				free(psi.pmt[i].pmt_header.private_data_byte);
 		}
 	}
 
@@ -315,6 +324,8 @@ void free_tables(void)
 				free(sn);
 			}
 		}
+		if (psi.sdt_actual.sdt_header.private_data_byte)
+			free(psi.sdt_actual.sdt_header.private_data_byte);
 	}
 	sdt_next = NULL;
 	if (psi.stats.sdt_other_sections) {
@@ -326,6 +337,8 @@ void free_tables(void)
 				free(sn);
 			}
 		}
+		if (psi.sdt_other.sdt_header.private_data_byte)
+			free(psi.sdt_other.sdt_header.private_data_byte);
 	}
 	if (psi.stats.nit_actual_sections ) {
 		if (!list_empty(&(psi.nit_actual.list)))
@@ -338,6 +351,8 @@ void free_tables(void)
 				free(tn);
 			}
 		}
+		if (psi.nit_actual.nit_header.private_data_byte)
+			free(psi.nit_actual.nit_header.private_data_byte);
 	}
 	nit_next = NULL;
 	if (psi.stats.nit_other_sections) {
@@ -351,6 +366,8 @@ void free_tables(void)
 				free(tn);
 			}
 		}
+		if (psi.nit_other.nit_header.private_data_byte)
+			free(psi.nit_other.nit_header.private_data_byte);
 	}
 	if (psi.stats.bat_sections) {
 		if (!list_empty(&(psi.bat.list)))
@@ -363,12 +380,22 @@ void free_tables(void)
 				free(tn);
 			}
 		}
+		if (psi.bat.bat_header.private_data_byte)
+			free(psi.bat.bat_header.private_data_byte);
+	}
+	if (psi.stats.eit_sections) {
+		if (!list_empty(&(psi.eit.h))) {
+			
+		}
+		if (psi.eit.eit_header.private_data_byte)
+			free(psi.eit.eit_header.private_data_byte);
 	}
 	
 	if (psi.stats.tot_sections) {
 		if (!list_empty(&(psi.tot.list)))
 			free_descriptors(&(psi.tot.list));
 	}
+	
 
 	res_close();
 }
@@ -379,7 +406,7 @@ static void clear_sections(struct section_node *nodes, int num)
 		num = MAX_SECTION_NUM;
 	for (int i = 0; i < num; i ++)
 	{
-		if (nodes[i].len == 0 && nodes[i].ptr != NULL)
+		if (nodes[i].len != 0 && nodes[i].ptr != NULL)
 			free(nodes[i].ptr);
 		nodes[i].len = 0;
 	}
@@ -389,6 +416,8 @@ static uint8_t * concat_sections(struct section_node *nodes, int total_length, i
 {
 	int len = 0;
 	uint8_t *ret = malloc(total_length);
+	if (ret == NULL)
+		return NULL;
 	for (int i = 0; i < num; i ++)
 	{
 		memcpy(ret + len, nodes[i].ptr, nodes[i].len); 
@@ -467,8 +496,6 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 		if (version_num > ptable->version_number ||
 			(ptable->version_number == 0x1F && version_num != 0x1F))
 		{
-			if (ptable->private_data_byte)
-				free(ptable->private_data_byte);
 			clear_sections(ptable->sections, ptable->last_section_number + 1);
 			memset(ptable->section_bitmap, 0, sizeof(uint64_t) * 4);
 			ptable->version_number = version_num;
@@ -493,7 +520,9 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 		/*tell us buffering*/
 		if(bitmap64_full(ptable->section_bitmap, last_sec) != 0)
 			return 1;
-		
+
+		if (ptable->private_data_byte != NULL)
+			free(ptable->private_data_byte);
 		ptable->private_data_byte = concat_sections(ptable->sections, ptable->section_length,
 				 ptable->last_section_number + 1);
 	}
@@ -904,14 +933,14 @@ static int parse_tot(uint8_t *pbuf, uint16_t buf_size, tot_t *pTOT)
 
 static int pat_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
 {
-	psi.stats.pat_sections++;
+	psi.stats.pat_sections ++;
 	parse_pat(pkt, len, &psi.pat);
 	return 0;
 }
 
 static int cat_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
 {
-	psi.stats.cat_sections++;
+	psi.stats.cat_sections ++;
 	parse_cat(pkt, len, &psi.cat);
 	return 0;
 }
@@ -932,10 +961,10 @@ static int pmt_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
 static int nit_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	if(pkt[0] == NIT_ACTUAL_TID) {
-		psi.stats.nit_actual_sections++;
+		psi.stats.nit_actual_sections ++;
 		parse_nit(pkt, len, &(psi.nit_actual));
 	}else if(pkt[0] == NIT_OTHER_TID){
-		psi.stats.nit_other_sections++;
+		psi.stats.nit_other_sections ++;
 		parse_nit(pkt, len, &(psi.nit_other));
 	}
 	return 0;
@@ -945,15 +974,15 @@ static int sdt_bat_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint
 {
 	switch (pkt[0]) {
 	case BAT_TID:
-		psi.stats.bat_sections++;
+		psi.stats.bat_sections ++;
 		parse_bat(pkt, len, &(psi.bat));
 		break;
 	case SDT_ACTUAL_TID:
-		psi.stats.sdt_actual_sections++;
+		psi.stats.sdt_actual_sections ++;
 		parse_sdt(pkt, len, &(psi.sdt_actual));
 		break;
 	case SDT_OTHER_TID:
-		psi.stats.sdt_other_sections++;
+		psi.stats.sdt_other_sections ++;
 		parse_sdt(pkt, len, &(psi.sdt_other));
 		break;
 	default:
