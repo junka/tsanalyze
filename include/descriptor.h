@@ -340,7 +340,7 @@ struct descriptor_ops {
 
 #define __m(type, name, bits) type name : bits;
 #define __m1(type, name) type name;
-#define __mplast(type, name)    uint8_t name##_len; type *name;
+#define __mplast(type, name)    uint16_t name##_cnt; type *name;
 #define __mif(type, name, cond, val) type name;
 #define __mrangelv(type, length, name, cond, floor, ceiling) uint8_t length; type* name;
 #define __mlv(type, length, name)    type* name;
@@ -431,9 +431,9 @@ foreach_enum_descriptor
 	bytes_off += sizeof(type);
 
 #define __mplast(type, name)                                                                                             \
-	dr->name##_len = len - bytes_off;                                                                                    \
-	dr->name = (type *)malloc(dr->name##_len);                                                                           \
-	memcpy(dr->name, buf + bytes_off, dr->name##_len);
+	dr->name##_cnt = (len - bytes_off) / sizeof(type);                                                                                    \
+	dr->name = (type *)malloc(dr->name##_cnt * sizeof(type));                                                                           \
+	memcpy(dr->name, buf + bytes_off, dr->name##_cnt * sizeof(type));
 
 #define __mif(type, name, cond, val)	\
 	if(dr->cond == val) { \
@@ -498,20 +498,20 @@ extern struct descriptor_ops des_ops[];
 #define __m1(type, name) DUMP_MEMBER(lv, dr, type, name);
 
 #define __mplast(type, name)                                                                                           \
-	size_t i = 0, j = 0, psize = dr->name##_len, ret_##name = 0;                                                   \
+	size_t i = 0, psize = dr->name##_cnt * sizeof(type), ret_##name = 0;                                                   \
 	if (sizeof(type) == 1) {                                                                                           \
 		res_hexdump(lv + 1, #name, (uint8_t *)dr->name, psize);                                                        \
 	} else {                                                                                                           \
 			char buf_##name[2048];                                                                                     \
-			while (i < psize) {	\
+			while (i < dr->name##_cnt) {	\
 				size_t k = 0;                         \
-				uint8_t *addr = (uint8_t *)(dr->name + j); \
+				uint8_t *addr = (uint8_t *)(dr->name + i); \
 				while (k < sizeof(type)) {                                                                            \
 					ret_##name += snprintf(buf_##name + ret_##name, 2048 - ret_##name, " 0x%x", addr[k]);      \
 					k ++;      \
 				}                         \
-			i += sizeof(type);                                                                                        \
-			j ++;                                                                                                     \
+				ret_##name += snprintf(buf_##name + ret_##name, 2048 - ret_##name, "\n"); \
+			i ++;                                                                                        \
 		}                                                                                                              \
 		rout(lv+1, "%s:%s", #name, buf_##name);                                                                        \
 	}

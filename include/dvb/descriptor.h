@@ -284,7 +284,7 @@ struct teletext_node {
 	uint32_t teletext_type : 5;
 	uint32_t teletext_magazine_number : 3;
 	uint8_t teletext_page_number;
-};
+}__attribute__((packed));
 
 #define  foreach_teletext_member	\
 	__mplast(struct teletext_node, teletext_infos)
@@ -315,7 +315,7 @@ struct local_time_node {
 	uint16_t local_time_offset;
 	uint40_t time_of_change;
 	uint16_t next_time_offset;
-};
+}__attribute__((packed));
 
 #define foreach_local_time_offset_member	\
 	__mplast(struct local_time_node, time_list)
@@ -325,7 +325,7 @@ struct subtitling_node {
 	uint32_t subtitling_type : 8;
 	uint16_t composition_page_id;
 	uint16_t ancillary_page_id;
-};
+}__attribute__((packed));
 
 #define foreach_subtitling_member	\
 	__mplast(struct subtitling_node, subtitle_list)
