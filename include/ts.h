@@ -1,6 +1,7 @@
 #ifndef _BITS_H_
 #define _BITS_H_
 
+#include <stdint.h>
 /* define ts structure ,see ISO/IEC13818-1 */
 
 #ifdef __cplusplus
@@ -124,7 +125,7 @@ enum PID_e {
 struct tsa_config
 {
 	char name[256]; // filename
-	uint8_t pids[TS_MAX_PID];
+	uint8_t pids[TS_MAX_PID + 1];
 	uint8_t type;
 	uint8_t brief : 1;
 	uint8_t detail : 1;

@@ -432,6 +432,7 @@ foreach_enum_descriptor
 
 #define __mplast(type, name)                                                                                             \
 	dr->name##_cnt = (len - bytes_off) / sizeof(type);                                                                                    \
+	assert(len - bytes_off == dr->name##_cnt * sizeof(type));   \
 	dr->name = (type *)malloc(dr->name##_cnt * sizeof(type));                                                                           \
 	memcpy(dr->name, buf + bytes_off, dr->name##_cnt * sizeof(type));
 

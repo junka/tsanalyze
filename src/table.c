@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "err.h"
+#include "error.h"
 #include "filter.h"
 #include "table.h"
 #include "ts.h"
@@ -70,10 +70,9 @@ static char const *get_stream_type(uint8_t type)
 		"ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in ISO/IEC14496_sections",
 		"ISO/IEC 13818-6 Synchronized Download Protocol",
 	};
-
-	if (type < 0x15)
+	if (type < 0x15) {
 		return stream_type[type];
-	else if (type < 0x80)
+	} else if (type < 0x80)
 		return "ISO/IEC 13818-1 reserved";
 	else
 		return "User Private";

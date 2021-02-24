@@ -12,7 +12,7 @@
 #define MAX_FILTER_NUM (6)
 
 struct filter_slot {
-	filter_t *t;
+	filter_t t;
 	struct list_node n;
 } filter_slot;
 
@@ -37,15 +37,13 @@ filter_t *filter_alloc(uint16_t pid)
 {
 	if (unlikely(pid_filter[pid].filter_num >= MAX_FILTER_NUM))
 		return NULL;
-	filter_t *f = malloc(sizeof(filter_t));
-	memset(f, 0, sizeof(filter_t));
-	f->pid = pid;
-	struct filter_slot *fs = malloc(sizeof(struct filter_slot));
+
+	struct filter_slot *fs = (struct filter_slot *)malloc(sizeof(struct filter_slot));
 	memset(fs, 0, sizeof(struct filter_slot));
-	fs->t = f;
+	fs->t.pid = pid;
 	list_add(&pid_filter[pid].h, &(fs->n));
 	pid_filter[pid].filter_num++;
-	return f;
+	return &fs->t;
 }
 
 int filter_set(filter_t *f, filter_param_t *p, filter_cb func)
@@ -70,11 +68,10 @@ int filter_free(filter_t *f)
 	struct filter_slot *ix = NULL, *next = NULL;
 	list_for_each_safe(lh, ix, next, n)
 	{
-		if (ix->t == f) {
+		if (&ix->t == f) {
 			list_del(&ix->n);
 			pid_filter[f->pid].filter_num--;
 			free(ix);
-			free(f);
 			break;
 		}
 	}
@@ -94,11 +91,12 @@ filter_t *filter_lookup(uint16_t pid, filter_param_t *para)
 		return NULL;
 	list_for_each(lh, ix, n)
 	{
-		if (ix->t->para.depth == para->depth) {
-			if (0 == memcmp(ix->t->para.coff, para->coff, para->depth * sizeof(uint8_t)) &&
-				0 == memcmp(ix->t->para.mask, para->mask, para->depth * sizeof(uint8_t)) &&
-				0 == memcmp(ix->t->para.negete, para->negete, para->depth * sizeof(uint8_t))) {
-				f = ix->t;
+		if (ix->t.para.depth == para->depth) {
+			if (0 == memcmp(ix->t.para.coff, para->coff, para->depth * sizeof(uint8_t)) &&
+				0 == memcmp(ix->t.para.mask, para->mask, para->depth * sizeof(uint8_t)) &&
+				0 == memcmp(ix->t.para.negete, para->negete, para->depth * sizeof(uint8_t)))
+			{
+				f = &ix->t;
 				break;
 			}
 		}
@@ -114,8 +112,8 @@ int filter_proc(uint16_t pid, uint8_t *data, uint16_t len)
 		return -1;
 	list_for_each_safe(lh, ix, next, n)
 	{
-		if ((data[0] & ix->t->para.mask[0]) == (ix->t->para.mask[0] & ix->t->para.coff[0]))
-			ix->t->callback(pid, data, len);
+		if ((data[0] & ix->t.para.mask[0]) == (ix->t.para.mask[0] & ix->t.para.coff[0]))
+			ix->t.callback(pid, data, len);
 	}
 	return 0;
 }
@@ -123,14 +121,16 @@ int filter_proc(uint16_t pid, uint8_t *data, uint16_t len)
 void filter_dump(void)
 {
 	int i = 0;
-	struct list_head *lh;
+	struct list_head *lh = NULL;
 	struct filter_slot *ix;
 	for (i = 0; i < MAX_TS_PID_NUM; i++) {
 		lh = &pid_filter[i].h;
 		if (unlikely(list_empty(lh)))
 			continue;
 		printf("PID %0x4d(0x%04x):", i, i);
-		list_for_each(lh, ix, n) { printf(" 0x%x ", ix->t->para.coff[0]); }
+		list_for_each(lh, ix, n) {
+			printf(" 0x%x ", ix->t.para.coff[0]);
+		}
 		printf("\n");
 	}
 }

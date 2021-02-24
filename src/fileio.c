@@ -36,8 +36,9 @@ static int fileio_read(void **ptr, size_t *len)
 		}
 	}
 	file_ops.ptr = NULL;
-	if ((file_ops.ptr = (unsigned char *)mmap(NULL, size, PROT_READ, MAP_SHARED, file_ops.fd, file_ops.offset)) ==
-		(void *)-1) {
+	if ((file_ops.ptr = (unsigned char *)mmap(NULL, size, PROT_READ, 
+				MAP_SHARED, file_ops.fd, file_ops.offset)) == (void *)-1)
+	{
 		*ptr = NULL;
 		*len = 0;
 		return -1;
@@ -62,7 +63,10 @@ static int fileio_close(void)
 	return 0;
 }
 
-static int fileio_end(void) { return (file_ops.total_size - file_ops.offset); }
+static int fileio_end(void)
+{
+	return (file_ops.total_size - file_ops.offset);
+}
 
 static struct io_ops file_ops = {
 	.type = IO_FILE,

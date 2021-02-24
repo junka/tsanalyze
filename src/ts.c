@@ -82,7 +82,6 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 						uint8_t payload_unit_start_indicator, uint8_t continuity_counter, uint8_t psi_or_pes)
 {
 	static struct section_parser sec[8192];
-	uint8_t pointer_field = 0;
 	struct section_parser *p = &sec[pid];
 	*buffering = NULL;
 	/* indicate start of PES or PSI */
@@ -91,7 +90,7 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 		p->cc = continuity_counter;
 		if (psi_or_pes == 0) /* PSI */
 		{
-			pointer_field = pkt[0];
+			uint8_t pointer_field = pkt[0];
 			/*skip pointer_field, valid for PSI and stream_type 0x05 private_sections*/
 			p->total_len = len - 1 - pointer_field;
 			p->limit_len = (int32_t)(((int16_t)pkt[2 + pointer_field] << 8) | pkt[3 + pointer_field]) & 0x0FFF;
@@ -156,6 +155,7 @@ int ts_adaptation_field_proc(uint8_t *data, uint8_t len)
 	ts_adaptation_field adapt;
 	pcr_clock pcr, opcr;
 	uint8_t *ptr = data;
+	uint8_t l = len;
 	adapt.discontinuity_indicator = TS_READ_BIT(ptr, 7);
 	adapt.random_access_indicator = TS_READ_BIT(ptr, 6);
 	adapt.elementary_stream_priority_indicator = TS_READ_BIT(ptr, 5);
@@ -165,43 +165,43 @@ int ts_adaptation_field_proc(uint8_t *data, uint8_t len)
 	adapt.transport_private_data_flag = TS_READ_BIT(ptr, 1);
 	adapt.adaptation_field_extension_flag = TS_READ_BIT(ptr, 0);
 	ptr += 1;
-	len -= 1;
+	l -= 1;
 
 	if (adapt.PCR_flag) {
 		pcr.program_clock_reference_base = (((uint64_t)TS_READ32(ptr) << 1) | ptr[4] >> 7);
 		ptr += 4;
-		len -= 4;
+		l -= 4;
 		pcr.program_clock_reference_extension = (TS_READ16(ptr) & 0x1FF);
 		ptr += 2;
-		len -= 2;
+		l -= 2;
 		// printf("clock %lu\n",calc_pcr_clock(pcr));
 	}
 	if (adapt.OPCR_flag) {
 		opcr.program_clock_reference_base = (((uint64_t)TS_READ32(ptr) << 1) | ptr[4] >> 7);
 		ptr += 4;
-		len -= 4;
+		l -= 4;
 		opcr.program_clock_reference_extension = (TS_READ16(ptr) & 0x1FF);
 		ptr += 2;
-		len -= 2;
+		l -= 2;
 		// printf("original clock %lu\n",calc_pcr_clock(pcr));
 	}
 	if (adapt.splicing_point_flag) {
 		ptr += 1;
-		len -= 1;
+		l -= 1;
 	}
 	if (adapt.transport_private_data_flag) {
 		uint8_t transport_private_data_length = TS_READ8(ptr);
 		ptr += 1;
-		len -= 1;
+		l -= 1;
 		ptr += transport_private_data_length;
-		len -= transport_private_data_length;
+		l -= transport_private_data_length;
 	}
 	if (adapt.adaptation_field_extension_flag) {
 		uint8_t adaptation_field_extension_length = TS_READ8(ptr);
 		ptr += 1;
-		len -= 1;
+		l -= 1;
 		ptr += adaptation_field_extension_length;
-		len -= adaptation_field_extension_length;
+		l -= adaptation_field_extension_length;
 	}
 
 	return 0;

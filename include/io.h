@@ -1,6 +1,8 @@
 #ifndef _IO_H_
 #define _IO_H_
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
