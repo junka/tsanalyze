@@ -119,6 +119,7 @@ enum PID_e {
 #define SDT_SHOW 	1<<5
 #define BAT_SHOW 	1<<6
 #define TDT_SHOW 	1<<7
+#define EIT_SHOW	1<<8
 
 struct tsa_config
 {

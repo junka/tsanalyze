@@ -122,6 +122,15 @@ static void dump_cat(cat_t *p_cat)
 	}
 }
 
+static void dump_tsdt(tsdt_t *p_tsdt)
+{
+	dump_section_header("TSDT", &p_tsdt->tsdt_header);
+	if (!list_empty(&(p_tsdt->list)))
+	{
+		dump_descriptors(2, &p_tsdt->list);
+	}
+}
+
 static void dump_tdt(tdt_t *p_tdt)
 {
 	rout(0,"TDT: Time and Date Table");
@@ -234,6 +243,11 @@ static void dump_nit(nit_t *p_nit)
 	}
 }
 
+static void dump_eit(eit_t *p_eit)
+{
+	dump_section_header("EIT", &p_eit->eit_header);
+}
+
 void dump_tables(void)
 {
 	struct tsa_config *tsaconf = get_config();
@@ -249,6 +263,10 @@ void dump_tables(void)
 	if (psi.ca_num > 0 && (tsaconf->tables & CAT_SHOW)) {
 		dump_cat(&psi.cat);
 	}
+
+	if (psi.stats.tsdt_sections && (tsaconf->tables & TSDT_SHOW))
+		dump_tsdt(&psi.tsdt);
+
 	// pid
 	if (tsaconf->tables & PMT_SHOW) {
 		for (int i = 0x10; i < 0x2000; i++) {
@@ -273,6 +291,9 @@ void dump_tables(void)
 	if (psi.stats.tot_sections && (tsaconf->tables & TDT_SHOW))
 		dump_tot(&psi.tot);
 	
+	if (psi.stats.eit_sections && (tsaconf->tables & EIT_SHOW))
+		dump_eit(&psi.eit);
+
 	res_close();
 }
 
@@ -1109,8 +1130,11 @@ void uninit_table_ops(void)
 	}
 	uninit_table_filter(PAT_PID, PAT_TID, 0xFF);
 	uninit_table_filter(CAT_PID, CAT_TID, 0xFF);
+	uninit_table_filter(TSDT_PID, TSDT_TID, 0xFF);
 	uninit_table_filter(NIT_PID, NIT_ACTUAL_TID, 0xFF);
 	uninit_table_filter(EIT_PID, EIT_ACTUAL_TID, 0xFF);
+	uninit_table_filter(SDT_PID, SDT_ACTUAL_TID, 0xFF);
+	uninit_table_filter(SDT_PID, SDT_OTHER_TID, 0xFF);
 	uninit_table_filter(BAT_PID, BAT_TID, 0xFF);
 	uninit_table_filter(TDT_PID, TDT_TID, 0xFF);
 	uninit_table_filter(TOT_PID, TOT_TID, 0xFF);

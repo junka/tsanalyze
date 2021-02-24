@@ -226,7 +226,7 @@ typedef struct
 {
 	/* 0x03 */
 	struct table_header tsdt_header;
-	struct list_head list; /* ca_descriptor list */
+	struct list_head list; /* tsdt_descriptor list */
 } tsdt_t;
 
 /*infos int nit and bat*/

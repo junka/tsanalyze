@@ -40,7 +40,7 @@ static struct tsa_config tsaconf = {
 
 struct tsa_config *get_config(void) 
 { 
-	return &tsaconf; 
+	return &tsaconf;
 }
 
 int check_filepath_valid(char *filename)
@@ -56,8 +56,9 @@ int check_filepath_valid(char *filename)
 
 uint8_t parse_table(const char *table)
 {
-#define TABLE_NUM (8)
-	const char *tables[TABLE_NUM] = { "pat", "cat", "pmt", "tsdt", "nit", "sdt", "bat", "tdt" };
+#define TABLE_NUM (9)
+	const char *tables[TABLE_NUM] = { "pat", "cat", "pmt", "tsdt", "nit",
+			 "sdt", "bat", "tdt", "eit" };
 	uint8_t i = 0;
 	for (i = 0; i < TABLE_NUM; i++) {
 		if (strcmp(table, tables[i]) == 0) {
