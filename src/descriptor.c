@@ -9,12 +9,19 @@
 
 struct descriptor_ops des_ops[256];
 
-int parse_reserved_descriptor(uint8_t *buf, uint32_t len, void *ptr) { return 0; }
+int parse_reserved_descriptor(uint8_t *buf, uint32_t len, void *ptr)
+{
+	descriptor_t *desc = (descriptor_t *)ptr;
+	desc->tag = buf[0];
+	desc->length = buf[1];
+	memcpy(desc->data, buf + 2, desc->length);
+	return 0;
+}
 
 void *alloc_reserved(void)
 {
-	void *rsv_m = malloc(sizeof(descriptor_t));
-	return rsv_m;
+	void *desc = malloc(sizeof(descriptor_t) + 255 - 2);
+	return desc;
 }
 
 void free_reserved(descriptor_t *ptr)

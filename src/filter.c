@@ -127,7 +127,7 @@ void filter_dump(void)
 		lh = &pid_filter[i].h;
 		if (unlikely(list_empty(lh)))
 			continue;
-		printf("PID %0x4d(0x%04x):", i, i);
+		printf("PID %04d(0x%04x):", i, i);
 		list_for_each(lh, ix, n) {
 			printf(" 0x%x ", ix->t.para.coff[0]);
 		}

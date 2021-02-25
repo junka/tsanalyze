@@ -23,7 +23,6 @@ void dump_result(int sig)
 	dump_ts_info();
 	
 	free_tables();
-
 	uninit_pid_processor();
 	exit(sig);
 }

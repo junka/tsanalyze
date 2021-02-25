@@ -50,14 +50,15 @@ extern "C" {
 	__mif(uint24_t, language_2, language_flag_2, 1) \
     __mplast(uint8_t, additional_info)
 
+/*see A65*/
 struct caption_service_info {
-    uint24_t language;
-    uint8_t digital_cc : 1;
-    uint8_t reserved : 1;
-    uint8_t caption_service_number : 6;/*if digital_cc == 0, only last bit valid as line21_field */
+    uint32_t language : 24;
+    uint32_t digital_cc : 1;
+    uint32_t reserved : 1;
+    uint32_t caption_service_number : 6;/*if digital_cc == 0, only last bit valid as line21_field */
     uint16_t easy_reader : 1;
     uint16_t wide_aspect_ratio : 1;
-    uint16_t reserved1 : 14;
+    uint16_t reserved1 : 6; /*according to A65, it should be 14, but in real stream it is 6*/
 }__attribute__((packed));
 
 #define foreach_caption_service_member \

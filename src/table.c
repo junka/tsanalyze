@@ -116,9 +116,10 @@ static void dump_cat(cat_t *p_cat)
 		ca = (CA_descriptor_t *)pn;
 		uint16_t system_id = ca->CA_system_ID;
 		uint16_t emm_pid = ca->CA_PID;
-		// p_stream->ca_num++;
 		rout(2,"cat system id 0x%04x    emm pid 0x%04x", system_id, emm_pid);
 	}
+	// if (!list_empty(&(p_cat->list)))
+	// 	dump_descriptors(2, &(p_cat->list));
 }
 
 static void dump_tsdt(tsdt_t *p_tsdt)
@@ -296,6 +297,18 @@ void dump_tables(void)
 	res_close();
 }
 
+static void clear_sections(struct section_node *nodes, int num)
+{
+	if (num > MAX_SECTION_NUM)
+		num = MAX_SECTION_NUM;
+	for (int i = 0; i < num; i ++)
+	{
+		if (nodes[i].len != 0 && nodes[i].ptr != NULL)
+			free(nodes[i].ptr);
+		nodes[i].len = 0;
+	}
+}
+
 void free_tables(void)
 {
 	int i = 0;
@@ -303,6 +316,29 @@ void free_tables(void)
 	struct es_node *no = NULL, *pmt_next = NULL;
 	struct service_node *sn = NULL, *sdt_next = NULL;
 	struct transport_stream_node *tn = NULL, *nit_next = NULL, *bat_next = NULL;
+
+	if (psi.ca_num > 0) {
+		free_descriptors(&psi.cat.list);
+		if (psi.cat.cat_header.private_data_byte) {
+			free(psi.cat.cat_header.private_data_byte);
+		}
+		clear_sections(psi.cat.cat_header.sections, psi.cat.cat_header.last_section_number + 1);
+	}
+	// pid
+	for (i = 0; i < 0x2000; i++) {
+		if (psi.pmt_bitmap[i / 64] & ((uint64_t)1 << (i % 64))) {
+			list_for_each_safe(&(psi.pmt[i].h), no, pmt_next, n)
+			{
+				free_descriptors(&(no->list));
+				list_del(&(no->n));
+				free(no);
+			}
+			free_descriptors(&(psi.pmt[i].list));
+			if (psi.pmt[i].pmt_header.private_data_byte)
+				free(psi.pmt[i].pmt_header.private_data_byte);
+			psi.pmt_bitmap[i / 64] &= ~((uint64_t)1 << (i % 64));
+		}
+	}
 	if (psi.stats.pat_sections){
 		if (!list_empty(&(psi.pat.h))) {
 			list_for_each_safe(&psi.pat.h, pn, pat_next, n)
@@ -314,25 +350,7 @@ void free_tables(void)
 		}
 		if (psi.pat.pat_header.private_data_byte)
 			free(psi.pat.pat_header.private_data_byte);
-	}
-	if (psi.ca_num > 0) {
-		free_descriptors(&psi.cat.list);
-		if (psi.cat.cat_header.private_data_byte)
-			free(psi.cat.cat_header.private_data_byte);
-	}
-	// pid
-	for (i = 0x10; i < 0x2000; i++) {
-		if (psi.pmt_bitmap[i / 64] & ((uint64_t)1 << (i % 64))) {
-			list_for_each_safe(&(psi.pmt[i].h), no, pmt_next, n)
-			{
-				free_descriptors(&(no->list));
-				list_del(&(no->n));
-				free(no);
-			}
-			free_descriptors(&(psi.pmt[i].list));
-			if (psi.pmt[i].pmt_header.private_data_byte)
-				free(psi.pmt[i].pmt_header.private_data_byte);
-		}
+		clear_sections(psi.pat.pat_header.sections, psi.pat.pat_header.last_section_number + 1);
 	}
 
 	if (psi.stats.sdt_actual_sections) {
@@ -346,6 +364,7 @@ void free_tables(void)
 		}
 		if (psi.sdt_actual.sdt_header.private_data_byte)
 			free(psi.sdt_actual.sdt_header.private_data_byte);
+		clear_sections(psi.sdt_actual.sdt_header.sections, psi.sdt_actual.sdt_header.last_section_number + 1);
 	}
 	sdt_next = NULL;
 	if (psi.stats.sdt_other_sections) {
@@ -359,6 +378,7 @@ void free_tables(void)
 		}
 		if (psi.sdt_other.sdt_header.private_data_byte)
 			free(psi.sdt_other.sdt_header.private_data_byte);
+		clear_sections(psi.sdt_other.sdt_header.sections, psi.sdt_other.sdt_header.last_section_number + 1);
 	}
 	if (psi.stats.nit_actual_sections ) {
 		if (!list_empty(&(psi.nit_actual.list)))
@@ -373,6 +393,7 @@ void free_tables(void)
 		}
 		if (psi.nit_actual.nit_header.private_data_byte)
 			free(psi.nit_actual.nit_header.private_data_byte);
+		clear_sections(psi.nit_actual.nit_header.sections, psi.nit_actual.nit_header.last_section_number + 1);
 	}
 	nit_next = NULL;
 	if (psi.stats.nit_other_sections) {
@@ -388,6 +409,7 @@ void free_tables(void)
 		}
 		if (psi.nit_other.nit_header.private_data_byte)
 			free(psi.nit_other.nit_header.private_data_byte);
+		clear_sections(psi.nit_other.nit_header.sections, psi.nit_other.nit_header.last_section_number + 1);
 	}
 	if (psi.stats.bat_sections) {
 		if (!list_empty(&(psi.bat.list)))
@@ -402,6 +424,7 @@ void free_tables(void)
 		}
 		if (psi.bat.bat_header.private_data_byte)
 			free(psi.bat.bat_header.private_data_byte);
+		clear_sections(psi.bat.bat_header.sections, psi.bat.bat_header.last_section_number + 1);
 	}
 	if (psi.stats.eit_sections) {
 		if (!list_empty(&(psi.eit.h))) {
@@ -409,6 +432,7 @@ void free_tables(void)
 		}
 		if (psi.eit.eit_header.private_data_byte)
 			free(psi.eit.eit_header.private_data_byte);
+		clear_sections(psi.eit.eit_header.sections, psi.eit.eit_header.last_section_number + 1);
 	}
 	
 	if (psi.stats.tot_sections) {
@@ -416,20 +440,7 @@ void free_tables(void)
 			free_descriptors(&(psi.tot.list));
 	}
 	
-
 	res_close();
-}
-
-static void clear_sections(struct section_node *nodes, int num)
-{
-	if (num > MAX_SECTION_NUM)
-		num = MAX_SECTION_NUM;
-	for (int i = 0; i < num; i ++)
-	{
-		if (nodes[i].len != 0 && nodes[i].ptr != NULL)
-			free(nodes[i].ptr);
-		nodes[i].len = 0;
-	}
 }
 
 static uint8_t * concat_sections(struct section_node *nodes, int total_length, int num)
@@ -626,7 +637,7 @@ int parse_cat(uint8_t *pbuf, uint16_t buf_size, cat_t *pCAT)
 	if (&(pCAT->list)) {
 		free_descriptors(&(pCAT->list));
 	}
-
+	
 	parse_descriptors(&(pCAT->list), pdata, section_len);
 
 	return 0;
@@ -669,18 +680,20 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 	if (!list_empty(&(pPMT->h))) {
 		list_for_each_safe(&(pPMT->h), pn, next, n)
 		{
-			list_del(&(pn->n));
 			if (!list_empty(&(pn->list)))
 				free_descriptors(&(pn->list));
+			list_del(&(pn->n));
 			free(pn);
 		}
 	}
+
+	if (!list_empty(&(pPMT->list)))
+		free_descriptors(&(pPMT->list));
 
 	section_len = pPMT->pmt_header.section_length;
 
 	// Transport Stream ID
 	pPMT->program_number = pPMT->pmt_header.table_id_ext;
-
 
 	section_len -= 5 + 4;
 	pdata = pPMT->pmt_header.private_data_byte;
@@ -692,8 +705,6 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 
 	pdata += 2;
 
-	if (!list_empty(&(pPMT->list)))
-		free_descriptors(&(pPMT->list));
 
 	parse_descriptors(&(pPMT->list), pdata, pPMT->program_info_length);
 	pdata += pPMT->program_info_length;
@@ -962,6 +973,11 @@ static int cat_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t
 {
 	psi.stats.cat_sections ++;
 	parse_cat(pkt, len, &psi.cat);
+	descriptor_t *ca = NULL;
+	psi.ca_num = 0;
+	list_for_each(&psi.cat.list, ca, n) {
+		psi.ca_num ++;
+	}
 	return 0;
 }
 
@@ -1071,6 +1087,7 @@ static void init_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask, filte
 	para.negete[0] = 0;
 	filter_set(f, &para, func);
 }
+
 static void uninit_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask)
 {
 	filter_param_t para;
@@ -1118,19 +1135,10 @@ void init_table_ops(void)
 
 void uninit_table_ops(void)
 {
-	struct program_node *pn = NULL, *next = NULL;
-	if (!list_empty(&(psi.pat.h))) {
-		list_for_each_safe(&psi.pat.h, pn, next, n)
-		{
-			unregister_pmt_ops(pn->program_map_PID);
-			list_del(&pn->n);
-			free(pn);
-		}
-	}
 	uninit_table_filter(PAT_PID, PAT_TID, 0xFF);
 	uninit_table_filter(CAT_PID, CAT_TID, 0xFF);
 	uninit_table_filter(TSDT_PID, TSDT_TID, 0xFF);
-	uninit_table_filter(NIT_PID, NIT_ACTUAL_TID, 0xFF);
+	uninit_table_filter(NIT_PID, NIT_ACTUAL_TID, 0xFE);
 	uninit_table_filter(EIT_PID, EIT_ACTUAL_TID, 0xFF);
 	uninit_table_filter(SDT_PID, SDT_ACTUAL_TID, 0xFF);
 	uninit_table_filter(SDT_PID, SDT_OTHER_TID, 0xFF);

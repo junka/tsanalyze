@@ -380,7 +380,7 @@ foreach_enum_descriptor
 
 #define __m(type, name, bits) 
 #define __m1(type, name) 
-#define __mplast(type, name)    free(dr->name);
+#define __mplast(type, name)    if(dr->name) free(dr->name);
 #define __mif(type, name, cond, val)
 #define __mrangelv(type, length, name, cond, floor, ceiling) free(dr->name);
 #define __mlv(type, length, name)    free(dr->name);
@@ -403,38 +403,28 @@ foreach_enum_descriptor
 #undef __m1
 #undef __m
 
-#define INVALID_DR_RETURN(a, buf)                                                                                      \
-	do {                                                                                                               \
-		if (buf[0] != dr_##a) {                                                                                        \
-			return -1;                                                                                                 \
-		}                                                                                                              \
-	} while (0)
-
-#define DR_TAG(a, buf, ptr)                                                                                            \
-	uint8_t bits_off = 0, bytes_off = 0;                                                                               \
-	a##_descriptor_t *dr = (a##_descriptor_t *)ptr;                                                                    \
-	dr->descriptor.tag = buf[0];                                                                                       \
-	dr->descriptor.length = buf[1];                                                                                    \
-	bytes_off += 2;
 
 /* parse function macros */
 #define __m(type, name, bits)                                                                                \
-	dr->name = TS_READ_BITS_##type(buf + bytes_off, bits, bits_off);                                                    \
+	dr->name = TS_READ_BITS_##type(buf + bytes_off, bits, bits_off);                                                   \
 	bits_off += bits;                                                                                                  \
 	if (bits_off == sizeof(type) * 8) {                                                                                \
 		bits_off = 0;                                                                                                  \
 		bytes_off += sizeof(type);                                                                                     \
 	}
 
-#define __m1(type, name)                                                                                     \
-	dr->name = TS_READ_##type(buf + bytes_off);                                                                         \
+#define __m1(type, name)                                                                                    \
+	dr->name = TS_READ_##type(buf + bytes_off);                                                                        \
 	bytes_off += sizeof(type);
 
-#define __mplast(type, name)                                                                                             \
-	dr->name##_cnt = (len - bytes_off) / sizeof(type);                                                                                    \
-	assert(len - bytes_off == dr->name##_cnt * sizeof(type));   \
-	dr->name = (type *)malloc(dr->name##_cnt * sizeof(type));                                                                           \
-	memcpy(dr->name, buf + bytes_off, dr->name##_cnt * sizeof(type));
+#define __mplast(type, name)                                                                                           \
+	dr->name = NULL; \
+	dr->name##_cnt = (len - bytes_off) / sizeof(type);                                                                 \
+	assert((len - bytes_off) - (dr->name##_cnt * sizeof(type)) == 0);   \
+	if (dr->name##_cnt > 0) { \
+		dr->name = (type *)malloc(dr->name##_cnt * sizeof(type));                                                          \
+		memcpy(dr->name, buf + bytes_off, dr->name##_cnt * sizeof(type));	\
+	}
 
 #define __mif(type, name, cond, val)	\
 	if(dr->cond == val) { \
@@ -447,13 +437,13 @@ foreach_enum_descriptor
 		dr->length = TS_READ8(buf + bytes_off);	\
 		bytes_off ++;	\
 		dr->name = (type *)malloc(sizeof(type));	\
-		memcpy(dr->name, buf+ bytes_off, dr->length);	\
+		memcpy(dr->name, buf + bytes_off, dr->length);	\
 		bytes_off += dr->length;	\
 	}
 
 #define __mlv(type, length, name)	\
 	dr->name = (type *)malloc(dr->length);	\
-	memcpy(dr->name, buf+ bytes_off, dr->length);	\
+	memcpy(dr->name, buf + bytes_off, dr->length);	\
 	bytes_off += dr->length;
 
 #define __mploop(type, name, length)	\
@@ -475,8 +465,14 @@ foreach_enum_descriptor
 #define _(desname, val)                                                                                                \
 	static inline int parse_##desname##_descriptor(uint8_t *buf, uint32_t len, void *ptr)                              \
 	{                                                                                                                  \
-		INVALID_DR_RETURN(desname, buf);                                                                               \
-		DR_TAG(desname, buf, ptr)  \
+		if (buf[0] != dr_##desname) {                                                                                  \
+			return -1;                                                                                                 \
+		}                                                                                                              \
+		uint8_t bits_off = 0, bytes_off = 0;                                                                           \
+		desname##_descriptor_t *dr = (desname##_descriptor_t *)ptr;                                                    \
+		dr->descriptor.tag = buf[0];                                                                                   \
+		dr->descriptor.length = buf[1];                                                                                \
+		bytes_off += 2;                                                                                                \
 		foreach_##desname##_member	\
 		assert(bits_off == 0);	\
 		return 0;                                                 \
@@ -499,22 +495,25 @@ extern struct descriptor_ops des_ops[];
 #define __m1(type, name) DUMP_MEMBER(lv, dr, type, name);
 
 #define __mplast(type, name)                                                                                           \
-	size_t i = 0, psize = dr->name##_cnt * sizeof(type), ret_##name = 0;                                                   \
-	if (sizeof(type) == 1) {                                                                                           \
-		res_hexdump(lv + 1, #name, (uint8_t *)dr->name, psize);                                                        \
-	} else {                                                                                                           \
+	size_t tplen = sizeof(type);\
+	size_t i = 0, psize = dr->name##_cnt * tplen;                                                   \
+	if (dr->name##_cnt > 0) {	\
+		if (tplen == 1) {                                                                                           \
+			res_hexdump(lv + 1, #name, (uint8_t*)dr->name, psize);                                                        \
+		} else {                                                                                                           \
 			char buf_##name[2048];                                                                                     \
-			while (i < dr->name##_cnt) {	\
-				size_t k = 0;                         \
-				uint8_t *addr = (uint8_t *)(dr->name + i); \
+			while (i < dr->name##_cnt) {	                       \
+				size_t k = 0, ret_##name = 0 ;                     \
+				uint8_t *addr = (uint8_t *)(dr->name + i);         \
 				while (k < sizeof(type)) {                                                                            \
 					ret_##name += snprintf(buf_##name + ret_##name, 2048 - ret_##name, " 0x%x", addr[k]);      \
 					k ++;      \
 				}                         \
-				ret_##name += snprintf(buf_##name + ret_##name, 2048 - ret_##name, "\n"); \
-			i ++;                                                                                        \
-		}                                                                                                              \
-		rout(lv+1, "%s:%s", #name, buf_##name);                                                                        \
+				rout(lv+1, "%s:%s", #name, buf_##name);                                              \
+				i ++;                                                                                        \
+			}                                                                                                              \
+			                                                                        \
+		}	\
 	}
 
 #define __mif(type, name, cond, val)	\
@@ -530,10 +529,10 @@ extern struct descriptor_ops des_ops[];
 		res_hexdump(lv+1, #name, (uint8_t *)dr->name, dr->length);                                                                     \
 	} else{   \
 		char buf_##name[512];	\
-		if (dr->length > 0) {	                                                                                        \
+		if (dr->length > 0) {	                                                                                       \
 			while (i_##name < dr->length) {                      \
 				size_t k_##name = 0;                                     \
-				uint8_t *addr = (uint8_t *)(dr->name + j_##name);                                                                       \
+				uint8_t *addr = (uint8_t *)(dr->name + j_##name);                                                      \
 				while(k_##name > sizeof(type)) { \
 					ret_##name += snprintf(buf_##name + ret_##name, 512 - ret_##name, " 0x%x", addr[k_##name]);        \
 					k_##name ++;\
