@@ -6,6 +6,15 @@ output PSI tables infomation
 
 personal practice on ts decoding
 
+# Compile
+
+Two methods: start with 
+```
+- autogen.sh
+- cmake 
+```
+and then do ```make``` for both
+
 # Usage
 ```
 ./tsanalyze tsfile
