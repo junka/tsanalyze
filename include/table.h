@@ -305,7 +305,7 @@ struct event_node
 	uint16_t running_status : 3;
 	uint16_t free_CA_mode : 1;
 	uint16_t descriptors_loop_length : 12;
-	struct descriptor *event_desriptor_list;
+	struct list_head list;
 	struct list_node n;
 };
 
@@ -391,7 +391,8 @@ typedef struct
 	sdt_t sdt_actual;
 	sdt_t sdt_other;
 	bat_t bat;
-	eit_t eit;
+	eit_t eit_actual;
+	eit_t eit_other;
 	tdt_t tdt;
 	tot_t tot;
 	stats_t stats;

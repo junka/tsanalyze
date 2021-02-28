@@ -8,18 +8,21 @@
 
 #define PES_MAX_LENGTH (64 * 1024 * 1024)
 
-int parse_pes(uint8_t *pkt, uint16_t len)
+int parse_pes_packet(uint8_t *pkt, uint16_t len)
 {
 	pes_t pes;
 	uint8_t *buf = pkt;
 	pes.packet_start_code_prefix = ((uint32_t)buf[0] << 16 | (uint32_t)buf[1] << 8 | buf[2]);
+	if (PES_PACKET_START != pes.packet_start_code_prefix)
+		return -1;
+
 	pes.stream_id = buf[3];
 	buf += 4;
 	pes.PES_packet_length = TS_READ16(buf);
 	buf += 2;
-	if ((pes.stream_id != program_stream_map) && (pes.stream_id != padding_stream) &&
-		(pes.stream_id != private_stream_2) && (pes.stream_id != ECM_stream) && (pes.stream_id != EMM_stream) &&
-		(pes.stream_id != program_stream_directory) && (pes.stream_id != DSMCC_stream) && (pes.stream_id != H222_1_E)) {
+	if ((pes.stream_id != stream_id_program_stream_map) && (pes.stream_id != stream_id_padding_stream) &&
+		(pes.stream_id != stream_id_private_stream_2) && (pes.stream_id != stream_id_ECM_stream) && (pes.stream_id != stream_id_EMM_stream) &&
+		(pes.stream_id != stream_id_program_stream_directory) && (pes.stream_id != stream_id_H222_DSMCC_stream) && (pes.stream_id != stream_id_H222_typeE_stream)) {
 		pes.packet_data.PES_scrambling_control = (buf[0] >> 4) & 0x3;
 		pes.packet_data.PES_priority = (buf[0] >> 3) & 0x1;
 		pes.packet_data.data_alignment_indicator = (buf[0] >> 2) & 0x1;
@@ -123,13 +126,13 @@ int parse_pes(uint8_t *pkt, uint16_t len)
 		// no more than 32 stuffing bytes
 
 		// PES_packet_data_byte
-	} else if ((pes.stream_id == program_stream_map) || (pes.stream_id == private_stream_2) ||
-			   (pes.stream_id == ECM_stream) || (pes.stream_id == EMM_stream) ||
-			   (pes.stream_id == program_stream_directory) || (pes.stream_id == DSMCC_stream) ||
-			   (pes.stream_id == H222_1_E)) {
+	} else if ((pes.stream_id == stream_id_program_stream_map) || (pes.stream_id == stream_id_private_stream_2) ||
+			   (pes.stream_id == stream_id_ECM_stream) || (pes.stream_id == stream_id_EMM_stream) ||
+			   (pes.stream_id == stream_id_program_stream_directory) || (pes.stream_id == stream_id_H222_DSMCC_stream) ||
+			   (pes.stream_id == stream_id_H222_typeE_stream)) {
 		// PES_packet_data_byte
 		pes.PES_packet_data_byte = buf;
-	} else if (pes.stream_id == padding_stream) {
+	} else if (pes.stream_id == stream_id_padding_stream) {
 		// padding_byte
 		pes.padding_byte = buf;
 	}
@@ -139,18 +142,47 @@ int parse_pes(uint8_t *pkt, uint16_t len)
 
 static int pes_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
 {
-	parse_pes(pkt, len);
+
+	printf("pes pid 0x%x  len %d\n",pid, len);
+	
 	return 0;
 }
 
+typedef struct {
+	uint16_t pid_num;
+	uint64_t pid_bitmap[128];
+} mpegts_pes_t;
+
+static mpegts_pes_t pes;
+
 void register_pes_ops(uint16_t pid)
 {
-	if (pid == NIT_PID)
-		return;
+	if ((pes.pid_bitmap[ pid / 64] & ((uint64_t) 1 << (pid % 64))) == 0) {
+		pes.pid_bitmap[ pid / 64] |= ((uint64_t) 1 << (pid % 64));
+		pes.pid_num ++;
+	}
 	filter_t *f = filter_alloc(pid);
 	filter_param_t para;
 	para.depth = 1;
-	para.coff[0] = 0xFF;
+	para.coff[0] = 0;
 	para.mask[0] = 0;
 	filter_set(f, &para, pes_proc);
+}
+
+void unregister_pes_ops()
+{
+	for (uint16_t pid = 0; pid < 0x1FFF; pid ++) {
+		if ((pes.pid_bitmap[ pid / 64] & ((uint64_t) 1 << (pid % 64))) == 0) {
+			filter_param_t para;
+			filter_t *f = NULL;
+			para.depth = 1;
+			para.coff[0] = 0;
+			para.mask[0] = 0;
+			para.negete[0] = 0;
+			f = filter_lookup(pid, &para);
+			if (f) {
+				filter_free(f);
+			}
+		}
+	}
 }

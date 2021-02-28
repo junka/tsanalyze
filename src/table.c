@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "error.h"
+#include "pes.h"
 #include "filter.h"
 #include "table.h"
 #include "ts.h"
@@ -36,7 +37,8 @@ int psi_table_init(void)
 	list_head_init(&(psi.nit_actual.list));
 	list_head_init(&(psi.nit_other.h));
 	list_head_init(&(psi.nit_other.list));
-	list_head_init(&(psi.eit.h));
+	list_head_init(&(psi.eit_actual.h));
+	list_head_init(&(psi.eit_other.h));
 	list_head_init(&(psi.bat.h));
 	list_head_init(&(psi.bat.list));
 	list_head_init(&(psi.sdt_actual.h));
@@ -245,7 +247,21 @@ static void dump_nit(nit_t *p_nit)
 
 static void dump_eit(eit_t *p_eit)
 {
+	struct event_node *pn = NULL;
 	dump_section_header("EIT", &p_eit->eit_header);
+	rout(1, "transport_stream_id   : 0x%x", p_eit->transport_stream_id);
+	rout(1, "original_network_id   : 0x%x", p_eit->original_network_id);
+	rout(1, "segment_last_section_number  : 0x%x", p_eit->segment_last_section_number);
+	rout(1, "events: ");
+	list_for_each(&(p_eit->h), pn, n)
+	{
+		rout(2,"event_id   0x%x ", pn->event_id);
+		rout(2,"start_time 0x%x ", pn->start_time);
+		rout(2,"duration   0x%x ", pn->duration);
+		rout(2,"running_status %d ", pn->running_status);
+		rout(2,"free_CA_mode %d ", pn->free_CA_mode);
+		dump_descriptors(3, &(pn->list));
+	}
 }
 
 void dump_tables(void)
@@ -291,8 +307,10 @@ void dump_tables(void)
 	if (psi.stats.tot_sections && (tsaconf->tables & TDT_SHOW))
 		dump_tot(&psi.tot);
 	
-	if (psi.stats.eit_sections && (tsaconf->tables & EIT_SHOW))
-		dump_eit(&psi.eit);
+	if (psi.stats.eit_actual_sections && (tsaconf->tables & EIT_SHOW))
+		dump_eit(&psi.eit_actual);
+	if (psi.stats.eit_other_sections && (tsaconf->tables & EIT_SHOW))
+		dump_eit(&psi.eit_other);
 
 	res_close();
 }
@@ -316,6 +334,7 @@ void free_tables(void)
 	struct es_node *no = NULL, *pmt_next = NULL;
 	struct service_node *sn = NULL, *sdt_next = NULL;
 	struct transport_stream_node *tn = NULL, *nit_next = NULL, *bat_next = NULL;
+	struct event_node *en = NULL, *eit_next = NULL;
 
 	if (psi.ca_num > 0) {
 		free_descriptors(&psi.cat.list);
@@ -426,15 +445,34 @@ void free_tables(void)
 			free(psi.bat.bat_header.private_data_byte);
 		clear_sections(psi.bat.bat_header.sections, psi.bat.bat_header.last_section_number + 1);
 	}
-	if (psi.stats.eit_sections) {
-		if (!list_empty(&(psi.eit.h))) {
-			
+	if (psi.stats.eit_actual_sections) {
+		if (!list_empty(&(psi.eit_actual.h))) {
+			list_for_each_safe(&(psi.eit_actual.h), en, eit_next, n)
+			{
+				free_descriptors(&en->list);
+				list_del(&(en->n));
+				free(en);
+			}
 		}
-		if (psi.eit.eit_header.private_data_byte)
-			free(psi.eit.eit_header.private_data_byte);
-		clear_sections(psi.eit.eit_header.sections, psi.eit.eit_header.last_section_number + 1);
+		if (psi.eit_actual.eit_header.private_data_byte)
+			free(psi.eit_actual.eit_header.private_data_byte);
+		clear_sections(psi.eit_actual.eit_header.sections, psi.eit_actual.eit_header.last_section_number + 1);
 	}
-	
+	eit_next = NULL;
+	if (psi.stats.eit_other_sections) {
+		if (!list_empty(&(psi.eit_other.h))) {
+			list_for_each_safe(&(psi.eit_other.h), en, eit_next, n)
+			{
+				free_descriptors(&en->list);
+				list_del(&(en->n));
+				free(en);
+			}
+		}
+		if (psi.eit_other.eit_header.private_data_byte)
+			free(psi.eit_other.eit_header.private_data_byte);
+		clear_sections(psi.eit_other.eit_header.sections, psi.eit_other.eit_header.last_section_number + 1);
+	}
+
 	if (psi.stats.tot_sections) {
 		if (!list_empty(&(psi.tot.list)))
 			free_descriptors(&(psi.tot.list));
@@ -717,6 +755,7 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 		pn->stream_type = TS_READ8(pdata);
 		pdata += 1;
 		pn->elementary_PID = TS_READ16(pdata) & 0x1FFF;
+		register_pes_ops(pn->elementary_PID);
 		pdata += 2;
 		pn->ES_info_length = TS_READ16(pdata) & 0x0FFF;
 		pdata += 2;
@@ -891,7 +930,7 @@ static int parse_eit(uint8_t *pbuf, uint16_t buf_size, eit_t *pEIT)
 {
 	uint16_t section_len = 0;
 	uint8_t *pdata = NULL;
-	// struct event_node *pn = NULL;
+	struct event_node *pn = NULL;
 
 	int ret = parse_section_header(pbuf, buf_size, &pEIT->eit_header);
 	if (ret != 0)
@@ -911,7 +950,23 @@ static int parse_eit(uint8_t *pbuf, uint16_t buf_size, eit_t *pEIT)
 	pEIT->last_table_id = TS_READ8(pdata);
 	pdata += 1;
 	section_len -= 6;
-
+	while (section_len > 0) {
+		pn = malloc(sizeof(struct event_node));
+		list_head_init(&(pn->list));
+		list_node_init(&(pn->n));
+		pn->event_id = TS_READ16(pdata);
+		pdata += 1;
+		pn->start_time = TS_READ64_BITS(pdata, 40, 0);
+		pn->duration = TS_READ64_BITS(pdata, 24, 40);
+		pdata += 8;
+		pn->running_status = TS_READ16_BITS(pdata, 3, 0);
+		pn->free_CA_mode = TS_READ16_BITS(pdata, 1, 3);
+		pn->descriptors_loop_length = TS_READ16_BITS(pdata, 12, 4);
+		pdata += 2;
+		parse_descriptors(&(pn->list), pdata, (int)(pn->descriptors_loop_length));
+		section_len -= (12 + pn->descriptors_loop_length);;
+		list_add_tail(&(pEIT->h), &(pn->n));
+	}
 
 	return 0;
 }
@@ -1029,8 +1084,18 @@ static int sdt_bat_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint
 
 static int eit_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
 {
-	psi.stats.eit_sections++;
-	parse_eit(pkt, len, &psi.eit);
+	switch (pkt[0]) {
+	case EIT_ACTUAL_TID:
+		psi.stats.eit_actual_sections ++;
+		parse_eit(pkt, len, &psi.eit_actual);
+		break;
+	case EIT_OTHER_TID:
+		psi.stats.eit_other_sections ++;
+		parse_eit(pkt, len, &psi.eit_other);
+		break;
+	default:
+		break;
+	}
 	return 0;
 }
 
@@ -1123,7 +1188,9 @@ void init_table_ops(void)
 
 	//filter nit actual and other at same time
 	init_table_filter(NIT_PID, NIT_ACTUAL_TID, 0xFE, nit_proc);
-	init_table_filter(EIT_PID, EIT_ACTUAL_TID, 0xFF, eit_proc);
+	//filter eit actual and other at same time
+	init_table_filter(EIT_PID, EIT_ACTUAL_TID, 0xFE, eit_proc);
+
 	init_table_filter(SDT_PID, SDT_ACTUAL_TID, 0xFF, sdt_bat_proc);
 	init_table_filter(SDT_PID, SDT_OTHER_TID, 0xFF, sdt_bat_proc);
 	init_table_filter(BAT_PID, BAT_TID, 0xFF, sdt_bat_proc);
@@ -1139,7 +1206,7 @@ void uninit_table_ops(void)
 	uninit_table_filter(CAT_PID, CAT_TID, 0xFF);
 	uninit_table_filter(TSDT_PID, TSDT_TID, 0xFF);
 	uninit_table_filter(NIT_PID, NIT_ACTUAL_TID, 0xFE);
-	uninit_table_filter(EIT_PID, EIT_ACTUAL_TID, 0xFF);
+	uninit_table_filter(EIT_PID, EIT_ACTUAL_TID, 0xFE);
 	uninit_table_filter(SDT_PID, SDT_ACTUAL_TID, 0xFF);
 	uninit_table_filter(SDT_PID, SDT_OTHER_TID, 0xFF);
 	uninit_table_filter(BAT_PID, BAT_TID, 0xFF);

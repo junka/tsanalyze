@@ -257,7 +257,10 @@ int ts_proc(uint8_t *data, uint8_t len)
 							  psi_or_pes);
 	if (sec_len == -1)
 		return 0;
+	
+	/*use filter to process a section*/
 	filter_proc(head.PID, pbuf, sec_len);
+
 	return 0;
 }
 

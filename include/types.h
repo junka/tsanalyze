@@ -22,6 +22,7 @@ extern "C" {
 
 typedef uint8_t uint24_t[3];
 typedef uint8_t uint40_t[5];
+typedef uint8_t uint48_t[6];
 // typedef struct uint40 {
 // 	uint64_t bits : 40;
 // } __attribute__((packed)) uint40_t;
