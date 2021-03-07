@@ -47,6 +47,8 @@ extern "C" {
 #define check_types_match(expr1, expr2) BUILD_ASSERT_OR_ZERO(sizeof(expr1) == sizeof(expr2))
 #endif /* HAVE_TYPEOF */
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+
 #ifdef __cplusplus
 }
 #endif

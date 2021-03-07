@@ -156,6 +156,7 @@ int ts_adaptation_field_proc(uint8_t *data, uint8_t len)
 	pcr_clock pcr, opcr;
 	uint8_t *ptr = data;
 	uint8_t l = len;
+
 	adapt.discontinuity_indicator = TS_READ_BIT(ptr, 7);
 	adapt.random_access_indicator = TS_READ_BIT(ptr, 6);
 	adapt.elementary_stream_priority_indicator = TS_READ_BIT(ptr, 5);
@@ -164,45 +165,37 @@ int ts_adaptation_field_proc(uint8_t *data, uint8_t len)
 	adapt.splicing_point_flag = TS_READ_BIT(ptr, 2);
 	adapt.transport_private_data_flag = TS_READ_BIT(ptr, 1);
 	adapt.adaptation_field_extension_flag = TS_READ_BIT(ptr, 0);
-	ptr += 1;
-	l -= 1;
+	PL_STEP(ptr, l, 1);
 
 	if (adapt.PCR_flag) {
 		pcr.program_clock_reference_base = (((uint64_t)TS_READ32(ptr) << 1) | ptr[4] >> 7);
-		ptr += 4;
-		l -= 4;
+		PL_STEP(ptr, l, 4);
 		pcr.program_clock_reference_extension = (TS_READ16(ptr) & 0x1FF);
-		ptr += 2;
-		l -= 2;
+		PL_STEP(ptr, l, 2);
 		// printf("clock %lu\n",calc_pcr_clock(pcr));
 	}
 	if (adapt.OPCR_flag) {
 		opcr.program_clock_reference_base = (((uint64_t)TS_READ32(ptr) << 1) | ptr[4] >> 7);
-		ptr += 4;
-		l -= 4;
+		PL_STEP(ptr, l, 4);
 		opcr.program_clock_reference_extension = (TS_READ16(ptr) & 0x1FF);
-		ptr += 2;
-		l -= 2;
+		PL_STEP(ptr, l, 2);
 		// printf("original clock %lu\n",calc_pcr_clock(pcr));
 	}
 	if (adapt.splicing_point_flag) {
-		ptr += 1;
-		l -= 1;
+		PL_STEP(ptr, l, 1);
 	}
 	if (adapt.transport_private_data_flag) {
 		uint8_t transport_private_data_length = TS_READ8(ptr);
-		ptr += 1;
-		l -= 1;
-		ptr += transport_private_data_length;
-		l -= transport_private_data_length;
+		PL_STEP(ptr, l, 1);
+		PL_STEP(ptr, l, transport_private_data_length);
 	}
 	if (adapt.adaptation_field_extension_flag) {
 		uint8_t adaptation_field_extension_length = TS_READ8(ptr);
-		ptr += 1;
-		l -= 1;
-		ptr += adaptation_field_extension_length;
-		l -= adaptation_field_extension_length;
+		PL_STEP(ptr, l, 1);
+		PL_STEP(ptr, l, adaptation_field_extension_length);
 	}
+	if (l != 0)
+		return -1;
 
 	return 0;
 }
@@ -219,26 +212,23 @@ int ts_proc(uint8_t *data, uint8_t len)
 	if (unlikely(ptr[0] != TS_SYNC_BYTE))
 		return -1;
 
-	ptr += 1;
+	PL_STEP(ptr, len, 1);
 	head.PID = TS_READ16(ptr) & 0x1FFF;
 	head.transport_error_indicator = TS_READ8(ptr) >> 7;
 	head.payload_unit_start_indicator = TS_READ8(ptr) >> 6;
-	ptr += 2;
+	PL_STEP(ptr, len, 2);
 	head.adaptation_field_control = (TS_READ8(ptr) >> 4) & 0x3;
 	head.continuity_counter = TS_READ8(ptr) & 0x3;
-	ptr += 1;
-	len -= 4;
+	PL_STEP(ptr, len, 1);
 
 	pid_dev[head.PID].pkts_in++;
 
 	if (head.adaptation_field_control == ADAPT_ONLY || head.adaptation_field_control == ADAPT_BOTH) {
 		ts_adaptation_field adapt;
 		adapt.adaptation_field_length = TS_READ8(ptr);
-		ptr += 1;
+		PL_STEP(ptr, len, 1);
 		ts_adaptation_field_proc(ptr, adapt.adaptation_field_length);
-		ptr += adapt.adaptation_field_length;
-		len -= 1;
-		len -= adapt.adaptation_field_length;
+		PL_STEP(ptr, len, adapt.adaptation_field_length);
 		// TODO
 	}
 
@@ -301,7 +291,7 @@ int ts_process()
 	void *ptr = NULL;
 	size_t len, ts_pktlen = 0, pkt_con_len = 0;
 	int start_index = 0;
-	int typ;
+	int typ = 0;
 	uint8_t pkt_con[TS_FEC_PACKET_SIZE];
 
 	if (ops->open(tsaconf->name) < 0)
@@ -328,6 +318,7 @@ int ts_process()
 
 	ptr += start_index;
 	len -= start_index;
+	PL_STEP(ptr, len, start_index);
 
 	while (ops->end()) {
 		if (pkt_con_len == ts_pktlen) {
@@ -336,8 +327,7 @@ int ts_process()
 		}
 		while (len >= ts_pktlen) {
 			ts_proc(ptr, ts_pktlen);
-			len -= ts_pktlen;
-			ptr += ts_pktlen;
+			PL_STEP(ptr, len, ts_pktlen);
 		}
 		if (len) {
 			memcpy(pkt_con, ptr, len);
@@ -347,8 +337,7 @@ int ts_process()
 			break;
 		if (pkt_con_len) {
 			memcpy(pkt_con + pkt_con_len, ptr, ts_pktlen - pkt_con_len);
-			ptr += ts_pktlen - pkt_con_len;
-			len -= (ts_pktlen - pkt_con_len);
+			PL_STEP(ptr, len, ts_pktlen - pkt_con_len);
 			pkt_con_len = ts_pktlen;
 		}
 	}

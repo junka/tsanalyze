@@ -122,6 +122,10 @@ enum PID_e {
 #define TDT_SHOW 	1<<7
 #define EIT_SHOW	1<<8
 
+#define PL_STEP(p, l, v) \
+	l -= v; \
+	p = (uint8_t *)p + v
+
 struct tsa_config
 {
 	char name[256]; // filename

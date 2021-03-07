@@ -14,12 +14,14 @@
 #include "filter.h"
 #include "table.h"
 #include "ts.h"
+#include "pes.h"
 
 int prog_parse_args(int argc, char **argv);
 
 void dump_result(int sig)
 {
 	dump_tables();
+	dump_pes_infos();
 	dump_ts_info();
 	
 	free_tables();

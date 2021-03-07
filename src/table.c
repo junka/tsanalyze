@@ -47,38 +47,6 @@ int psi_table_init(void)
 	return 0;
 }
 
-static char const *get_stream_type(uint8_t type)
-{
-	const char *stream_type[] = {
-		"Reserved",
-		"ISO/IEC 11172 Video",
-		"ISO/IEC 13818-2 Video",
-		"ISO/IEC 11172 Audio",
-		"ISO/IEC 13818-3 Audio",
-		"ISO/IEC 13818-1 Private Section",
-		"ISO/IEC 13818-1 Private PES data packets",
-		"ISO/IEC 13522 MHEG",
-		"ISO/IEC 13818-1 Annex A DSM CC",
-		"ITU-T Rec. H.222.1",
-		"ISO/IEC 13818-6 type A",
-		"ISO/IEC 13818-6 type B",
-		"ISO/IEC 13818-6 type C",
-		"ISO/IEC 13818-6 type D",
-		"ISO/IEC 13818-1 auxillary",
-		"ISO/IEC 13818-7 Audio with ADTS transport syntax",
-		"ISO/IEC 14496-2 Visual",
-		"ISO/IEC 14496-3 Audio with the LATM transport syntax",
-		"ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in PES packets",
-		"ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in ISO/IEC14496_sections",
-		"ISO/IEC 13818-6 Synchronized Download Protocol",
-	};
-	if (type < 0x15) {
-		return stream_type[type];
-	} else if (type < 0x80)
-		return "ISO/IEC 13818-1 reserved";
-	else
-		return "User Private";
-}
 
 static void dump_section_header(const char *table_name, struct table_header *hdr)
 {
@@ -477,6 +445,8 @@ void free_tables(void)
 		if (!list_empty(&(psi.tot.list)))
 			free_descriptors(&(psi.tot.list));
 	}
+
+	unregister_pes_ops();
 	
 	res_close();
 }
@@ -755,7 +725,7 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 		pn->stream_type = TS_READ8(pdata);
 		pdata += 1;
 		pn->elementary_PID = TS_READ16(pdata) & 0x1FFF;
-		register_pes_ops(pn->elementary_PID);
+		register_pes_ops(pn->elementary_PID, pn->stream_type);
 		pdata += 2;
 		pn->ES_info_length = TS_READ16(pdata) & 0x0FFF;
 		pdata += 2;

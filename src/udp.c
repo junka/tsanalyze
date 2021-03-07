@@ -14,10 +14,10 @@
 
 #include "io.h"
 
-static struct io_ops udp_ops;
+#define URL_NAME_LENGTH 32
 
 struct url {
-	char proto[32];
+	// char proto[URL_NAME_LENGTH];
 	uint32_t addr;
 	uint32_t port;
 };
@@ -26,10 +26,10 @@ void parse_url(const char *url, const char *protocl, uint32_t *addr, uint32_t *p
 {
 	if (url == NULL)
 		return;
-	char *url_dup = (char *)malloc(strlen(url) + 1);
+	char *url_dup = strdup(url);
 	char *p_colon = NULL;
 	char *start = NULL;
-	memcpy(url_dup, url, strlen(url) + 1);
+
 	if (strncmp(url_dup, protocl, strlen(protocl)) == 0) {
 		start = url_dup + strlen(protocl) + 3;
 		p_colon = strchr(start, ':');
@@ -57,7 +57,20 @@ static struct url *parse_url_path(const char *urlpath)
 	return &surl;
 }
 
-int udp_open(const char *urlpath)
+static int udp_open(const char *urlpath);
+static int udp_read(void **ptr, size_t *len);
+static int udp_close(void);
+static int udp_end(void);
+
+static struct io_ops udp_ops = {
+	.type = IO_UDP,
+	.open = udp_open,
+	.read = udp_read,
+	.close = udp_close,
+	.end = udp_end,
+};
+
+static int udp_open(const char *urlpath)
 {
 	struct url *surl = parse_url_path(urlpath);
 	int ip_shift = 24, i;
@@ -85,9 +98,12 @@ int udp_open(const char *urlpath)
 		if (fcntl(udp_ops.fd, F_SETFD, FD_CLOEXEC) == -1) {
 		}
 	}
-#ifdef SO_NOSIGPIPE
-	if (udp_ops.fd != -1)
-		setsockopt(udp_ops.fd, SOL_SOCKET, SO_NOSIGPIPE, &(int){ 1 }, sizeof(int));
+#if defined(SO_NOSIGPIPE) && !defined(MSG_NOSIGNAL)
+	if (udp_ops.fd != -1) {
+		/* we do not want SIGPIPE for socket */
+		const int value = 1;
+		setsockopt(udp_ops.fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(int));
+	}
 #endif
 	ret = bind(udp_ops.fd, (struct sockaddr *)&addr, len);
 	if (ret < 0) {
@@ -97,7 +113,7 @@ int udp_open(const char *urlpath)
 	return 0;
 }
 
-int udp_read(void **ptr, size_t *len)
+static int udp_read(void **ptr, size_t *len)
 {
 	static unsigned char buf[2048];
 	int size = 2048;
@@ -108,7 +124,7 @@ int udp_read(void **ptr, size_t *len)
 	return 0;
 }
 
-int udp_close(void)
+static int udp_close(void)
 {
 	if (udp_ops.fd >= 0)
 		close(udp_ops.fd);
@@ -120,13 +136,5 @@ static int udp_end(void)
 	/*how to define the end of a stream*/
 	return 1;
 }
-
-static struct io_ops udp_ops = {
-	.type = IO_UDP,
-	.open = udp_open,
-	.read = udp_read,
-	.close = udp_close,
-	.end = udp_end,
-};
 
 REGISTER_IO_OPS(udp, &udp_ops);

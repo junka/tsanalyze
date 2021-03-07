@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "comm.h"
 #include "ts.h"
 #include "result.h"
 
@@ -43,7 +44,7 @@ struct tsa_config *get_config(void)
 	return &tsaconf;
 }
 
-int check_filepath_valid(char *filename)
+int check_filepath_valid(const char *filename)
 {
 	if (filename == NULL)
 		return -1;
@@ -56,11 +57,10 @@ int check_filepath_valid(char *filename)
 
 uint8_t parse_table(const char *table)
 {
-#define TABLE_NUM (9)
-	const char *tables[TABLE_NUM] = { "pat", "cat", "pmt", "tsdt", "nit",
-			 "sdt", "bat", "tdt", "eit" };
+	const char *tables[] = { "pat", "cat", "pmt", "tsdt", "nit",
+			 "sdt", "bat", "tdt", "eit"};
 	uint8_t i = 0;
-	for (i = 0; i < TABLE_NUM; i++) {
+	for (i = 0; i < ARRAY_SIZE(tables); i++) {
 		if (strcmp(table, tables[i]) == 0) {
 			tsaconf.tables |= 1<<i;
 			return 0;
@@ -71,10 +71,9 @@ uint8_t parse_table(const char *table)
 
 uint8_t parse_format_type(const char *format)
 {
-#define FORMAT_NUM (2)
 	uint8_t i = 0;
-	const char *formats[FORMAT_NUM] = { "file", "udp" };
-	for (i = 0; i < FORMAT_NUM; i++) {
+	const char *formats[] = { "file", "udp" };
+	for (i = 0; i < ARRAY_SIZE(formats); i++) {
 		if (strcmp(formats[i], format) == 0) {
 			return i;
 		}
@@ -85,8 +84,8 @@ uint8_t parse_format_type(const char *format)
 uint8_t parse_output_type(const char *format)
 {
 	uint8_t i = 0;
-	const char *formats[RES_NUM] = { "stdout", "txt", "json" };
-	for (i = 0; i < RES_NUM; i++) {
+	const char *formats[] = { "stdout", "txt", "json" };
+	for (i = 0; i < ARRAY_SIZE(formats); i++) {
 		if (strcmp(formats[i], format) == 0) {
 			return i;
 		}
