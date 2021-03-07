@@ -16,7 +16,11 @@ extern "C" {
 #define PROGRAM_END 0x000001B9
 
 /* see Table 2-18 in iso13818-1 */
-enum stream_id{
+enum stream_id {
+	stream_id_program_stream_end = 0xB9,
+	stream_id_pack_start = 0xBA,
+	stream_id_system_start = 0xBB,
+
 	stream_id_program_stream_map = 0xBC,
 	stream_id_private_stream_1 = 0xBD,
 	stream_id_padding_stream = 0xBE,
@@ -233,11 +237,15 @@ typedef struct
 	// PES_packet;
 } pack;
 
-typedef struct
-{
-	pack pack;
-	uint32_t MPEG_program_end_code;
-} MPEG2_PS;
+// parse the struct in parse_ps
+// typedef struct
+// {
+// 	pack pack;
+// 	uint32_t MPEG_program_end_code;
+// } MPEG2_PS;
+
+
+int parse_ps(uint16_t pid, uint8_t *pkt, uint16_t len);
 
 #ifdef __cplusplus
 }

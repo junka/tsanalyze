@@ -398,6 +398,40 @@ typedef struct
 	stats_t stats;
 } mpeg_psi_t;
 
+
+static inline char const *get_stream_type(uint8_t type)
+{
+	const char *stream_type[] = {
+		"Reserved",
+		"ISO/IEC 11172 Video",
+		"ISO/IEC 13818-2 Video",
+		"ISO/IEC 11172 Audio",
+		"ISO/IEC 13818-3 Audio",
+		"ISO/IEC 13818-1 Private Section",
+		"ISO/IEC 13818-1 Private PES data packets",
+		"ISO/IEC 13522 MHEG",
+		"ISO/IEC 13818-1 Annex A DSM CC",
+		"ITU-T Rec. H.222.1",
+		"ISO/IEC 13818-6 type A",
+		"ISO/IEC 13818-6 type B",
+		"ISO/IEC 13818-6 type C",
+		"ISO/IEC 13818-6 type D",
+		"ISO/IEC 13818-1 auxillary",
+		"ISO/IEC 13818-7 Audio with ADTS transport syntax",
+		"ISO/IEC 14496-2 Visual",
+		"ISO/IEC 14496-3 Audio with the LATM transport syntax",
+		"ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in PES packets",
+		"ISO/IEC 14496-1 SL-packetized stream or FlexMux stream carried in ISO/IEC14496_sections",
+		"ISO/IEC 13818-6 Synchronized Download Protocol",
+	};
+	if (type < 0x15) {
+		return stream_type[type];
+	} else if (type < 0x80)
+		return "ISO/IEC 13818-1 reserved";
+	else
+		return "User Private";
+}
+
 void unregister_pmt_ops(uint16_t pid);
 
 void register_pmt_ops(uint16_t pid);
