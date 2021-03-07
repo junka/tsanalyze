@@ -7,6 +7,7 @@ extern "C" {
 
 #include "ps.h"
 #include "types.h"
+#include "table.h"
 
 
 #if 0
@@ -154,6 +155,8 @@ typedef struct
 
 typedef struct
 {
+	uint16_t pid;
+	StreamType_E type;
 	uint32_t packet_start_code_prefix : 24; // should be PES_START_PREFIX
 	uint32_t stream_id : 8;
 	uint16_t PES_packet_length;
@@ -168,9 +171,13 @@ typedef struct
 
 #define PES_START_PREFIX 0x000001
 
-int parse_pes_packet(uint8_t *pkt, uint16_t len);
+int parse_pes_packet(uint16_t pid, uint8_t *pkt, uint16_t len);
 
-void register_pes_ops(uint16_t pid);
+void register_pes_ops(uint16_t pid, uint8_t stream_type);
+
+void unregister_pes_ops(void);
+
+void dump_pes_infos(void);
 
 #ifdef __cplusplus
 }
