@@ -75,7 +75,7 @@ int parse_pack(uint16_t pid, uint8_t *pkt, uint16_t len, pack_header *ph)
 		PL_STEP(buf, l, ret);
 		next_head = TS_READ32(buf);
 	}
-printf("next head %x\n",next_head);
+
 	while(((next_head >> 8) == PES_PACKET_START) && 
 		((next_head & 0xFF) != stream_id_program_stream_end))
 	{
@@ -229,7 +229,6 @@ int parse_ps(uint16_t pid, uint8_t *pkt, uint16_t len)
 	pack_header ph;
 	uint16_t l = len;
 
-printf("next head %x\n",TS_READ32(buf));
 	while (TS_READ32(buf) == PACK_START) {
 		int ret = parse_pack(pid, buf, l, &ph);
 		PL_STEP(buf, l, ret);

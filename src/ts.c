@@ -257,7 +257,7 @@ int ts_proc(uint8_t *data, uint8_t len)
 void dump_ts_info(void)
 {
 	struct tsa_config *tsaconf = get_config();
-	if (tsaconf->detail == 0)
+	if (!tsaconf->stats)
 		return;
 
 	uint16_t pid = 0;

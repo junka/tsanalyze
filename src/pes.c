@@ -176,6 +176,10 @@ void pes_init()
 
 void dump_pes_infos()
 {
+	struct tsa_config *tsaconf = get_config();
+	if (!tsaconf->detail)
+		return;
+
 	if (pes.pid_num > 0)
 		rout(0, "%s", "PES:");
 	for (uint16_t pid = 0; pid < TS_MAX_PID; pid ++) {

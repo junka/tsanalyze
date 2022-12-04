@@ -2,28 +2,36 @@
 
 use basic rules from ISO 13818 and ETSI EN 300 468 to decode MPEG2 TS
 
-output PSI tables infomation
-
-personal practice on ts decoding
+print PSI tables infomation
 
 # Compile
 
 Two methods: start with 
 ```
 - autogen.sh
-- cmake 
+- cmake
 ```
-and then do ```make``` for both
+and then do ```make``` for both ways
 
 # Usage
+- Most simple way 
 ```
 ./tsanalyze tsfile
 ```
+- support file and udp stream analyze
 ```
-options: -f [udp][file]   support file and udp stream analyze
-options: -s [pat][cat][pmt][tsdt][nit][sdt][bat][tdt] output table selected
-options: -o [stdout][txt][json] output to file or terminal format
+./tsanalyze tsfile -f udp udp://url  
 ```
+
+- print table selected
+```
+./tsanalyze tsfile -s pat -s cat 
+```
+- show stats about ts stream
+ ```
+ ./tsanalyze tsfile -S
+ ```
+
 
 # descriptor
 not all descriptor implemented now, see ```doc/descriptor.md``` to add new descriptors

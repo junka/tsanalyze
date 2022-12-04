@@ -1143,8 +1143,7 @@ void init_table_ops(void)
 	int pid = 0;
 	psi_table_init();
 	for (int i = 0; i < TS_MAX_PID; i ++) {
-		if (tsaconf->pids[i] == 1)
-		{
+		if (tsaconf->pids[i] == 1) {
 			pid = 1;
 			init_table_filter(i, 0, 0, default_proc);
 		}

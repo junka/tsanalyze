@@ -16,6 +16,7 @@
 #define OPT_FORMAT "format"
 #define OPT_BRIEF_LIST "brief"
 #define OPT_DETAIL_LIST "details"
+#define OPT_STATS_LIST "stats"
 #define OPT_VERSION "version"
 #define OPT_MEMORY "mem"
 #define OPT_TABLE "table"
@@ -28,6 +29,7 @@ enum {
 	OPT_FORMAT_NUM = 'f',
 	OPT_BRIEF_LIST_NUM = 'b',
 	OPT_DETAIL_LIST_NUM = 'd',
+	OPT_STATS_LIST_NUM = 'S',
 	OPT_VERSION_NUM = 'v',
 	OPT_MEMORY_NUM = 'm',
 	OPT_TABLE_NUM = 's',
@@ -108,14 +110,15 @@ void prog_usage(FILE *fp, const char *pro_name)
 		fp = stderr;
 	fprintf(fp, "Usage: %s [optins]... <file>\n", pro_name);
 	fprintf(fp, "  Display infomations about mpeg ts.\n\n");
-	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_HELP_NUM, ", --" OPT_HELP, "Show this help");
+	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_HELP_NUM, ", --" OPT_HELP, "\tShow this help");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_FORMAT_NUM, ", --" OPT_FORMAT, "Select input format [udp][file]");
-	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_BRIEF_LIST_NUM, ", --" OPT_BRIEF_LIST, "Show all infos in brief");
-	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_DETAIL_LIST_NUM, ", --" OPT_DETAIL_LIST, "Show all ts infos");
+	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_BRIEF_LIST_NUM, ", --" OPT_BRIEF_LIST, "\tShow all infos in brief");
+	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_DETAIL_LIST_NUM, ", --" OPT_DETAIL_LIST, "Show all pes infos");
+	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_STATS_LIST_NUM, ", --" OPT_STATS_LIST, "Show all ts stats");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_VERSION_NUM, ", --" OPT_VERSION, "Show version");
 	/*fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_MEMORY_NUM, ", --" OPT_MEMORY, "memory to use");*/
-	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_TABLE_NUM, ", --" OPT_TABLE, "Show table [pat][cat][pmt][tsdt][nit][sdt][bat][tdt]");
-	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_PID_NUM, ", --" OPT_PID, "Show select pid only");
+	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_TABLE_NUM, ", --" OPT_TABLE, "\tShow table [pat][cat][pmt][tsdt][nit][sdt][bat][tdt]");
+	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_PID_NUM, ", --" OPT_PID, "\tShow select pid only");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_OUT_NUM, ", --" OPT_OUT, "Save output to [stdout][txt][json]");
 	fprintf(fp, "\n\n");
 }
@@ -129,6 +132,7 @@ int prog_parse_args(int argc, char **argv)
 	const char short_options[] = "b"  /* brief */
 								 "d"  /* details */
 								 "h"  /* help */
+								 "S"  /* stats */
 								 "m:" /* memory size */
 								 "v"  /* version */
 								 "s:" /* tables */
@@ -138,6 +142,7 @@ int prog_parse_args(int argc, char **argv)
 
 	const struct option long_options[] = { { OPT_BRIEF_LIST, 1, NULL, OPT_BRIEF_LIST_NUM },
 										   { OPT_DETAIL_LIST, 0, NULL, OPT_DETAIL_LIST_NUM },
+										   { OPT_STATS_LIST, 0, NULL, OPT_STATS_LIST_NUM },
 										   { OPT_VERSION, 0, NULL, OPT_VERSION_NUM },
 										   { OPT_HELP, 0, NULL, OPT_HELP_NUM },
 										   { OPT_MEMORY, 1, NULL, OPT_MEMORY_NUM },
@@ -168,6 +173,9 @@ int prog_parse_args(int argc, char **argv)
 		case 'd':
 			tsaconf.detail = 1;
 			break;
+		case 'S':
+			tsaconf.stats = 1;
+			break;
 		case 's':
 			parse_table(optarg);
 			break;
@@ -179,6 +187,7 @@ int prog_parse_args(int argc, char **argv)
 			break;
 		case 'v':
 			printf("version 1.0.0rc.\n");
+			exit(0);
 			break;
 		case 'p':
 			parse_selected_pids(optarg);
