@@ -280,7 +280,6 @@ void dump_tables(void)
 	if (psi.stats.eit_other_sections && (tsaconf->tables & EIT_SHOW))
 		dump_eit(&psi.eit_other);
 
-	res_close();
 }
 
 static void clear_sections(struct section_node *nodes, int num)
@@ -1201,5 +1200,18 @@ bool check_pmt_pid(uint16_t pid)
 {
 	if (psi.pmt_bitmap[pid / 64] & ((uint64_t)1 << (pid % 64)))
 		return true;
+	return false;
+}
+
+bool check_es_pid(uint16_t pid)
+{
+	for (int i = 0x20; i < 8192; i ++) {
+		struct es_node *pn = NULL, *next = NULL;
+		pmt_t *pPMT = &psi.pmt[i];
+		list_for_each_safe(&(pPMT->h), pn, next, n) {
+			if (pn->elementary_PID == pid)
+				return true;
+		}
+	}
 	return false;
 }

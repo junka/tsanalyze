@@ -72,9 +72,9 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 
 struct section_parser {
 	int total_len;
-	uint8_t cc;
-	uint8_t buffer[65535];
 	int32_t limit_len;
+	uint8_t cc;
+	uint8_t buffer[65536];
 };
 
 // do memcpy if section length greater than one packet
@@ -84,15 +84,16 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 	static struct section_parser sec[8192];
 	struct section_parser *p = &sec[pid];
 	*buffering = NULL;
-	/* indicate start of PES or PSI */
 
+	/* indicate start of PES or PSI */
 	if (payload_unit_start_indicator == 1) {
 		p->cc = continuity_counter;
-		if (psi_or_pes == 0) /* PSI */
-		{
+		if (psi_or_pes == 0) {
+			/* PSI */
 			uint8_t pointer_field = pkt[0];
 			/*skip pointer_field, valid for PSI and stream_type 0x05 private_sections*/
 			p->total_len = len - 1 - pointer_field;
+			/* a PSI section following, skip table id now */
 			p->limit_len = (int32_t)(((int16_t)pkt[2 + pointer_field] << 8) | pkt[3 + pointer_field]) & 0x0FFF;
 			p->limit_len += 3;
 			/*section in one pkt , go without buffering*/
@@ -105,29 +106,46 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 			}
 		} else { /* PES doesn't have pointer field */
 			p->total_len = len;
-			p->limit_len = ((int32_t)pkt[4] << 8 | pkt[5]);
-			if (p->limit_len == 0) {
-				/* for video stream, unlimit length */
-			}
+			p->limit_len = (int32_t)(((int16_t)pkt[4] << 8) | pkt[5]) & 0xFFFF;
 			p->limit_len += 6;
-			if (p->limit_len <= (p->total_len)) {
+			if (p->limit_len == 6) {
+				// uint8_t stream_id = pkt[3];
+				/* allowed only for a video elementary stream */
+				// if (stream_id <= 0xEF && stream_id >= 0xE0) {
+					memset(p->buffer, 0, 65536);
+					memcpy(p->buffer, pkt, p->total_len);
+				// }
+				return -1;
+			} else if (p->limit_len <= p->total_len) {
 				*buffering = pkt;
-				return p->limit_len;
+				return p->total_len;
 			} else {
-				memset(p->buffer, 0, 65535);
+				memset(p->buffer, 0, 65536);
 				memcpy(p->buffer, pkt, p->total_len);
 			}
 		}
 
 	} else {
-		if (p->total_len == 0)
-			return -1;
-		memcpy(p->buffer + p->total_len, pkt, len);
-		p->total_len += len;
-		if (p->total_len >= p->limit_len) {
-			*buffering = p->buffer;
-			p->total_len = 0;
-			return p->limit_len;
+		if (psi_or_pes == 0) {
+			if (p->total_len == 0)
+				return -1;
+			memcpy(p->buffer + p->total_len, pkt, len);
+			p->total_len += len;
+			if (p->total_len >= p->limit_len) {
+				*buffering = p->buffer;
+				p->total_len = 0;
+				return p->limit_len;
+			}
+		} else {
+			if (p->total_len == 0)
+				return -1;
+			memcpy(p->buffer + p->total_len, pkt, len);
+			p->total_len += len;
+			if (p->total_len >= p->limit_len) {
+				*buffering = p->buffer;
+				p->total_len = 0;
+				return p->total_len;
+			}
 		}
 	}
 	/* tell us buffering */
@@ -223,13 +241,20 @@ int ts_proc(uint8_t *data, uint8_t len)
 
 	pid_dev[head.PID].pkts_in++;
 
-	if (head.adaptation_field_control == ADAPT_ONLY || head.adaptation_field_control == ADAPT_BOTH) {
+	if (head.adaptation_field_control == ADAPT_ONLY ||
+		head.adaptation_field_control == ADAPT_BOTH) {
 		ts_adaptation_field adapt;
 		adapt.adaptation_field_length = TS_READ8(ptr);
 		PL_STEP(ptr, len, 1);
 		ts_adaptation_field_proc(ptr, adapt.adaptation_field_length);
 		PL_STEP(ptr, len, adapt.adaptation_field_length);
 		// TODO
+	}
+
+	/* no data_byte */
+	if (head.adaptation_field_control == ADAPT_ONLY ||
+		head.adaptation_field_control == ADAPT_RESERVED) {
+		return 0;
 	}
 
 	if (head.transport_error_indicator == 1) {
@@ -243,8 +268,14 @@ int ts_proc(uint8_t *data, uint8_t len)
 	if (head.PID < 0x20 || check_pmt_pid(head.PID)) // take as psi
 		psi_or_pes = 0;
 
-	sec_len = section_preproc(head.PID, ptr, len, &pbuf, head.payload_unit_start_indicator, head.continuity_counter,
-							  psi_or_pes);
+	if (psi_or_pes && !check_es_pid(head.PID)) {
+		/* unrefered pes or what */
+		return -1;
+	}
+
+	sec_len = section_preproc(head.PID, ptr, len, &pbuf, 
+							  head.payload_unit_start_indicator,
+							  head.continuity_counter, psi_or_pes);
 	if (sec_len == -1)
 		return 0;
 	
@@ -261,13 +292,12 @@ void dump_ts_info(void)
 		return;
 
 	uint16_t pid = 0;
-	printf("\n");
-	printf("TS bits statistics:\n");
-	printf("%7s%21s%11s\n", "PID", "In", "Err");
+	rout(0, "TS bits statistics:");
+	rout(1, "%7s%21s%11s", "PID", "In", "Err");
 	for (pid = 0; pid <= NULL_PID; pid++) {
 		if (pid_dev[pid].pkts_in)
-			printf("%04d(0x%04x)  %2c  %10" PRIu64 "%10" PRIu64 "\n", pid, pid, ':', pid_dev[pid].pkts_in,
-				   pid_dev[pid].error_in);
+			rout(1, "%04d(0x%04x)  %2c  %10" PRIu64 "%10" PRIu64, pid, pid,
+				 ':', pid_dev[pid].pkts_in, pid_dev[pid].error_in);
 	}
 }
 

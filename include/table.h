@@ -442,6 +442,8 @@ void uninit_table_ops(void);
 
 bool check_pmt_pid(uint16_t pid);
 
+bool check_es_pid(uint16_t pid);
+
 void dump_tables(void);
 
 void free_tables(void);
