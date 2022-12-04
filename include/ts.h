@@ -133,6 +133,7 @@ struct tsa_config
 	uint8_t type;
 	uint8_t brief : 1;
 	uint8_t detail : 1;
+	uint8_t stats : 1;
 	uint8_t mem;
 	uint8_t tables;
 	uint8_t output;
