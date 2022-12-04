@@ -498,9 +498,10 @@ extern struct descriptor_ops des_ops[];
 	size_t tplen = sizeof(type);\
 	size_t i = 0, psize = dr->name##_cnt * tplen;                                                   \
 	if (dr->name##_cnt > 0) {	\
-		if (tplen == 1) {                                                                                           \
-			res_hexdump(lv + 1, #name, (uint8_t*)dr->name, psize);                                                        \
-		} else {                                                                                                           \
+		if (tplen == 1) {                                                                                              \
+			if ( strstr(#name, "name") != NULL) rout(lv +1, "%s: %s", #name, (uint8_t*)dr->name);			\
+			else res_hexdump(lv + 1, #name, (uint8_t*)dr->name, psize);                                                \
+		} else {                                                                                                       \
 			char buf_##name[2048];                                                                                     \
 			while (i < dr->name##_cnt) {	                       \
 				size_t k = 0, ret_##name = 0 ;                     \
@@ -509,7 +510,7 @@ extern struct descriptor_ops des_ops[];
 					ret_##name += snprintf(buf_##name + ret_##name, 2048 - ret_##name, " 0x%x", addr[k]);      \
 					k ++;      \
 				}                         \
-				rout(lv+1, "%s:%s", #name, buf_##name);                                              \
+				rout(lv+1, "%s: %s", #name, buf_##name);                                              \
 				i ++;                                                                                        \
 			}                                                                                                              \
 			                                                                        \
@@ -525,8 +526,9 @@ extern struct descriptor_ops des_ops[];
 
 #define __mlv(type, length, name)	\
 	size_t i_##name = 0, j_##name = 0, ret_##name = 0;	\
-	if (sizeof(type) == 1) {                                                                                           \
-		res_hexdump(lv+1, #name, (uint8_t *)dr->name, dr->length);                                                                     \
+	if (sizeof(type) == 1) {                \
+	if (strstr(#name, "name")) rout(lv+1, "%s: %s", #name, dr->name);                                                  \
+		else res_hexdump(lv+1, #name, (uint8_t *)dr->name, dr->length);                                                \
 	} else{   \
 		char buf_##name[512];	\
 		if (dr->length > 0) {	                                                                                       \
@@ -540,7 +542,7 @@ extern struct descriptor_ops des_ops[];
 				i_##name += sizeof(type);                                                                                             \
 				j_##name ++ ;   \
 			}            \
-			rout(lv+1, "%s:%s", #name, buf_##name);	                   \
+			rout(lv+1, "%s: %s", #name, buf_##name);	                   \
 		}	\
 	}
 
