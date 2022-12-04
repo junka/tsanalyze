@@ -8,7 +8,7 @@
 #include "ts.h"
 #include "result.h"
 
-#define PES_MAX_LENGTH (64 * 1024 * 1024)
+#define PES_MAX_LENGTH (64 * 1024)
 
 typedef struct {
 	uint16_t pid_num;
@@ -31,12 +31,12 @@ int parse_pes_packet(uint16_t pid, uint8_t *pkt, uint16_t len)
 	}
 	if (pt == NULL)
 		pt = (pes_t *)malloc(sizeof(pes_t));
-	printf("arriverd here\n");
 
 	uint8_t *buf = pkt;
 	pt->packet_start_code_prefix = ((uint32_t)buf[0] << 16 | (uint32_t)buf[1] << 8 | buf[2]);
-	if (PES_PACKET_START != pt->packet_start_code_prefix)
+	if (PES_PACKET_START != pt->packet_start_code_prefix) {
 		return -1;
+	}
 
 	pt->stream_id = buf[3];
 	buf += 4;
@@ -152,20 +152,22 @@ int parse_pes_packet(uint16_t pid, uint8_t *pkt, uint16_t len)
 			   (pt->stream_id == stream_id_ECM_stream) || (pt->stream_id == stream_id_EMM_stream) ||
 			   (pt->stream_id == stream_id_program_stream_directory) || (pt->stream_id == stream_id_H222_DSMCC_stream) ||
 			   (pt->stream_id == stream_id_H222_typeE_stream)) {
-		// PES_packet_data_byte
+		/* PES_packet_data_byte */
 		pt->PES_packet_data_byte = buf;
 	} else if (pt->stream_id == stream_id_padding_stream) {
-		// padding_byte, do not need parse
-		// pt->padding_byte = malloc(pt->PES_packet_length);
-		// memcpy(pt->padding_byte, buf, pt->PES_packet_length);
+		/* padding_byte, do not need parse */
 	}
-	// elementary stream has one type content
+	/* elementary stream has one type content */
 	return pt->PES_packet_length + 6;
 }
 
 static int pes_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
 {
-	parse_ps(pid, pkt, len);
+	int ret = parse_pes_packet(pid, pkt, len);
+	if (ret < 0) {
+		// printf("error in parsing pes\n");
+		return -1;
+	}
 	return 0;
 }
 
@@ -190,7 +192,7 @@ void dump_pes_infos()
 	for (int i = 0; i < pes.pid_num; i++) {
 		rout(1, "PID: 0x%x(%d)", pes.list[i].pid, pes.list[i].pid);
 		rout(2, "stream_type : %s", get_stream_type(pes.list[i].type));
-		rout(2, "stream_id : %x", pes.list[i].stream_id);
+		rout(2, "stream_id : 0x%x", pes.list[i].stream_id);
 	}
 }
 

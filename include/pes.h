@@ -157,14 +157,14 @@ typedef struct
 {
 	uint16_t pid;
 	StreamType_E type;
-	uint32_t packet_start_code_prefix : 24; // should be PES_START_PREFIX
+	uint32_t packet_start_code_prefix : 24; /* should be PES_START_PREFIX */
 	uint32_t stream_id : 8;
 	uint16_t PES_packet_length;
 	union
 	{
 		non_ps packet_data;
 		uint8_t *PES_packet_data_byte;
-		// user defined for private_stream_1, private_stream_2, ECM_stream, EMM_stream
+		/* user defined for private_stream_1, private_stream_2, ECM_stream, EMM_stream */
 		uint8_t *padding_byte;
 	};
 } pes_t;

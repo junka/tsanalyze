@@ -8,7 +8,7 @@
 #include "ts.h"
 #include "descriptor.h"
 
-
+/* see table 2-34 */
 int parse_system_header(uint8_t *pkt, uint16_t len, system_header *sh)
 {
 	uint8_t *buf = pkt;
@@ -31,6 +31,7 @@ int parse_system_header(uint8_t *pkt, uint16_t len, system_header *sh)
 	sh->video_bound = TS_READ8_BITS(buf, 5, 3);
 	PL_STEP(buf, l, 1);
 	sh->packet_rate_restriction_flag = TS_READ8_BITS(buf, 1, 0);
+	// sh->reserved_bits = TS_READ8_BITS(buf, 7, 1);
 	PL_STEP(buf, l, 1);
 	//if next bit start with 1, then there is estd es;
 	if (TS_READ_BIT(buf, 7)) {
@@ -43,6 +44,7 @@ int parse_system_header(uint8_t *pkt, uint16_t len, system_header *sh)
 	return sh->header_length + 6;
 }
 
+/* see table 2-32, 2-33 */
 int parse_pack(uint16_t pid, uint8_t *pkt, uint16_t len, pack_header *ph)
 {
 	uint8_t *buf = pkt;
@@ -56,19 +58,20 @@ int parse_pack(uint16_t pid, uint8_t *pkt, uint16_t len, pack_header *ph)
 	ph->program_mux_rate_l = TS_READ8_BITS(buf, 6, 0);
 	ph->marker_bit5 = TS_READ8_BITS(buf, 1, 6);
 	ph->marker_bit6 = TS_READ8_BITS(buf, 1, 7);
-
 	PL_STEP(buf, l, 1);
 
-	ph->pack_stuffing_length = TS_READ8_BITS(buf, 5, 0);
-	
+	ph->reserved = TS_READ8_BITS(buf, 3, 0);
+	ph->pack_stuffing_length = TS_READ8_BITS(buf, 5, 3);
 	PL_STEP(buf, l, 1);
-	ph->stuffing_byte = (uint8_t *)malloc(ph->pack_stuffing_length);
-	memcpy(ph->stuffing_byte, buf, ph->pack_stuffing_length);
 
+	// skip reading stuffing bytes
+	// ph->stuffing_byte = (uint8_t *)malloc(ph->pack_stuffing_length);
+	// memcpy(ph->stuffing_byte, buf, ph->pack_stuffing_length);
 	PL_STEP(buf, l, ph->pack_stuffing_length);
 
 	system_header sh;
 	uint32_t next_head = TS_READ32(buf);
+	printf("%x\n", next_head);
 	int ret = 0;
 	if (next_head == SYSTEM_START) {
 		ret = parse_system_header(buf, l, &sh);
@@ -77,7 +80,7 @@ int parse_pack(uint16_t pid, uint8_t *pkt, uint16_t len, pack_header *ph)
 	}
 
 	while(((next_head >> 8) == PES_PACKET_START) && 
-		((next_head & 0xFF) != stream_id_program_stream_end))
+		((next_head & 0xFF) == stream_id_program_stream_map))
 	{
 		ret = parse_pes_packet(pid, buf, l);
 
@@ -88,6 +91,7 @@ int parse_pack(uint16_t pid, uint8_t *pkt, uint16_t len, pack_header *ph)
 	return len - l;
 }
 
+/* see table 2-35 */
 int parse_program_stream_map(uint8_t *pkt, uint16_t len, ps_map *map)
 {
 	uint8_t * buf = pkt;
@@ -228,7 +232,6 @@ int parse_ps(uint16_t pid, uint8_t *pkt, uint16_t len)
 	uint8_t *buf = pkt;
 	pack_header ph;
 	uint16_t l = len;
-
 	while (TS_READ32(buf) == PACK_START) {
 		int ret = parse_pack(pid, buf, l, &ph);
 		PL_STEP(buf, l, ret);

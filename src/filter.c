@@ -112,8 +112,11 @@ int filter_proc(uint16_t pid, uint8_t *data, uint16_t len)
 		return -1;
 	list_for_each_safe(lh, ix, next, n)
 	{
-		if ((data[0] & ix->t.para.mask[0]) == (ix->t.para.mask[0] & ix->t.para.coff[0]))
+		if (ix->t.para.depth == 0) {
 			ix->t.callback(pid, data, len);
+		} else if (ix->t.para.depth > 0 && (data[0] & ix->t.para.mask[0]) == (ix->t.para.mask[0] & ix->t.para.coff[0])) {
+			ix->t.callback(pid, data, len);
+		}
 	}
 	return 0;
 }
