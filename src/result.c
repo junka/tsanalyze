@@ -36,37 +36,64 @@ int res_open(const char *filename)
 
 void res_hexdump(int lv, char * title, uint8_t *buf, uint32_t len)
 {
-	unsigned int i, out = 0, ofs, j = lv;
+	unsigned int i, ofs, j = lv;
 	const unsigned char *data = buf;
 	char line[LINE_LEN] = {0}; /* space needed 8+16*3+3+16 == 75 */
+	int n = 0, out = 0;
 
 	ofs = 0;
 	if (j == 0) {
-		out += snprintf(line + out, LINE_LEN - out, "\n");
+		out = snprintf(line, LINE_LEN, "\n");
 	}
 	while(j-- > 0) {
-		out += snprintf(line + out, LINE_LEN - out, "  ");
+		n = snprintf(line + out, LINE_LEN - out, "  ");
+		if (n < 0 || n >= LINE_LEN - out)
+			break;
+		out += n;
 	}
-	out += snprintf(line + out, LINE_LEN - out, "%s: len %u\n", title, len);
+	n = snprintf(line + out, LINE_LEN - out, "%s: len %u\n", title, len);
+	if (n < 0 || n >= LINE_LEN - out) {
+		fprintf(rops[outtype].f, "title too long: %s", title);
+		return;
+	}
+	out += n;
 
 	while (ofs < len) {
 		j = lv;
 		while(j-- > 0) {
-			out += snprintf(line + out, LINE_LEN - out, "  ");
+			n = snprintf(line + out, LINE_LEN - out, "  ");
+			if (n < 0 || n >= LINE_LEN - out)
+				goto printline;
+			out += n;
 		}
 		/* format the line in the buffer, then use printf to output to screen */
-		out += snprintf(line + out, LINE_LEN, "%08X:", ofs);
-		for (i = 0; ((ofs + i) < len) && (i < 16); i++)
-			out += snprintf(line + out, LINE_LEN - out, " %02X", (data[ofs + i] & 0xff));
-		for (; i <= 16; i++)
-			out += snprintf(line + out, LINE_LEN - out, " | ");
+		out += snprintf(line + out, LINE_LEN - out, "%08X:", ofs);
+		for (i = 0; ((ofs + i) < len) && (i < 16); i++) {
+			n = snprintf(line + out, LINE_LEN - out, " %02X", (data[ofs + i] & 0xff));
+			if (n < 0 || n >= LINE_LEN - out)
+				goto printline;
+			out += n;
+		}
+		for (; i <= 16; i++) {
+			n = snprintf(line + out, LINE_LEN - out, " | ");
+			if (n < 0 || n >= LINE_LEN - out)
+				goto printline;
+			out += n;
+		}
 		for (i = 0; (ofs < len) && (i < 16); i++, ofs++) {
 			unsigned char c = data[ofs];
 			if ((c < ' ') || (c > '~'))
 				c = '.';
-			out += snprintf(line + out, LINE_LEN - out, "%c", c);
+			n = snprintf(line + out, LINE_LEN - out, "%c", c);
+			if (n < 0 || n >= LINE_LEN - out)
+				goto printline;
+			out += n;
 		}
-		out += snprintf(line + out, LINE_LEN - out, "\n");
+		n = snprintf(line + out, LINE_LEN - out, "\n");
+		if (n < 0 || n >= LINE_LEN - out)
+			goto printline;
+		out += n;
+printline:
 		fprintf(rops[outtype].f, "%s", line);
 		out = 0;
 	}
@@ -76,16 +103,27 @@ int res_put(int lv, const char *fmt, ...)
 {
 	va_list args;
 	char buf[LINE_LEN] = {0};
-	int ret = 0;
+	int ret = 0, n = 0;
 	va_start(args, fmt);
 	if (lv == 0) {
-		ret += snprintf(buf + ret, LINE_LEN - ret, "\n");
+		ret += snprintf(buf, LINE_LEN, "\n");
 	}
 	while(lv-- > 0) {
-		ret += snprintf(buf + ret, LINE_LEN - ret, "  ");
+		n = snprintf(buf + ret, LINE_LEN - ret, "  ");
+		if (n < 0 || n >= LINE_LEN - ret)
+			goto end;
+		ret += n;
 	}
-	ret += vsnprintf(buf + ret, LINE_LEN - ret, fmt, args);
-	ret += snprintf(buf + ret, LINE_LEN - ret, "\n");
+	n = vsnprintf(buf + ret, LINE_LEN - ret, fmt, args);
+	if (n < 0 || n >= LINE_LEN - ret)
+		goto end;
+	ret += n;
+	n = snprintf(buf + ret, LINE_LEN - ret, "\n");
+	if (n < 0 || n >= LINE_LEN - ret)
+		goto end;
+	ret += n;
+
+end:
 	ret = fprintf(rops[outtype].f, "%s", buf);
 	va_end(args);
 	return ret;

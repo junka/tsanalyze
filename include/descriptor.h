@@ -507,7 +507,9 @@ extern struct descriptor_ops des_ops[];
 				size_t k = 0, ret_##name = 0 ;                     \
 				uint8_t *addr = (uint8_t *)(dr->name + i);         \
 				while (k < sizeof(type)) {                                                                            \
-					ret_##name += snprintf(buf_##name + ret_##name, 2048 - ret_##name, " 0x%x", addr[k]);      \
+					int n_b = snprintf(buf_##name + ret_##name, 2048 - ret_##name, " 0x%x", addr[k]);      \
+					if (n_b < 0 || n_b >= 2048 - (int)ret_##name) {break;}  \
+					ret_##name += n_b;        \
 					k ++;      \
 				}                         \
 				rout(lv+1, "%s: %s", #name, buf_##name);                                              \
