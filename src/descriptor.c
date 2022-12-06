@@ -35,8 +35,13 @@ void dump_reserved(int lv, descriptor_t *p_descriptor)
 {
 	int i = 0, ret = 0;
 	char buf[BUF_LINE];
-	for (i = 0; i < p_descriptor->length; i++)
-		ret += snprintf(buf+ret, BUF_LINE-ret, "%c", p_descriptor->data[i]);
+	for (i = 0; i < p_descriptor->length; i++) {
+		int n = snprintf(buf + ret, BUF_LINE - ret, "%c", p_descriptor->data[i]);
+		if (n < 0 || n >= BUF_LINE - ret) {
+			break;
+		}
+		ret += n;
+	}
 	rout(lv, buf);
 }
 
