@@ -1205,6 +1205,11 @@ bool check_pmt_pid(uint16_t pid)
 
 bool check_es_pid(uint16_t pid)
 {
+	struct tsa_config *tsaconf = get_config();
+	/* skip pes */
+	if (!tsaconf->detail)
+		return false;
+
 	for (int i = 0x20; i < 8192; i ++) {
 		struct es_node *pn = NULL, *next = NULL;
 		pmt_t *pPMT = &psi.pmt[i];
