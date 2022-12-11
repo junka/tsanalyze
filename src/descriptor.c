@@ -20,7 +20,7 @@ int parse_reserved_descriptor(uint8_t *buf, uint32_t len, void *ptr)
 
 void *alloc_reserved(void)
 {
-	void *desc = malloc(sizeof(descriptor_t) + 255 - 2);
+	void *desc = calloc(1, sizeof(descriptor_t) + 255 - 2);
 	return desc;
 }
 
@@ -42,7 +42,7 @@ void dump_reserved(int lv, descriptor_t *p_descriptor)
 		}
 		ret += n;
 	}
-	rout(lv, buf);
+	rout(lv, NULL, buf);
 }
 
 void init_descriptor_parsers(void)
@@ -102,8 +102,7 @@ void dump_descriptors(int lv, struct list_head *list)
 {
 	descriptor_t *p = NULL, *next = NULL;
 	list_for_each_safe(list, p, next, n) {
-		// printf(" 0x%02x (%s) : len %d\n", p->tag, des_ops[p->tag].tag_name, p->length);
-		// printf("%s ", str);
-		des_ops[p->tag].descriptor_dump(lv, p);
+		if (likely(des_ops[p->tag].descriptor_dump))
+			des_ops[p->tag].descriptor_dump(lv, p);
 	}
 }

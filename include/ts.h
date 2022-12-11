@@ -2,6 +2,8 @@
 #define _BITS_H_
 
 #include <stdint.h>
+
+#include "types.h"
 /* define ts structure ,see ISO/IEC13818-1 */
 
 #ifdef __cplusplus
@@ -89,8 +91,17 @@ enum PID_e {
 			   ((uint64_t) * (buff + 3) << 32) | ((uint64_t) * (buff + 4) << 24) | ((uint64_t) * (buff + 5) << 16) |   \
 			   ((uint64_t) * (buff + 6) << 8) | ((uint64_t) * (buff + 7)))
 
-#define TS_READ24(buff)                                                                                                \
-	(uint24_t)(((uint24_t) * (buff) << 16) | ((uint24_t) * (buff + 1) << 8) | ((uint24_t) * (buff + 2)))
+static inline uint24_t ts_read_uint24(uint8_t *buff)
+{
+	assert(sizeof(uint24_t) == 3);
+	uint24_t ret_v;
+	ret_v.bits[0] = *buff;
+	ret_v.bits[1] = *(buff+1);
+	ret_v.bits[2] = *(buff + 2);
+	return ret_v;
+}
+
+#define TS_READ24(buff) ts_read_uint24(buff)
 
 #define TS_READ_uint8_t(buf) TS_READ8(buf)
 #define TS_READ_uint16_t(buf) TS_READ16(buf)

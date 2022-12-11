@@ -110,10 +110,14 @@ struct component_control {
 
 
 /*0xC2*/
-#define foreach_network_identification_member
+#define foreach_network_identification_member \
+    __m1(uint24_t, country_code) \
+    __m1(uint16_t, media_type) \
+    __m1(uint16_t, network_id) \
+    __mplast(uint8_t, private_data)
 
-#define foreach_Partial_Transport_Stream_time_member
-
+#define foreach_Partial_Transport_Stream_time_member \
+    __mplast(uint8_t, tbd)
 /*0xC4*/
 #define foreach_audio_component_member  \
     __m(uint8_t, reserved, 4)   \

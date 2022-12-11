@@ -14,18 +14,19 @@ extern "C" {
 #define EXT_STD_C11
 #endif
 
-// #ifndef uint24_t
-// typedef struct uint24 {
-// 	uint32_t bits : 24;
-// } __attribute__((packed)) uint24_t;
-// #endif
+#ifndef uint24_t
+typedef struct uint24 {
+	uint8_t bits[3];
+} __attribute__((packed)) uint24_t;
+#endif
 
-typedef uint8_t uint24_t[3];
-typedef uint8_t uint40_t[5];
-typedef uint8_t uint48_t[6];
-// typedef struct uint40 {
-// 	uint64_t bits : 40;
-// } __attribute__((packed)) uint40_t;
+typedef struct uint40 {
+	uint64_t bits : 40;
+} __attribute__((packed)) uint40_t;
+
+typedef struct uint48 {
+	uint64_t bits : 48;
+} __attribute__((packed)) uint48_t;
 
 typedef struct
 {
