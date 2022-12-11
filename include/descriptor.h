@@ -442,7 +442,11 @@ foreach_enum_descriptor
 	}
 
 #define __mlv(type, length, name)	\
-	dr->name = (type *)calloc(dr->length, 1);	\
+	if (sizeof(type) == 1) { \
+		dr->name = (type *)calloc(1, dr->length + 1);	\
+	} else { \
+		dr->name = (type *)calloc(1, dr->length);	\
+	} \
 	memcpy(dr->name, buf + bytes_off, dr->length);	\
 	bytes_off += dr->length;
 
@@ -529,7 +533,8 @@ extern struct descriptor_ops des_ops[];
 #define __mlv(type, length, name)	\
 	size_t i_##name = 0, j_##name = 0, ret_##name = 0;	\
 	if (sizeof(type) == 1) {                \
-		if (strstr(#name, "name")) {rout(lv+1, #name, "%s",  (uint8_t *)dr->name);          \
+		if (strstr(#name, "name")) { \
+			rout(lv+1, #name, "%s", (uint8_t *)dr->name);       \
 		} else { res_hexdump(lv+1, #name, (uint8_t *)dr->name, dr->length); }   \
 	} else{   \
 		char buf_##name[512];                                               \

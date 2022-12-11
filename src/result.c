@@ -237,10 +237,10 @@ int res_put(int lv, const char * key, const char *fmt, ...)
 	}
 	if (ret + 1 > LINE_LEN)
 		goto end;
-	buf[ret++] = (char)'\n';
+	buf[ret++] = '\n';
 
 end:
-	buf[ret] = (char)'\0';
+	buf[ret] = '\0';
 	ret = fprintf(rops[outtype].f, "%s", buf);
 	va_end(args);
 	last_put_lv = lv;
