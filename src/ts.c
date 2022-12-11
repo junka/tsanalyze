@@ -292,11 +292,11 @@ void dump_ts_info(void)
 		return;
 
 	uint16_t pid = 0;
-	rout(0, "TS bits statistics:");
-	rout(1, "%7s%21s%11s", "PID", "In", "Err");
+	rout(0, "TS bits statistics", NULL);
+	rout(1, NULL, "%7s%21s%11s", "PID", "In", "Err");
 	for (pid = 0; pid <= NULL_PID; pid++) {
 		if (pid_dev[pid].pkts_in)
-			rout(1, "%04d(0x%04x)  %2c  %10" PRIu64 "%10" PRIu64, pid, pid,
+			rout(1, NULL, "%04d(0x%04x)  %2c  %10" PRIu64 "%10" PRIu64, pid, pid,
 				 ':', pid_dev[pid].pkts_in, pid_dev[pid].error_in);
 	}
 }

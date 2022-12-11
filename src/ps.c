@@ -122,7 +122,7 @@ int parse_program_stream_map(uint8_t *pkt, uint16_t len, ps_map *map)
 	int k = 0;
 	list_head_init(&map->h);
 	while(k < map->elementary_stream_map_length) {
-		es_map * node = malloc(sizeof(es_map));
+		es_map * node = calloc(1, sizeof(es_map));
 		list_head_init(&node->list);
 		list_node_init(&node->n);
 		node->stream_type = TS_READ8(buf);
@@ -175,7 +175,7 @@ int parse_directory_PES_packet(uint8_t *pkt, uint16_t len, directory_PES_packet 
 	dpp->prev_directory_offset6 = TS_READ16_BITS(buf, 15, 0);
 	dpp->marker_bit6 = TS_READ16_BITS(buf, 1, 15);
 	PL_STEP(buf, l, 2);
-	dpp->units = malloc(sizeof(access_unit) * dpp->number_of_access_units);
+	dpp->units = calloc(dpp->number_of_access_units, sizeof(access_unit));
 	int i = 0;
 	while(i < dpp->number_of_access_units) {
 		dpp->units[i].packet_stream_id = TS_READ8(buf);

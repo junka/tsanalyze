@@ -16,7 +16,7 @@ typedef struct {
 	pes_t *list;
 } mpegts_pes_t;
 
-static mpegts_pes_t pes;
+static mpegts_pes_t pes = {.pid_num = 0,};
 
 /*see iso13818-1 Table 2-17*/
 int parse_pes_packet(uint16_t pid, uint8_t *pkt, uint16_t len)
@@ -30,7 +30,7 @@ int parse_pes_packet(uint16_t pid, uint8_t *pkt, uint16_t len)
 		}
 	}
 	if (pt == NULL)
-		pt = (pes_t *)malloc(sizeof(pes_t));
+		pt = (pes_t *)calloc(1, sizeof(pes_t));
 
 	uint8_t *buf = pkt;
 	pt->packet_start_code_prefix = ((uint32_t)buf[0] << 16 | (uint32_t)buf[1] << 8 | buf[2]);
@@ -183,52 +183,65 @@ void dump_pes_infos()
 		return;
 
 	if (pes.pid_num > 0)
-		rout(0, "%s", "PES:");
-	for (uint16_t pid = 0; pid < TS_MAX_PID; pid ++) {
-		if ((pes.pid_bitmap[ pid / 64] & ((uint64_t) 1 << (pid % 64)))) {
-			
-		}
-	}
+		rout(0, "PES", NULL);
+
 	for (int i = 0; i < pes.pid_num; i++) {
-		rout(1, "PID: 0x%x(%d)", pes.list[i].pid, pes.list[i].pid);
-		rout(2, "stream_type : %s", get_stream_type(pes.list[i].type));
-		rout(2, "stream_id : 0x%x", pes.list[i].stream_id);
+		rout(1, "PID", "0x%x(%d)", pes.list[i].pid, pes.list[i].pid);
+		rout(2, "stream_type", "%s", get_stream_type(pes.list[i].type));
+		rout(2, "stream_id", "0x%x", pes.list[i].stream_id);
 	}
 }
 
 void register_pes_ops(uint16_t pid, uint8_t stream_type)
 {
+	filter_param_t para = {
+		.depth = 1,
+		.coff = {0},
+		.mask = {0},
+	};
 	if ((pes.pid_bitmap[ pid / 64] & ((uint64_t) 1 << (pid % 64))) == 0) {
 		pes.pid_bitmap[ pid / 64] |= ((uint64_t) 1 << (pid % 64));
+		pes.list = (pes_t *)realloc(pes.list, (pes.pid_num + 1) * sizeof(pes_t));
+		pes.list[pes.pid_num].type = stream_type;
+		pes.list[pes.pid_num].pid = pid;
 		pes.pid_num ++;
-		pes.list = (pes_t *)realloc(pes.list, pes.pid_num * sizeof(pes_t));
-		pes.list[pes.pid_num - 1].type = stream_type;
-		pes.list[pes.pid_num - 1].pid = pid;
 
 		filter_t *f = filter_alloc(pid);
-		filter_param_t para;
-		para.depth = 1;
-		para.coff[0] = 0;
-		para.mask[0] = 0;
 		filter_set(f, &para, pes_proc);
 	}
 }
 
 void unregister_pes_ops()
 {
-	for (uint16_t pid = 0; pid < 0x1FFF; pid ++) {
-		if ((pes.pid_bitmap[ pid / 64] & ((uint64_t) 1 << (pid % 64))) == 0) {
-			filter_param_t para;
-			filter_t *f = NULL;
-			para.depth = 1;
-			para.coff[0] = 0;
-			para.mask[0] = 0;
-			para.negete[0] = 0;
-			f = filter_lookup(pid, &para);
-			if (f) {
-				filter_free(f);
-			}
+	filter_param_t para = {
+		.depth = 1,
+		.coff = {0},
+		.mask = {0},
+		.negete = {0},
+	};
+	filter_t *f = NULL;
+	for (int i = 0; i < pes.pid_num; i ++) {
+		f = filter_lookup(pes.list[i].pid, &para);
+		if (f) {
+			filter_free(f);
 		}
 	}
+	pes.pid_num = 0;
 	free(pes.list);
+}
+
+
+bool check_es_pid(uint16_t pid)
+{
+	struct tsa_config *tsaconf = get_config();
+	/* skip pes */
+	if (!tsaconf->detail)
+		return false;
+
+	for (int i = 0x20; i < 0x1FFF; i ++) {
+		if ((pes.pid_bitmap[ pid / 64] & ((uint64_t) 1 << (pid % 64))) == 1) {
+			return true;
+		}
+	}
+	return false;
 }

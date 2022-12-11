@@ -38,8 +38,7 @@ filter_t *filter_alloc(uint16_t pid)
 	if (unlikely(pid_filter[pid].filter_num >= MAX_FILTER_NUM))
 		return NULL;
 
-	struct filter_slot *fs = (struct filter_slot *)malloc(sizeof(struct filter_slot));
-	memset(fs, 0, sizeof(struct filter_slot));
+	struct filter_slot *fs = (struct filter_slot *)calloc(1, sizeof(struct filter_slot));
 	fs->t.pid = pid;
 	list_add(&pid_filter[pid].h, &(fs->n));
 	pid_filter[pid].filter_num++;
