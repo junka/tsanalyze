@@ -64,7 +64,7 @@ uint8_t parse_table(const char *table)
 	uint8_t i = 0;
 	for (i = 0; i < ARRAY_SIZE(tables); i++) {
 		if (strcmp(table, tables[i]) == 0) {
-			tsaconf.tables |= 1<<i;
+			tsaconf.tables |= 1 << i;
 			return 0;
 		}
 	}
@@ -86,7 +86,7 @@ uint8_t parse_format_type(const char *format)
 uint8_t parse_output_type(const char *format)
 {
 	uint8_t i = 0;
-	const char *formats[] = { "stdout", "txt", "json" };
+	const char *formats[] = { "stdout", "txt", "json", "yaml" };
 	for (i = 0; i < ARRAY_SIZE(formats); i++) {
 		if (strcmp(formats[i], format) == 0) {
 			return i;
@@ -119,7 +119,7 @@ void prog_usage(FILE *fp, const char *pro_name)
 	/*fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_MEMORY_NUM, ", --" OPT_MEMORY, "memory to use");*/
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_TABLE_NUM, ", --" OPT_TABLE, "\tShow table [pat][cat][pmt][tsdt][nit][sdt][bat][tdt]");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_PID_NUM, ", --" OPT_PID, "\tShow select pid only");
-	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_OUT_NUM, ", --" OPT_OUT, "Save output to [stdout][txt][json]");
+	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_OUT_NUM, ", --" OPT_OUT, "Save output to [stdout][txt][json][yaml]");
 	fprintf(fp, "\n\n");
 }
 
