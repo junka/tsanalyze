@@ -123,15 +123,15 @@ static inline uint24_t ts_read_uint24(uint8_t *buff)
 #define TS_READ_BITS_uint64_t(buf, bitlen, off) TS_READ64_BITS(buf, bitlen, off)
 #define TS_READ_BITS_uint24_t(buf, bitlen, off) TS_READ64_BITS(buf, bitlen, off)
 
-#define PAT_SHOW 	1
-#define CAT_SHOW 	1<<1
-#define PMT_SHOW 	1<<2
-#define TSDT_SHOW 	1<<3
-#define NIT_SHOW 	1<<4
-#define SDT_SHOW 	1<<5
-#define BAT_SHOW 	1<<6
-#define TDT_SHOW 	1<<7
-#define EIT_SHOW	1<<8
+#define PAT_SHOW 	(1 << 0)
+#define CAT_SHOW 	(1 << 1)
+#define PMT_SHOW 	(1 << 2)
+#define TSDT_SHOW 	(1 << 3)
+#define NIT_SHOW 	(1 << 4)
+#define SDT_SHOW 	(1 << 5)
+#define BAT_SHOW 	(1 << 6)
+#define TDT_SHOW 	(1 << 7)
+#define EIT_SHOW	(1 << 8)
 
 #define PL_STEP(p, l, v) \
 	l -= v; \
@@ -146,7 +146,7 @@ struct tsa_config
 	uint8_t detail : 1;
 	uint8_t stats : 1;
 	uint8_t mem;
-	uint8_t tables;
+	uint16_t tables;
 	uint8_t output;
 };
 
