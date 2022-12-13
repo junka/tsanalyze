@@ -68,28 +68,29 @@ static void dump_pat(pat_t *p_pat)
 	struct program_node *pn = NULL;
 
 	dump_section_header("PAT", &p_pat->pat_header);
-	rout(2, "program_number @ PMT_PID", NULL);
+	rout(1, "program_number @ PMT_PID", NULL);
 	list_for_each(&p_pat->h, pn, n)
 	{
-		rout(2, NULL, "%14d @ 0x%x (%d)", pn->program_number, pn->program_map_PID, pn->program_map_PID);
+		rout(1, NULL, "%14d @ 0x%x (%d)", pn->program_number, pn->program_map_PID, pn->program_map_PID);
 	}
 }
 
 static void dump_cat(cat_t *p_cat)
 {
-	descriptor_t *pn = NULL;
-	CA_descriptor_t *ca = NULL;
+	// descriptor_t *pn = NULL;
+	// CA_descriptor_t *ca = NULL;
 
 	dump_section_header("CAT", &p_cat->cat_header);
-	list_for_each(&(p_cat->list), pn, n)
-	{
-		ca = (CA_descriptor_t *)pn;
-		uint16_t system_id = ca->CA_system_ID;
-		uint16_t emm_pid = ca->CA_PID;
-		rout(2, "cat system id", "0x%04x    emm pid 0x%04x", system_id, emm_pid);
-	}
-	// if (!list_empty(&(p_cat->list)))
-	// 	dump_descriptors(2, &(p_cat->list));
+	rout(1, "ca systems", NULL);
+	// list_for_each(&(p_cat->list), pn, n)
+	// {
+	// 	ca = (CA_descriptor_t *)pn;
+	// 	uint16_t system_id = ca->CA_system_ID;
+	// 	uint16_t emm_pid = ca->CA_PID;
+	// 	rout(2, "cat system id", "0x%04x    emm pid 0x%04x", system_id, emm_pid);
+	// }
+	if (!list_empty(&(p_cat->list)))
+		dump_descriptors(2, &(p_cat->list));
 }
 
 static void dump_tsdt(tsdt_t *p_tsdt)

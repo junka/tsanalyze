@@ -103,7 +103,11 @@ void res_hexdump(int lv, char * title, uint8_t *buf, uint32_t len)
 				goto printline;
 			out += n;
 		}
-		n = snprintf(line + out, LINE_LEN - out, "\n");
+		if (outtype == RES_JSON) {
+			n = snprintf(line + out, LINE_LEN - out, "\\n");
+		} else {
+			n = snprintf(line + out, LINE_LEN - out, "\n");
+		}
 		if (n < 0 || n >= LINE_LEN - out)
 			goto printline;
 		out += n;
