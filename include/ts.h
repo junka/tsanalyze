@@ -133,6 +133,7 @@ static inline uint24_t ts_read_uint24(uint8_t *buff)
 #define TDT_SHOW 	(1 << 7)
 #define EIT_SHOW	(1 << 8)
 
+/* payload length step on */
 #define PL_STEP(p, l, v) \
 	l -= v; \
 	p = (uint8_t *)p + v

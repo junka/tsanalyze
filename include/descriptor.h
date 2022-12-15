@@ -5,9 +5,11 @@
 extern "C" {
 #endif
 #include <stdlib.h>
+#include <string.h>
 #include "atsc/descriptor.h"
 #include "dvb/descriptor.h"
 #include "isdb/descriptor.h"
+#include "scte/descriptor.h"
 #include "ts.h"
 #include "types.h"
 #include "result.h"

@@ -13,6 +13,32 @@
 
 static mpeg_psi_t psi;
 
+
+static void init_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask, filter_cb func)
+{
+	filter_t *f = filter_alloc(pid);
+	filter_param_t para;
+	para.depth = 1;
+	para.coff[0] = tableid;
+	para.mask[0] = mask;
+	para.negete[0] = 0;
+	filter_set(f, &para, func);
+}
+
+static void uninit_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask)
+{
+	filter_param_t para;
+	filter_t *f = NULL;
+	para.depth = 1;
+	para.coff[0] = tableid;
+	para.mask[0] = mask;
+	para.negete[0] = 0;
+	f = filter_lookup(pid, &para);
+	if (f) {
+		filter_free(f);
+	}
+}
+
 int psi_table_init(void)
 {
 	int i = 0;
@@ -450,6 +476,7 @@ void free_tables(void)
 			free_descriptors(&(psi.tot.list));
 	}
 
+	unregister_scte_ops();
 	unregister_pes_ops();
 
 }
@@ -728,7 +755,12 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 		pn->stream_type = TS_READ8(pdata);
 		pdata += 1;
 		pn->elementary_PID = TS_READ16(pdata) & 0x1FFF;
-		register_pes_ops(pn->elementary_PID, pn->stream_type);
+		//sections contain scte do not have pes like structure
+		if (pn->stream_type == 0x86) {
+			register_scte_ops(pn->elementary_PID);
+		} else {
+			register_pes_ops(pn->elementary_PID, pn->stream_type);
+		}
 		pdata += 2;
 		pn->ES_info_length = TS_READ16(pdata) & 0x0FFF;
 		pdata += 2;
@@ -1115,31 +1147,6 @@ static int default_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
 	return 0;
 }
 
-static void init_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask, filter_cb func)
-{
-	filter_t *f = filter_alloc(pid);
-	filter_param_t para;
-	para.depth = 1;
-	para.coff[0] = tableid;
-	para.mask[0] = mask;
-	para.negete[0] = 0;
-	filter_set(f, &para, func);
-}
-
-static void uninit_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask)
-{
-	filter_param_t para;
-	filter_t *f = NULL;
-	para.depth = 1;
-	para.coff[0] = tableid;
-	para.mask[0] = mask;
-	para.negete[0] = 0;
-	f = filter_lookup(pid, &para);
-	if (f) {
-		filter_free(f);
-	}
-}
-
 void init_table_ops(void)
 {
 	struct tsa_config *tsaconf = get_config();
@@ -1170,6 +1177,7 @@ void init_table_ops(void)
 	//filter tdt and tot at same time
 	init_table_filter(TDT_PID, TDT_TID, 0xFF, tdt_tot_proc);
 	init_table_filter(TOT_PID, TOT_TID, 0xFF, tdt_tot_proc);
+
 }
 
 void uninit_table_ops(void)

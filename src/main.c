@@ -22,6 +22,7 @@ void dump_result(int sig)
 {
 	dump_tables();
 	dump_pes_infos();
+	dump_scte_info();
 	dump_ts_info();
 
 	res_close();
