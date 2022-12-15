@@ -10,6 +10,7 @@ extern "C" {
 #include "descriptor.h"
 #include "list.h"
 #include "statistics.h"
+#include "scte/scte.h"
 
 /* table id */
 typedef enum {
@@ -109,6 +110,9 @@ typedef enum {
 	CAMT_PRIVATE_D_TID = 0x8F,
 
 	/* 0x90 - 0xFE: PRIVATE */
+
+	/* see SCTE 35 2022 Digital Program Insertion Cueing Message */
+	SCTE_SPLICE_TID = 0xFC,
 
 	/* 0xFF: ISO RESERVED */
 	RESERVED_TID = 0xFF,
@@ -428,6 +432,8 @@ static inline char const *get_stream_type(uint8_t type)
 		return stream_type[type];
 	} else if (type < 0x80)
 		return "ISO/IEC 13818-1 reserved";
+	else if (type == 0x86)
+		return "SCTE SPLICE INFO";
 	else
 		return "User Private";
 }

@@ -2,6 +2,7 @@
 #define _RESULT_H_
 
 #include <stdint.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C"{
