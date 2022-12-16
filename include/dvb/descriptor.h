@@ -330,7 +330,7 @@ struct subtitling_node {
 }__attribute__((packed));
 
 static inline
-void dump_subtitle_descriptor(int lv, struct subtitling_node *n)
+void dump_subtitling_descriptor__(int lv, struct subtitling_node *n)
 {
 	rout(lv, "ISO_639_language_code", "%c%c%c", (n->ISO_639_language_code >> 16)&0xFF ,
 		(n->ISO_639_language_code >> 8) & 0xFF, n->ISO_639_language_code& 0xFF);
@@ -342,7 +342,7 @@ void dump_subtitle_descriptor(int lv, struct subtitling_node *n)
 }
 
 #define foreach_subtitling_member	\
-	__mplast_custom(struct subtitling_node, subtitle_list, dump_subtitle_descriptor)
+	__mplast_custom(struct subtitling_node, subtitle_list, dump_subtitling_descriptor__)
 
 #define foreach_terrestrial_delivery_system_member	\
 	__m1(uint32_t, centre_frequency)	\
