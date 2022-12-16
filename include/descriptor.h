@@ -158,8 +158,16 @@ struct language_node
 	/*see definition in @audio_type_e */
 };
 
+static inline
+void dump_ISO_639_language_descriptor__(int lv, struct language_node *n)
+{
+	rout(lv, "ISO_639_language_code", "%c%c%c", (n->ISO_639_language_code >> 16)&0xFF ,
+		(n->ISO_639_language_code >> 8) & 0xFF, n->ISO_639_language_code& 0xFF);
+	rout(lv, "audio_type", "%d", n->audio_type);
+}
+
 #define foreach_ISO_639_language_member \
-	__mplast(struct language_node, languages)
+	__mplast_custom(struct language_node, languages, dump_ISO_639_language_descriptor__)
 
 #define foreach_system_clock_member                                                                                    \
 	__m(uint8_t, external_clock_reference_indicator, 1) \
