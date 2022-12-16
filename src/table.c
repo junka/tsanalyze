@@ -263,8 +263,43 @@ static void dump_eit(eit_t *p_eit)
 	}
 }
 
+void convert_pids_to_tables()
+{
+	struct tsa_config *tsaconf = get_config();
+	for (int i = 0; i < 8192; i ++) {
+		if (tsaconf->pids[i]) {
+			switch (i) {
+				case PAT_PID:
+					tsaconf->tables |= PAT_SHOW;
+					break;
+				case CAT_PID:
+					tsaconf->tables |= CAT_SHOW;
+					break;
+				case TSDT_PID:
+					tsaconf->tables |= TSDT_SHOW;
+					break;
+				case NIT_PID:
+					tsaconf->tables |= NIT_SHOW;
+					break;
+				case SDT_PID:
+					tsaconf->tables |= SDT_SHOW;
+					tsaconf->tables |= BAT_SHOW;
+					break;
+				case EIT_PID:
+					tsaconf->tables |= EIT_SHOW;
+					break;
+				default:
+					tsaconf->tables |= PMT_SHOW;
+					break;
+			}
+
+		}
+	}
+}
+
 void dump_tables(void)
 {
+	convert_pids_to_tables();
 	struct tsa_config *tsaconf = get_config();
 	if (tsaconf->brief == 0)
 		return;

@@ -2,7 +2,12 @@
 
 use basic rules from ISO 13818 and ETSI EN 300 468 to decode MPEG2 TS
 
-print PSI tables infomation
+use EN 300 743 to decode subtitle
+
+Pinrt descriptors for DVB/ATSC/ISDB standard.
+
+Print PSI tables infomation and some other subsystem infomation
+
 
 # Compile
 
@@ -20,8 +25,9 @@ and then do ```make``` for both ways
 ```
 - support file and udp stream analyze
 ```
-./tsanalyze tsfile -f udp udp://url  
+./tsanalyze -f udp udp://url 
 ```
+`Ctrl + C` to stop and show received ts info 
 
 - print table selected
 ```

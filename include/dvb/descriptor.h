@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include "types.h"
+#include "result.h"
 
 #define foreach_enum_dvb_descriptor                                                                                    \
 	_(network_name, 0x40)                                                                                              \
@@ -320,6 +321,7 @@ struct local_time_node {
 #define foreach_local_time_offset_member	\
 	__mplast(struct local_time_node, time_list)
 
+
 struct subtitling_node {
 	uint32_t ISO_639_language_code : 24;
 	uint32_t subtitling_type : 8;
@@ -327,8 +329,20 @@ struct subtitling_node {
 	uint16_t ancillary_page_id;
 }__attribute__((packed));
 
+static inline
+void dump_subtitle_descriptor(int lv, struct subtitling_node *n)
+{
+	rout(lv, "ISO_639_language_code", "%c%c%c", (n->ISO_639_language_code >> 16)&0xFF ,
+		(n->ISO_639_language_code >> 8) & 0xFF, n->ISO_639_language_code& 0xFF);
+	
+	//see en_300743
+	rout(lv, "subtitling_type", "0x%x", n->subtitling_type);
+	rout(lv, "composotion_page_id", "%d", n->composition_page_id);
+	rout(lv, "ancillary_page_id", "%d", n->ancillary_page_id);
+}
+
 #define foreach_subtitling_member	\
-	__mplast(struct subtitling_node, subtitle_list)
+	__mplast_custom(struct subtitling_node, subtitle_list, dump_subtitle_descriptor)
 
 #define foreach_terrestrial_delivery_system_member	\
 	__m1(uint32_t, centre_frequency)	\

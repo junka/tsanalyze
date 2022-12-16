@@ -343,6 +343,7 @@ struct descriptor_ops {
 #define __m(type, name, bits) type name : bits;
 #define __m1(type, name) type name;
 #define __mplast(type, name)    uint16_t name##_cnt; type *name;
+#define __mplast_custom(type, name, callback)  __mplast(type, name)
 #define __mif(type, name, cond, val) type name;
 #define __mrangelv(type, length, name, cond, floor, ceiling) uint8_t length; type* name;
 #define __mlv(type, length, name)    type* name;
@@ -360,6 +361,7 @@ foreach_enum_descriptor
 #undef __mlv
 #undef __mrangelv
 #undef __mif
+#undef __mplast_custom
 #undef __mplast
 #undef __m1
 #undef __m
@@ -383,6 +385,7 @@ foreach_enum_descriptor
 #define __m(type, name, bits) 
 #define __m1(type, name) 
 #define __mplast(type, name)    if(dr->name) free(dr->name);
+#define __mplast_custom(type, name, callback)  __mplast(type, name)
 #define __mif(type, name, cond, val)
 #define __mrangelv(type, length, name, cond, floor, ceiling) free(dr->name);
 #define __mlv(type, length, name)    free(dr->name);
@@ -401,6 +404,7 @@ foreach_enum_descriptor
 #undef __mlv
 #undef __mrangelv
 #undef __mif
+#undef __mplast_custom
 #undef __mplast
 #undef __m1
 #undef __m
@@ -427,6 +431,8 @@ foreach_enum_descriptor
 		dr->name = (type *)calloc(dr->name##_cnt, sizeof(type));                                                       \
 		memcpy(dr->name, buf + bytes_off, dr->name##_cnt * sizeof(type));	\
 	}
+
+#define __mplast_custom(type, name, callback)  __mplast(type, name)
 
 #define __mif(type, name, cond, val)	\
 	if(dr->cond == val) { \
@@ -489,6 +495,7 @@ foreach_enum_descriptor
 #undef __mlv
 #undef __mrangelv
 #undef __mif
+#undef __mplast_custom
 #undef __mplast
 #undef __m1
 #undef __m
@@ -523,6 +530,11 @@ extern struct descriptor_ops des_ops[];
 			}                                                                       \
 			                                                                        \
 		}	\
+	}
+
+#define __mplast_custom(type, name, custom_dump)                                  \
+	for (size_t i = 0; i < dr->name##_cnt; i ++) {                                \
+		custom_dump(lv+1, dr->name + i);                                          \
 	}
 
 #define __mif(type, name, cond, val)	\
@@ -570,6 +582,7 @@ foreach_enum_descriptor
 #undef __mlv
 #undef __mrangelv
 #undef __mif
+#undef __mplast_custom
 #undef __mplast
 #undef __m1
 #undef __m

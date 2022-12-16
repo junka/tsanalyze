@@ -153,6 +153,8 @@ typedef struct
 	PES_extension extension;
 } non_ps;
 
+typedef int (*pes_data_callback)(uint16_t pid, uint8_t *buf, int len);
+
 typedef struct
 {
 	uint16_t pid;
@@ -167,6 +169,7 @@ typedef struct
 		/* user defined for private_stream_1, private_stream_2, ECM_stream, EMM_stream */
 		uint8_t *padding_byte;
 	};
+	pes_data_callback cb;
 } pes_t;
 
 #define PES_START_PREFIX 0x000001
@@ -176,6 +179,9 @@ int parse_pes_packet(uint16_t pid, uint8_t *pkt, uint16_t len);
 void register_pes_ops(uint16_t pid, uint8_t stream_type);
 
 void unregister_pes_ops(void);
+
+void register_pes_data_callback(uint8_t stream_type, pes_data_callback cb);
+
 
 void dump_pes_infos(void);
 

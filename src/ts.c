@@ -8,6 +8,7 @@
 #include "table.h"
 #include "ts.h"
 #include "utils.h"
+#include "subtitle.h"
 
 /*
  * port from ffmpeg for judging TS packet length
@@ -306,6 +307,7 @@ int init_pid_processor(void)
 	filter_init();
 	init_table_ops();
 	init_descriptor_parsers();
+	init_subtitle_parser();
 	return 0;
 }
 
