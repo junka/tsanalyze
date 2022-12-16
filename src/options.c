@@ -96,12 +96,15 @@ uint8_t parse_output_type(const char *format)
 }
 
 /* return the number of pids*/
-void parse_selected_pids(const char *format)
+int parse_selected_pids(const char *format)
 {
 	int pid = atoi(format);
-	if (pid < 0 || pid > TS_MAX_PID)
-		return;
+	if (pid < 0 || pid > TS_MAX_PID) {
+		printf("pid greater than limit %d\n" ,TS_MAX_PID);
+		return -1;
+	}
 	tsaconf.pids[pid] = 1;
+	return 0;
 }
 
 void prog_usage(FILE *fp, const char *pro_name)
@@ -125,7 +128,7 @@ void prog_usage(FILE *fp, const char *pro_name)
 
 int prog_parse_args(int argc, char **argv)
 {
-	int opt, option_index;
+	int opt, option_index, ret = 0;
 	const char *prgname = argv[0];
 
 	// make a copy of the options
@@ -190,11 +193,14 @@ int prog_parse_args(int argc, char **argv)
 			exit(0);
 			break;
 		case 'p':
-			parse_selected_pids(optarg);
+			ret = parse_selected_pids(optarg);
 			break;
 		default:
 			break;
 		}
+	}
+	if (ret < 0) {
+		exit(1);
 	}
 
 	snprintf(tsaconf.name, 256, "%s", argv[argc - 1]);

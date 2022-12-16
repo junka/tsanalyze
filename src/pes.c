@@ -13,24 +13,47 @@
 typedef struct {
 	uint16_t pid_num;
 	uint64_t pid_bitmap[128];
+	uint16_t pid_index[TS_MAX_PID + 1];
 	pes_t *list;
 } mpegts_pes_t;
 
 static mpegts_pes_t pes = {.pid_num = 0,};
 
+static pes_data_callback pes_fns[0xFF] = {NULL};
+
+
+void register_pes_data_callback(uint8_t stream_type, pes_data_callback cb)
+{
+	pes_fns[stream_type] = cb;
+
+	//run for pes already in parsing
+	for (int i = 0; i < pes.pid_num; i ++) {
+		if (pes.list[i].type == stream_type && !pes.list[i].cb) {
+			pes.list[i].cb = cb;
+		}
+	}
+}
+
+
+
+
 /*see iso13818-1 Table 2-17*/
 int parse_pes_packet(uint16_t pid, uint8_t *pkt, uint16_t len)
 {
-	int i = 0;
 	pes_t *pt = NULL;
-	for (i = 0; i < pes.pid_num; i ++) {
-		if (pid == pes.list[i].pid) {
-			pt = &pes.list[i];
-			break;
+
+	if (pes.pid_bitmap[ pid / 64] & ((uint64_t) 1 << (pid % 64))) {
+		if (pes.pid_index[pid] > pes.pid_num) {
+			printf("pes not register for %d\n", pid);
+			return -1;
 		}
+		pt = &pes.list[pes.pid_index[pid]];
 	}
-	if (pt == NULL)
-		pt = (pes_t *)calloc(1, sizeof(pes_t));
+
+	if (pt == NULL) {
+		printf("pes not register for %d\n", pid);
+		return -1;
+	}
 
 	uint8_t *buf = pkt;
 	pt->packet_start_code_prefix = ((uint32_t)buf[0] << 16 | (uint32_t)buf[1] << 8 | buf[2]);
@@ -43,8 +66,9 @@ int parse_pes_packet(uint16_t pid, uint8_t *pkt, uint16_t len)
 	pt->PES_packet_length = TS_READ16(buf);
 	buf += 2;
 	if ((pt->stream_id != stream_id_program_stream_map) && (pt->stream_id != stream_id_padding_stream) &&
-		(pt->stream_id != stream_id_private_stream_2) && (pt->stream_id != stream_id_ECM_stream) && (pt->stream_id != stream_id_EMM_stream) &&
-		(pt->stream_id != stream_id_program_stream_directory) && (pt->stream_id != stream_id_H222_DSMCC_stream) && (pt->stream_id != stream_id_H222_typeE_stream)) {
+		(pt->stream_id != stream_id_private_stream_2) && (pt->stream_id != stream_id_ECM_stream) &&
+		(pt->stream_id != stream_id_EMM_stream) && (pt->stream_id != stream_id_program_stream_directory) &&
+		(pt->stream_id != stream_id_H222_DSMCC_stream) && (pt->stream_id != stream_id_H222_typeE_stream)) {
 		pt->packet_data.PES_scrambling_control = (buf[0] >> 4) & 0x3;
 		pt->packet_data.PES_priority = (buf[0] >> 3) & 0x1;
 		pt->packet_data.data_alignment_indicator = (buf[0] >> 2) & 0x1;
@@ -157,6 +181,11 @@ int parse_pes_packet(uint16_t pid, uint8_t *pkt, uint16_t len)
 	} else if (pt->stream_id == stream_id_padding_stream) {
 		/* padding_byte, do not need parse */
 	}
+	if (pt->type == STEAM_TYPE_MPEG2_PES) {
+		if (pt->cb) {
+			pt->cb(pid, buf, pt->PES_packet_length);
+		}
+	}
 	/* elementary stream has one type content */
 	return pt->PES_packet_length + 6;
 }
@@ -204,6 +233,9 @@ void register_pes_ops(uint16_t pid, uint8_t stream_type)
 		pes.list = (pes_t *)realloc(pes.list, (pes.pid_num + 1) * sizeof(pes_t));
 		pes.list[pes.pid_num].type = stream_type;
 		pes.list[pes.pid_num].pid = pid;
+		pes.pid_index[pid] = pes.pid_num;
+		//can be null at first
+		pes.list[pes.pid_num].cb = pes_fns[stream_type];
 		pes.pid_num ++;
 
 		filter_t *f = filter_alloc(pid);
