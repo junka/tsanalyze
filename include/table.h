@@ -390,6 +390,8 @@ typedef struct
 	uint64_t pmt_bitmap[128];
 	pmt_t pmt[8192]; /*maybe no necessary */
 
+	uint64_t section_bitmap[128];
+
 	nit_t nit_actual;
 	nit_t nit_other;
 	sdt_t sdt_actual;
@@ -442,11 +444,17 @@ void unregister_pmt_ops(uint16_t pid);
 
 void register_pmt_ops(uint16_t pid);
 
+void register_section_ops(uint16_t pid);
+
+void unregister_section_ops(uint16_t pid);
+
 void init_table_ops(void);
 
 void uninit_table_ops(void);
 
 bool check_pmt_pid(uint16_t pid);
+
+bool check_section_pid(uint16_t pid);
 
 bool check_es_pid(uint16_t pid);
 
