@@ -106,3 +106,14 @@ void dump_descriptors(int lv, struct list_head *list)
 			des_ops[p->tag].descriptor_dump(lv, p);
 	}
 }
+
+bool has_descritpor_tag(struct list_head *list, uint8_t tag)
+{
+	descriptor_t *p = NULL, *next = NULL;
+	list_for_each_safe(list, p, next, n) {
+		if (p->tag == tag) {
+			return true;
+		}
+	}
+	return false;
+}

@@ -10,6 +10,7 @@
 #include "ts.h"
 #include "utils.h"
 #include "result.h"
+#include "subtitle.h"
 
 static mpeg_psi_t psi;
 
@@ -790,16 +791,22 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 		pn->stream_type = TS_READ8(pdata);
 		pdata += 1;
 		pn->elementary_PID = TS_READ16(pdata) & 0x1FFF;
-		//sections contain scte do not have pes like structure
-		if (pn->stream_type == 0x86) {
-			register_scte_ops(pn->elementary_PID);
-		} else {
-			register_pes_ops(pn->elementary_PID, pn->stream_type);
-		}
 		pdata += 2;
 		pn->ES_info_length = TS_READ16(pdata) & 0x0FFF;
 		pdata += 2;
 		parse_descriptors(&(pn->list), pdata, (int)pn->ES_info_length);
+		if (pn->stream_type == STEAM_TYPE_MPEG2_SECTIONS) {
+			register_section_ops(pn->elementary_PID);
+		} else if (pn->stream_type >= 0x08 && pn->stream_type <= 0x0D) {
+			register_section_ops(pn->elementary_PID);
+		} else if (pn->stream_type == 0x86) {
+			register_scte_ops(pn->elementary_PID);
+		} else {
+			register_pes_ops(pn->elementary_PID, pn->stream_type);
+			if (has_descritpor_tag(&(pn->list), 0x59)) {
+				register_pes_data_callback(pn->elementary_PID, pn->stream_type, parse_subtitle);
+			}
+		}
 		pdata += pn->ES_info_length;
 		section_len -= (5 + pn->ES_info_length);
 		list_add_tail(&(pPMT->h), &(pn->n));
@@ -1246,6 +1253,29 @@ void unregister_pmt_ops(uint16_t pid)
 bool check_pmt_pid(uint16_t pid)
 {
 	if (psi.pmt_bitmap[pid / 64] & ((uint64_t)1 << (pid % 64)))
+		return true;
+	return false;
+}
+
+
+void register_section_ops(uint16_t pid)
+{
+	if (pid == NIT_PID)
+		return;
+	psi.section_bitmap[pid / 64] |= ((uint64_t)1 << (pid % 64));
+	init_table_filter(pid, 0, 0, default_proc);
+}
+
+void unregister_section_ops(uint16_t pid)
+{
+	psi.section_bitmap[pid / 64] &= ~((uint64_t)1 << (pid % 64));
+	uninit_table_filter(pid, 0, 0);
+}
+
+bool check_section_pid(uint16_t pid)
+{
+	//other sections like DSM-CC
+	if (psi.section_bitmap[pid / 64] & ((uint64_t)1 << (pid % 64)))
 		return true;
 	return false;
 }

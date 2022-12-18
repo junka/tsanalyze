@@ -605,6 +605,8 @@ void dump_descriptors(int lv, struct list_head *list);
 
 void parse_descriptors(struct list_head *h, uint8_t *buf, int len);
 
+bool has_descritpor_tag(struct list_head *h, uint8_t tag);
+
 #ifdef __cplusplus
 }
 #endif

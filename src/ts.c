@@ -8,7 +8,6 @@
 #include "table.h"
 #include "ts.h"
 #include "utils.h"
-#include "subtitle.h"
 
 /*
  * port from ffmpeg for judging TS packet length
@@ -75,8 +74,13 @@ struct section_parser {
 	int total_len;
 	int32_t limit_len;
 	uint8_t cc;
-	uint8_t buffer[65536];
+	//for no-limit-length video, this is not enough, but we will drop video packet
+	uint8_t buffer[65535];
 };
+
+
+#define TS_IS_PES (1)
+#define TS_IS_PSI (0)
 
 // do memcpy if section length greater than one packet
 int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buffering,
@@ -89,9 +93,10 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 	/* indicate start of PES or PSI */
 	if (payload_unit_start_indicator == 1) {
 		p->cc = continuity_counter;
-		if (psi_or_pes == 0) {
+		if (psi_or_pes == TS_IS_PSI) {
 			/* PSI */
-			uint8_t pointer_field = pkt[0];
+			/* see 2.4.4.1 pointer */
+			uint8_t pointer_field = pkt[0]; 
 			/*skip pointer_field, valid for PSI and stream_type 0x05 private_sections*/
 			p->total_len = len - 1 - pointer_field;
 			/* a PSI section following, skip table id now */
@@ -102,32 +107,35 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 				*buffering = (pkt + 1 + pointer_field);
 				return p->limit_len;
 			} else {
-				memset(p->buffer, 0, 4096); // PSI length less than this
+				// memset(p->buffer, 0, 4096); // PSI length less than this
 				memcpy(p->buffer, pkt + 1 + pointer_field, p->total_len);
 			}
-		} else { /* PES doesn't have pointer field */
+		} else { /* PES has no pointer field */
 			p->total_len = len;
 			p->limit_len = (int32_t)(((int16_t)pkt[4] << 8) | pkt[5]) & 0xFFFF;
-			p->limit_len += 6;
-			if (p->limit_len == 6) {
+			if (p->limit_len > 0)
+				p->limit_len += 6;
+			if (p->limit_len == 0) {
+				// printf("no limit on pid, drop it now %d\n", pid);
+				return 0;
 				// uint8_t stream_id = pkt[3];
 				/* allowed only for a video elementary stream */
 				// if (stream_id <= 0xEF && stream_id >= 0xE0) {
-					memset(p->buffer, 0, 65536);
-					memcpy(p->buffer, pkt, p->total_len);
+					// memset(p->buffer, 0, 65536);
+					// memcpy(p->buffer, pkt, p->total_len);
 				// }
-				return -1;
+				// return -1;
 			} else if (p->limit_len <= p->total_len) {
 				*buffering = pkt;
 				return p->total_len;
 			} else {
-				memset(p->buffer, 0, 65536);
+				// memset(p->buffer, 0, 65536);
 				memcpy(p->buffer, pkt, p->total_len);
 			}
 		}
-
 	} else {
-		if (psi_or_pes == 0) {
+		/* buffering incoming packets */
+		if (psi_or_pes == TS_IS_PSI) {
 			if (p->total_len == 0)
 				return -1;
 			memcpy(p->buffer + p->total_len, pkt, len);
@@ -138,14 +146,15 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 				return p->limit_len;
 			}
 		} else {
-			if (p->total_len == 0)
-				return -1;
+			if (p->limit_len == 0) {
+				// printf("drop it now");
+				return 0;
+			}
 			memcpy(p->buffer + p->total_len, pkt, len);
 			p->total_len += len;
 			if (p->total_len >= p->limit_len) {
 				*buffering = p->buffer;
-				p->total_len = 0;
-				return p->total_len;
+				return p->limit_len;
 			}
 		}
 	}
@@ -222,7 +231,7 @@ int ts_adaptation_field_proc(uint8_t *data, uint8_t len)
 int ts_proc(uint8_t *data, uint8_t len)
 {
 	ts_header head;
-	uint8_t psi_or_pes = 1;
+	uint8_t psi_or_pes = TS_IS_PES;
 	uint8_t *ptr = data;
 	int16_t sec_len = -1;
 	uint8_t *pbuf = NULL;
@@ -266,8 +275,8 @@ int ts_proc(uint8_t *data, uint8_t len)
 		return 0;
 	}
 
-	if (head.PID < 0x20 || check_pmt_pid(head.PID)) // take as psi
-		psi_or_pes = 0;
+	if (head.PID < 0x20 || check_pmt_pid(head.PID) || check_section_pid(head.PID)) // take as psi
+		psi_or_pes = TS_IS_PSI;
 
 	if (psi_or_pes && !check_es_pid(head.PID)) {
 		/* unrefered pes or what */
@@ -277,7 +286,8 @@ int ts_proc(uint8_t *data, uint8_t len)
 	sec_len = section_preproc(head.PID, ptr, len, &pbuf, 
 							  head.payload_unit_start_indicator,
 							  head.continuity_counter, psi_or_pes);
-	if (sec_len == -1)
+
+	if (sec_len == -1 || sec_len == 0)
 		return 0;
 	
 	/*use filter to process a section*/
@@ -307,7 +317,7 @@ int init_pid_processor(void)
 	filter_init();
 	init_table_ops();
 	init_descriptor_parsers();
-	init_subtitle_parser();
+
 	return 0;
 }
 
