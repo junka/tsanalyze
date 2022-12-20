@@ -7,6 +7,7 @@
 #include "pes.h"
 #include "ts.h"
 #include "result.h"
+#include "subtitle.h"
 
 #define PES_MAX_LENGTH (64 * 1024)
 
@@ -17,19 +18,34 @@ typedef struct {
 	pes_t *list;
 } mpegts_pes_t;
 
-static mpegts_pes_t pes = {.pid_num = 0,};
+static mpegts_pes_t pes = {.pid_num = 0, .list = NULL};
 
 // static pes_data_callback pes_fns[0xFF] = {NULL};
 
 
-void register_pes_data_callback(uint16_t pid, uint8_t stream_type, pes_data_callback cb)
+void *pes_private_alloc(uint8_t tag)
+{
+	if (tag == 0x59) {
+		struct subtitle_pes_data *sub = calloc(1, sizeof(struct subtitle_pes_data));
+		list_head_init(&sub->seg_list);
+		return sub;
+	}
+	return NULL;
+}
+
+void register_pes_data_callback(uint16_t pid, uint8_t stream_type, pes_data_callback cb, uint8_t tag)
 {
 	// pes_fns[stream_type] = cb;
-
+	if (pes.pid_index[pid] >= pes.pid_num) {
+		return;
+	}
 	pes_t *pt = &pes.list[pes.pid_index[pid]];
 	//run for pes already in parsing
 	if (pt->type == stream_type && !pt->cb) {
 		pt->cb = cb;
+		if (!pt->private) {
+			pt->private = pes_private_alloc(tag);
+		}
 	}
 
 }
@@ -202,7 +218,7 @@ int parse_pes_packet(uint16_t pid, uint8_t *pkt, uint16_t len)
 	}
 	
 	if (pt->cb && pt->PES_packet_data_byte) {
-		pt->cb(pid, pt->PES_packet_data_byte, pt->PES_packet_length);
+		pt->cb(pid, pt->PES_packet_data_byte, pt->PES_packet_length, pt->private);
 	}
 	/* elementary stream has one type content */
 	return pt->PES_packet_length + 6;
@@ -218,6 +234,20 @@ static int pes_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
 	return 0;
 }
 
+void dump_pes_private(pes_t *pt)
+{
+	if (pt->private)
+		dump_subtitles(pt->private);
+}
+
+void free_pes_private(pes_t *pt)
+{
+	if (pt && pt->cb && pt->private) {
+		free_subtitles(pt->private);
+		free(pt->private);
+	}
+}
+
 void dump_pes_infos()
 {
 	struct tsa_config *tsaconf = get_config();
@@ -231,6 +261,9 @@ void dump_pes_infos()
 		rout(1, "PID", "0x%x(%d)", pes.list[i].pid, pes.list[i].pid);
 		rout(2, "stream_type", "%s", get_stream_type(pes.list[i].type));
 		rout(2, "stream_id", "0x%x", pes.list[i].stream_id);
+		if (pes.list[i].private) {
+			dump_pes_private(&pes.list[i]);
+		}
 	}
 }
 
@@ -244,8 +277,11 @@ void register_pes_ops(uint16_t pid, uint8_t stream_type)
 	if ((pes.pid_bitmap[ pid / 64] & ((uint64_t) 1 << (pid % 64))) == 0) {
 		pes.pid_bitmap[ pid / 64] |= ((uint64_t) 1 << (pid % 64));
 		pes.list = (pes_t *)realloc(pes.list, (pes.pid_num + 1) * sizeof(pes_t));
+		memset(&pes.list[pes.pid_num], 0, sizeof(pes_t));
 		pes.list[pes.pid_num].type = stream_type;
 		pes.list[pes.pid_num].pid = pid;
+		pes.list[pes.pid_num].private = NULL;
+		pes.list[pes.pid_num].cb = NULL;
 		pes.pid_index[pid] = pes.pid_num;
 		//can be null at first
 		// pes.list[pes.pid_num].cb = pes_fns[stream_type];
@@ -270,6 +306,7 @@ void unregister_pes_ops()
 		if (f) {
 			filter_free(f);
 		}
+		free_pes_private(pes.list + i);
 	}
 	pes.pid_num = 0;
 	free(pes.list);

@@ -804,7 +804,7 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 		} else {
 			register_pes_ops(pn->elementary_PID, pn->stream_type);
 			if (has_descritpor_tag(&(pn->list), 0x59)) {
-				register_pes_data_callback(pn->elementary_PID, pn->stream_type, parse_subtitle);
+				register_pes_data_callback(pn->elementary_PID, pn->stream_type, parse_subtitle, 0x59);
 			}
 		}
 		pdata += pn->ES_info_length;
@@ -1262,8 +1262,10 @@ void register_section_ops(uint16_t pid)
 {
 	if (pid == NIT_PID)
 		return;
-	psi.section_bitmap[pid / 64] |= ((uint64_t)1 << (pid % 64));
-	init_table_filter(pid, 0, 0, default_proc);
+	if ((psi.section_bitmap[pid / 64] & ((uint64_t)1 << (pid % 64))) == 0) {
+		psi.section_bitmap[pid / 64] |= ((uint64_t)1 << (pid % 64));
+		init_table_filter(pid, 0, 0, default_proc);
+	}
 }
 
 void unregister_section_ops(uint16_t pid)

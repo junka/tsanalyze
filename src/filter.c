@@ -125,6 +125,8 @@ void filter_dump(void)
 	int i = 0;
 	struct list_head *lh = NULL;
 	struct filter_slot *ix;
+	
+	printf("\nFilter available:\n");
 	for (i = 0; i < MAX_TS_PID_NUM; i++) {
 		lh = &pid_filter[i].h;
 		if (unlikely(list_empty(lh)))

@@ -79,6 +79,7 @@ struct region_composition_segment {
     uint8_t region_2bit_pixel_code: 2;
     uint8_t reserved2: 2;
 
+    int n_objs;
     struct object {
         uint16_t object_id;
         uint16_t object_type:2;
@@ -96,6 +97,7 @@ struct CLUT_definition_segment {
     uint8_t CLUT_version_number: 4;
     uint8_t reserved : 4;
 
+    int n_cluts;
     struct clut {
         uint8_t entry_id;
         uint8_t entry_2bit_CLUT_flag:1;
@@ -110,11 +112,10 @@ struct CLUT_definition_segment {
     } *cluts;
 };
 
-struct data_sub_block {
-    uint8_t data_type;
-    int data_len;
-    uint8_t *data;
-};
+// struct data_sub_block {
+//     uint8_t data_type;
+//     int data_len;
+// };
 
 struct progressive_pixel_block {
     uint16_t bitmap_width;
@@ -135,10 +136,12 @@ struct object_data_segment {
         struct {
             uint16_t top_field_data_block_length;
             uint16_t bottom_field_data_block_length;
+            uint8_t *data_top;
+            int top_dec_len;
             int num_top;
-            struct data_sub_block *top_sub_block;
+            uint8_t *data_bottom;
+            int bottom_dec_len;
             int num_bottom;
-            struct data_sub_block *bottom_sub_block;
         };
         struct {
             uint8_t number_of_codes;
@@ -228,7 +231,11 @@ struct subtitle_pes_data {
     struct list_head seg_list;
 };
 
-int parse_subtitle(uint16_t pid, uint8_t *pbuf, int len);
+int parse_subtitle(uint16_t pid, uint8_t *pbuf, int len, void *subtitle);
+
+void dump_subtitles(struct subtitle_pes_data *sub);
+
+void free_subtitles(struct subtitle_pes_data *sub);
 
 #ifdef __cplusplus
 }

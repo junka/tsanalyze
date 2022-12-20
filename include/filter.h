@@ -43,6 +43,9 @@ int filter_proc(uint16_t pid, uint8_t *data, uint16_t len);
 
 filter_t *filter_lookup(uint16_t pid, filter_param_t *param);
 
+/* debug function */
+void filter_dump(void);
+
 #ifdef __cplusplus
 }
 #endif
