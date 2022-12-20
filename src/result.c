@@ -132,8 +132,8 @@ int res_put(int lv, const char * key, const char *fmt, ...)
 	char buf[LINE_LEN] = {0};
 	int ret = 0;
 	int n = 0;
-
-	va_start(args, fmt);
+	if (fmt)
+		va_start(args, fmt);
 	if (lv == 0) {
 		prev_fmt_null = true;
 	}
@@ -298,7 +298,8 @@ int res_put(int lv, const char * key, const char *fmt, ...)
 end:
 	buf[ret] = '\0';
 	ret = fprintf(rops[outtype].f, "%s", buf);
-	va_end(args);
+	if (fmt)
+		va_end(args);
 	last_put_lv = lv;
 	return ret;
 }
