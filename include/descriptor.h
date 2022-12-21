@@ -187,9 +187,9 @@ void dump_ISO_639_language_descriptor__(int lv, struct language_node *n)
 	__mplast(uint8_t, additional_copyright_info)
 
 #define foreach_maximum_bitrate_member \
-	__m(uint32_t, reserved, 2) \
-	__m(uint32_t, maximum_bitrate, 22)
-/* 22bit*/
+	__m(uint8_t, reserved, 2) \
+	__m(uint8_t, maximum_bitrate_h, 6) \
+	__m1(uint8_t, maximum_bitrate_l)
 
 #define foreach_private_data_indicator_member \
 	__m1(uint32_t, private_data_indicator)

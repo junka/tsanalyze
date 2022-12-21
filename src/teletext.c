@@ -17,6 +17,9 @@ int parse_teletext(uint16_t pid, uint8_t *pbuf, int len, void *teletext)
     uint8_t *pdata = pbuf;
     int t_len = 0;
     struct teletext_pes_data *text = (struct teletext_pes_data *)teletext;
+    if (text->units) {
+        free(text->units);
+    }
     text->data_identifier = TS_READ8(pdata);
     pdata += 1;
     t_len += 1;
@@ -25,8 +28,10 @@ int parse_teletext(uint16_t pid, uint8_t *pbuf, int len, void *teletext)
     int i = 0, j = 0;
     while (t_len < len) {
         text->units[i].data_unit_id = TS_READ8(pdata);
+        assert(text->units[i].data_unit_id == 0x2 || text->units[i].data_unit_id == 0x3 ||text->units[i].data_unit_id == 0xff);
         pdata += 1;
         text->units[i].data_unit_length = TS_READ8(pdata);
+        assert(text->units[i].data_unit_length == 0x2c);
         pdata += 1;
         text->units[i].data.field_parity = TS_READ8_BITS(pdata, 1, 2);
         text->units[i].data.line_offset = TS_READ8_BITS(pdata, 5, 3);
@@ -41,6 +46,7 @@ int parse_teletext(uint16_t pid, uint8_t *pbuf, int len, void *teletext)
         }
         t_len += 46;
     }
+    // dump_teletext(text);
     return 0;
 }
 
