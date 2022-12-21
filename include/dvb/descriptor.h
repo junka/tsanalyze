@@ -117,15 +117,25 @@ struct VBI_data_node {
 #define foreach_VBI_data_member	\
 	__mploop(struct VBI_data_node, vbi_data, data_service_descriptor_length)
 
-struct VBI_teletext_node {
+struct teletext_node {
 	uint32_t ISO_639_language_code : 24;
 	uint32_t teletext_type : 5;
 	uint32_t teletext_magazine_number : 3;
 	uint8_t teletext_page_number;
-};
+} __attribute__((packed));
+
+static inline
+void dump_teletext_infos__(int lv, struct teletext_node *n)
+{
+	rout(lv, "ISO_639_language_code", "%c%c%c", (n->ISO_639_language_code >> 16)&0xFF ,
+		(n->ISO_639_language_code >> 8) & 0xFF, n->ISO_639_language_code& 0xFF);
+	rout(lv, "teletext_type", "%d", n->teletext_type);
+	rout(lv, "teletext_magazine_number", "%d", n->teletext_type);
+	rout(lv, "teletext_page_number", "%d", n->teletext_page_number);
+}
 
 #define foreach_VBI_teletext_member	\
-	__mplast(struct VBI_teletext_node, vbi_teletext)
+	__mplast_custom(struct teletext_node, vbi_teletext, dump_teletext_infos__)
 
 #define foreach_bouquet_name_member	\
 	__mplast(uint8_t, sub_table)
@@ -280,15 +290,15 @@ enum teletext_type {
 	/*0x06 to 0x1F reserved*/
 };
 
-struct teletext_node {
-	uint32_t ISO_639_language_code : 24;
-	uint32_t teletext_type : 5;
-	uint32_t teletext_magazine_number : 3;
-	uint8_t teletext_page_number;
-}__attribute__((packed));
+// struct teletext_node {
+// 	uint32_t ISO_639_language_code : 24;
+// 	uint32_t teletext_type : 5;
+// 	uint32_t teletext_magazine_number : 3;
+// 	uint8_t teletext_page_number;
+// }__attribute__((packed));
 
 #define  foreach_teletext_member	\
-	__mplast(struct teletext_node, teletext_infos)
+	__mplast_custom(struct teletext_node, teletext_infos, dump_teletext_infos__)
 
 #define foreach_telephone_member	\
 	__m(uint8_t, reserved_future_use, 2)	\

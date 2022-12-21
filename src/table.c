@@ -11,6 +11,7 @@
 #include "utils.h"
 #include "result.h"
 #include "subtitle.h"
+#include "teletext.h"
 
 static mpeg_psi_t psi;
 
@@ -805,6 +806,8 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 			register_pes_ops(pn->elementary_PID, pn->stream_type);
 			if (has_descritpor_tag(&(pn->list), 0x59)) {
 				register_pes_data_callback(pn->elementary_PID, pn->stream_type, parse_subtitle, 0x59);
+			} else if (has_descritpor_tag(&(pn->list), 0x56)) {
+				register_pes_data_callback(pn->elementary_PID, pn->stream_type, parse_teletext, 0x56);
 			}
 		}
 		pdata += pn->ES_info_length;

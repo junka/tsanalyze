@@ -8,6 +8,7 @@
 #include "ts.h"
 #include "result.h"
 #include "subtitle.h"
+#include "teletext.h"
 
 #define PES_MAX_LENGTH (64 * 1024)
 
@@ -29,6 +30,9 @@ void *pes_private_alloc(uint8_t tag)
 		struct subtitle_pes_data *sub = calloc(1, sizeof(struct subtitle_pes_data));
 		list_head_init(&sub->seg_list);
 		return sub;
+	} else if (tag == 0x56) {
+		struct teletext_pes_data *text = calloc(1, sizeof(struct teletext_pes_data));
+		return text;
 	}
 	return NULL;
 }
@@ -44,6 +48,7 @@ void register_pes_data_callback(uint16_t pid, uint8_t stream_type, pes_data_call
 	if (pt->type == stream_type && !pt->cb) {
 		pt->cb = cb;
 		if (!pt->private) {
+			pt->tag = tag;
 			pt->private = pes_private_alloc(tag);
 		}
 	}
@@ -236,14 +241,22 @@ static int pes_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
 
 void dump_pes_private(pes_t *pt)
 {
-	if (pt->private)
-		dump_subtitles(pt->private);
+	if (pt->private) {
+		if (pt->tag == 0x59)
+			dump_subtitles(pt->private);
+		else if (pt->tag == 0x56)
+			dump_teletext(pt->private);
+	}
 }
 
 void free_pes_private(pes_t *pt)
 {
 	if (pt && pt->cb && pt->private) {
-		free_subtitles(pt->private);
+		if (pt->tag == 0x59) {
+			free_subtitles(pt->private);
+		} else if (pt->tag == 0x56) {
+			free_teletext(pt->private);
+		}
 		free(pt->private);
 	}
 }
