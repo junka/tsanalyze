@@ -180,23 +180,22 @@ uint64_t calc_pcr_clock(pcr_clock pcr)
 	return pcr.program_clock_reference_base * 300 + pcr.program_clock_reference_extension;
 }
 
-void calc_bitrate(uint16_t pid, pcr_clock pcr_c)
+void calc_bitrate(uint16_t pid, uint8_t pkt_len, pcr_clock pcr_c)
 {
 	uint64_t pcr = calc_pcr_clock(pcr_c);
-	uint64_t bits = pid_dev[pid].pkts_in * 188 *8;
+	uint64_t bits = pid_dev[pid].pkts_in * pkt_len *8;
 	uint64_t bitrate = (bits - pid_dev[pid].bits_in)* BASE_CLK/ (pcr - pid_dev[pid].pcr);
 	pid_dev[pid].pcr = pcr;
 	pid_dev[pid].bits_in = bits;
 	pid_dev[pid].bitrate = bitrate;
 }
 
-int ts_adaptation_field_proc(uint16_t pid, uint8_t *data, uint8_t len)
+int ts_adaptation_field_proc(uint16_t pid, uint8_t pkt_len, uint8_t *data, uint8_t len)
 {
 	ts_adaptation_field adapt;
 	pcr_clock pcr, opcr;
 	uint8_t *ptr = data;
 	uint8_t l = len;
-
 	adapt.discontinuity_indicator = TS_READ_BIT(ptr, 7);
 	adapt.random_access_indicator = TS_READ_BIT(ptr, 6);
 	adapt.elementary_stream_priority_indicator = TS_READ_BIT(ptr, 5);
@@ -212,7 +211,7 @@ int ts_adaptation_field_proc(uint16_t pid, uint8_t *data, uint8_t len)
 		PL_STEP(ptr, l, 4);
 		pcr.program_clock_reference_extension = (TS_READ16(ptr) & 0x1FF);
 		PL_STEP(ptr, l, 2);
-		calc_bitrate(pid, pcr);
+		calc_bitrate(pid, pkt_len, pcr);
 	}
 	if (adapt.OPCR_flag) {
 		opcr.program_clock_reference_base = (((uint64_t)TS_READ32(ptr) << 1) | ptr[4] >> 7);
@@ -243,6 +242,7 @@ int ts_adaptation_field_proc(uint16_t pid, uint8_t *data, uint8_t len)
 int ts_proc(uint8_t *data, uint8_t len)
 {
 	ts_header head;
+	uint8_t pkt_len = len;
 	uint8_t psi_or_pes = TS_IS_PES;
 	uint8_t *ptr = data;
 	int16_t sec_len = -1;
@@ -268,7 +268,7 @@ int ts_proc(uint8_t *data, uint8_t len)
 		ts_adaptation_field adapt;
 		adapt.adaptation_field_length = TS_READ8(ptr);
 		PL_STEP(ptr, len, 1);
-		ts_adaptation_field_proc(head.PID, ptr, adapt.adaptation_field_length);
+		ts_adaptation_field_proc(head.PID, pkt_len, ptr, adapt.adaptation_field_length);
 		PL_STEP(ptr, len, adapt.adaptation_field_length);
 		// TODO
 	}
