@@ -166,19 +166,31 @@ struct pid_ops {
 	uint16_t pid;
 	uint64_t pkts_in;
 	uint64_t error_in;
-	uint64_t bits_in;
+	uint64_t bits_in; /* for bitrate calculation */
 	uint64_t pcr;
 	uint64_t bitrate;
 };
 
 struct pid_ops pid_dev[MAX_TS_PID_NUM];
 
+#define BASE_CLK (27000000)
+
 uint64_t calc_pcr_clock(pcr_clock pcr)
 {
 	return pcr.program_clock_reference_base * 300 + pcr.program_clock_reference_extension;
 }
 
-int ts_adaptation_field_proc(uint8_t *data, uint8_t len)
+void calc_bitrate(uint16_t pid, pcr_clock pcr_c)
+{
+	uint64_t pcr = calc_pcr_clock(pcr_c);
+	uint64_t bits = pid_dev[pid].pkts_in * 188 *8;
+	uint64_t bitrate = (bits - pid_dev[pid].bits_in)* BASE_CLK/ (pcr - pid_dev[pid].pcr);
+	pid_dev[pid].pcr = pcr;
+	pid_dev[pid].bits_in = bits;
+	pid_dev[pid].bitrate = bitrate;
+}
+
+int ts_adaptation_field_proc(uint16_t pid, uint8_t *data, uint8_t len)
 {
 	ts_adaptation_field adapt;
 	pcr_clock pcr, opcr;
@@ -200,7 +212,7 @@ int ts_adaptation_field_proc(uint8_t *data, uint8_t len)
 		PL_STEP(ptr, l, 4);
 		pcr.program_clock_reference_extension = (TS_READ16(ptr) & 0x1FF);
 		PL_STEP(ptr, l, 2);
-		// printf("clock %lu\n",calc_pcr_clock(pcr));
+		calc_bitrate(pid, pcr);
 	}
 	if (adapt.OPCR_flag) {
 		opcr.program_clock_reference_base = (((uint64_t)TS_READ32(ptr) << 1) | ptr[4] >> 7);
@@ -256,7 +268,7 @@ int ts_proc(uint8_t *data, uint8_t len)
 		ts_adaptation_field adapt;
 		adapt.adaptation_field_length = TS_READ8(ptr);
 		PL_STEP(ptr, len, 1);
-		ts_adaptation_field_proc(ptr, adapt.adaptation_field_length);
+		ts_adaptation_field_proc(head.PID, ptr, adapt.adaptation_field_length);
 		PL_STEP(ptr, len, adapt.adaptation_field_length);
 		// TODO
 	}
@@ -304,11 +316,11 @@ void dump_ts_info(void)
 
 	uint16_t pid = 0;
 	rout(0, "TS bits statistics", NULL);
-	rout(1, NULL, "%7s%21s%11s", "PID", "In", "Err");
+	rout(1, NULL, "%7s%21s%11s%13s", "PID", "In", "Err", "Rate");
 	for (pid = 0; pid <= NULL_PID; pid++) {
 		if (pid_dev[pid].pkts_in)
-			rout(1, NULL, "%04d(0x%04x)  %2c  %10" PRIu64 "%10" PRIu64, pid, pid,
-				 ':', pid_dev[pid].pkts_in, pid_dev[pid].error_in);
+			rout(1, NULL, "%04d(0x%04x)  %2c  %10" PRIu64 "%10" PRIu64"%13"PRIu64, pid, pid,
+				 ':', pid_dev[pid].pkts_in, pid_dev[pid].error_in, pid_dev[pid].bitrate);
 	}
 }
 
