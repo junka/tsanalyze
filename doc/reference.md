@@ -10,6 +10,10 @@
 
 [Subtitling systems: en_300743](https://www.etsi.org/deliver/etsi_en/300700_300799/300743/01.06.01_20/en_300743v010601a.pdf)
 
+[ITU-R System B Teletext: en_300472](https://www.etsi.org/deliver/etsi_en/300400_300499/300472/01.04.01_60/en_300472v010401p.pdf)
+[Enhanced Teletext specification: ets_300706](https://www.etsi.org/deliver/etsi_i_ets/300700_300799/300706/01_60/ets_300706e01p.pdf)
+
+
 [Specification for System Software Update](https://dvb.org/wp-content/uploads/2019/12/a77_dvb-ssu_spec.pdf)
 
 ### ASTC:  (North American Standard)

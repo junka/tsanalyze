@@ -169,6 +169,8 @@ typedef struct
 		/* user defined for private_stream_1, private_stream_2, ECM_stream, EMM_stream */
 		// uint8_t *padding_byte;
 	};
+	/* store callback below */
+	uint8_t tag;
 	void *private;
 	pes_data_callback cb;
 } pes_t;
