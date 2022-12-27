@@ -428,8 +428,9 @@ foreach_enum_descriptor
 	}
 
 #define __m1(type, name)                                                                                    \
-	dr->name = TS_READ_##type(buf + bytes_off);                                                                        \
-	bytes_off += sizeof(type);
+	if (bytes_off < len) {                                                                                  \
+		dr->name = TS_READ_##type(buf + bytes_off);                                                                    \
+		bytes_off += sizeof(type); }
 
 #define __mplast(type, name)                                                                                           \
 	dr->name = NULL; \

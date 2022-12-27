@@ -45,6 +45,7 @@ int parse_teletext(uint16_t pid, uint8_t *pbuf, int len, void *teletext)
             pdata += 1;
         }
         t_len += 46;
+        i ++;
     }
     // dump_teletext(text);
     return 0;
@@ -57,7 +58,8 @@ void dump_teletext(struct teletext_pes_data *text)
         rout(3, "data_unit_id", "0x%x", text->units[i].data_unit_id);
         rout(3, "data_unit_length", "%d", text->units[i].data_unit_length);
         rout(3, "field_parity", "%d", text->units[i].data.field_parity);
-        rout(3, "line_offset", "%d", text->units[i].data.line_offset);
+        rout(3, "line_offset", "%d->%d", text->units[i].data.line_offset, (text->units[i].data.line_offset > 0x6 && text->units[i].data.line_offset < 0x17)?
+                ( text->units[i].data.field_parity ? text->units[i].data.line_offset : text->units[i].data.line_offset + 313) : -1);
         rout(3, "field_parity", "%d", text->units[i].data.field_parity);
         rout(3, "framing_code", "%d", text->units[i].data.framing_code);
         rout(3, "magazine_and_packet_address", "0x%x", text->units[i].data.magazine_and_packet_address);

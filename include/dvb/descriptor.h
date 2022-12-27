@@ -7,6 +7,7 @@ extern "C" {
 
 #include "types.h"
 #include "result.h"
+#include "utils.h"
 
 #define foreach_enum_dvb_descriptor                                                                                    \
 	_(network_name, 0x40)                                                                                              \
@@ -78,13 +79,20 @@ extern "C" {
 #define foreach_network_name_member	\
 	__mplast(uint8_t, text_byte)
 
-struct service_info{
+struct service_info {
 	uint16_t service_id;
 	uint8_t service_type;
 } __attribute__((packed));
 
+static inline
+void dump_service_list__(int lv, struct service_info *info)
+{
+	rout(lv, "service_id", "0x%x", info->service_id);
+	rout(lv, "service_type", "%d", info->service_type);
+}
+
 #define foreach_service_list_member	\
-	__mplast(struct service_info, services)
+	__mplast_custom(struct service_info, services, dump_service_list__)
 
 #define foreach_stuffing_member	\
 	__mplast(uint8_t, stuffing_byte)
@@ -324,12 +332,23 @@ struct local_time_node {
 	uint32_t reserved : 1;
 	uint32_t local_time_offset_polarity : 1;
 	uint16_t local_time_offset;
-	uint40_t time_of_change;
+	UTC_time_t time_of_change;
 	uint16_t next_time_offset;
 }__attribute__((packed));
 
+static inline
+void dump_local_time_offset__(int lv, struct local_time_node *n)
+{
+	rout(lv, "country", "%c%c%c", (n->country_code>>16)& 0xFF, (n->country_code>>8)& 0xFF, n->country_code & 0xFF);
+	rout(lv, "country_region_id", "%d", n->country_region_id);
+	rout(lv, "local_time_offset_polarity", "%d", (n->local_time_offset_polarity));
+	rout(lv, "local_time_offset", "%d", (n->local_time_offset));
+	rout(lv, "time_of_change", "%s", convert_UTC(&n->time_of_change));
+	rout(lv, "next_time_offset", "%d", (n->next_time_offset));
+}
+
 #define foreach_local_time_offset_member	\
-	__mplast(struct local_time_node, time_list)
+	__mplast_custom(struct local_time_node, time_list, dump_local_time_offset__)
 
 
 struct subtitling_node {
