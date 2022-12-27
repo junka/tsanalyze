@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include "types.h"
+#include "result.h"
 
 #define foreach_enum_atsc_descriptor                                                                              \
 	_(atsc_stuffing, 0x80)                                                                                        \
@@ -92,14 +93,23 @@ struct service_location_info{
     uint8_t stream_type;
     uint16_t reserved:3;
     uint16_t elementary_PID:13;
-    uint24_t ISO_639_language_code;
+    uint8_t ISO_639_language_code[3];
 }__attribute__((packed));
+
+static inline
+void dump_service_locations__(int lv, struct service_location_info *locs)
+{
+    rout(lv, "stream_type", "%d", locs->stream_type);
+    rout(lv, "elementary_PID", "0x%x(%d)", locs->elementary_PID, locs->elementary_PID);
+    rout(lv, "ISO_639_language_code", "%c%c%c", locs->ISO_639_language_code[0],
+        locs->ISO_639_language_code[1], locs->ISO_639_language_code[2]);
+}
 
 #define foreach_service_location_member \
     __m(uint16_t, reserved, 3)      \
     __m(uint16_t, PCR_PID, 13)  \
     __m1(uint8_t, number_elements)  \
-    __mplast(struct service_location_info, service_locations)
+    __mplast_custom(struct service_location_info, service_locations, dump_service_locations__)
 
 struct time_shifted_service{
     uint16_t reserved : 6;
