@@ -3,6 +3,7 @@
 use basic rules from ISO 13818 and ETSI EN 300 468 to decode MPEG2 TS
 
 use EN 300 743 to decode subtitle
+use ETS 300 706 to decide teletext
 
 Pinrt descriptors for DVB/ATSC/ISDB standard.
 
