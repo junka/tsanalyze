@@ -60,11 +60,45 @@ struct splice_time {
 };
 
 struct break_duration {
-    uint8_t auto_return :1;
-    uint8_t reserved : 6;
-    uint8_t duration_h :1;
+    uint8_t auto_return:1;
+    uint8_t reserved:6;
+    uint8_t duration_h:1;
     uint32_t duration;
+} __attribute__((packed));
+
+
+struct splice_event {
+    uint32_t splice_event_id;
+    uint8_t splice_event_cancel_indicator: 1;
+    uint8_t reserved:7;
+
+    uint8_t out_of_network_indicator:1;
+    uint8_t program_splice_flag:1;
+    uint8_t duration_flag:1;
+    uint8_t splice_immediate_flag:1;
+    uint8_t reserved2:4;
+
+	union {
+		uint32_t utc_splice_time;
+		struct splice_time time;
+	};
+
+    uint8_t component_count;
+    struct event_component {
+        uint8_t component_tag;
+		union {
+        	uint32_t utc_splice_time;
+			struct splice_time time;
+		};
+    } *components;
+
+    struct break_duration duration;
+
+    uint16_t unique_program_id;
+    uint8_t avail_num;
+    uint8_t avails_expected;
 };
+
 
 enum sap_type {
 	SAP_TYPE_1 = 0,

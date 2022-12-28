@@ -11,6 +11,7 @@ extern "C" {
 #include "list.h"
 #include "statistics.h"
 #include "scte/scte.h"
+#include "filter.h"
 
 /* table id */
 typedef enum {
@@ -444,7 +445,7 @@ void unregister_pmt_ops(uint16_t pid);
 
 void register_pmt_ops(uint16_t pid);
 
-void register_section_ops(uint16_t pid);
+void register_section_ops(uint16_t pid, uint8_t tableid, filter_cb callback);
 
 void unregister_section_ops(uint16_t pid);
 

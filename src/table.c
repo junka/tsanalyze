@@ -797,9 +797,9 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 		pdata += 2;
 		parse_descriptors(&(pn->list), pdata, (int)pn->ES_info_length);
 		if (pn->stream_type == STEAM_TYPE_MPEG2_SECTIONS) {
-			register_section_ops(pn->elementary_PID);
+			register_section_ops(pn->elementary_PID, 0, NULL);
 		} else if (pn->stream_type >= 0x08 && pn->stream_type <= 0x0D) {
-			register_section_ops(pn->elementary_PID);
+			register_section_ops(pn->elementary_PID, 0, NULL);
 		} else if (pn->stream_type == 0x86) {
 			register_scte_ops(pn->elementary_PID);
 		} else {
@@ -1261,13 +1261,18 @@ bool check_pmt_pid(uint16_t pid)
 }
 
 
-void register_section_ops(uint16_t pid)
+void register_section_ops(uint16_t pid, uint8_t tableid, filter_cb callback)
 {
 	if (pid == NIT_PID)
 		return;
 	if ((psi.section_bitmap[pid / 64] & ((uint64_t)1 << (pid % 64))) == 0) {
 		psi.section_bitmap[pid / 64] |= ((uint64_t)1 << (pid % 64));
-		init_table_filter(pid, 0, 0, default_proc);
+		if (callback) {
+			init_table_filter(pid, tableid, 0xFF, callback);
+		} else {
+			init_table_filter(pid, tableid, 0xFF, default_proc);
+		}
+		
 	}
 }
 
