@@ -165,6 +165,7 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 struct pid_ops {
 	uint16_t pid;
 	uint64_t pkts_in;
+	uint64_t sections_in;
 	uint64_t error_in;
 	uint64_t bits_in; /* for bitrate calculation */
 	uint64_t pcr;
@@ -301,7 +302,8 @@ int ts_proc(uint8_t *data, uint8_t len)
 
 	if (sec_len == -1 || sec_len == 0)
 		return 0;
-	
+
+	pid_dev[head.PID].sections_in ++;
 	/*use filter to process a section*/
 	filter_proc(head.PID, pbuf, sec_len);
 
@@ -316,11 +318,11 @@ void dump_ts_info(void)
 
 	uint16_t pid = 0;
 	rout(0, "TS bits statistics", NULL);
-	rout(1, NULL, "%7s%21s%11s%13s", "PID", "In", "Err", "Rate(kbps)");
+	rout(1, NULL, "%7s%21s%11s%11s%13s", "PID", "In", "Err", "Sections", "Rate(kbps)");
 	for (pid = 0; pid <= NULL_PID; pid++) {
 		if (pid_dev[pid].pkts_in)
-			rout(1, NULL, "%04d(0x%04x)  %2c  %10" PRIu64 "%10" PRIu64"%13"PRIu64, pid, pid,
-				 ':', pid_dev[pid].pkts_in, pid_dev[pid].error_in, pid_dev[pid].bitrate/1000);
+			rout(1, NULL, "%04d(0x%04x)  %2c  %10" PRIu64 "%10" PRIu64"%10" PRIu64"%13"PRIu64, pid, pid,
+				 ':', pid_dev[pid].pkts_in, pid_dev[pid].error_in, pid_dev[pid].sections_in, pid_dev[pid].bitrate/1000);
 	}
 }
 
