@@ -367,10 +367,9 @@ int ts_process()
 		return -1;
 	}
 
-	// hexdump(ptr, 188);
+	// res_hexdump(0, "", ptr, 188*2);
 	analyze(ptr, ts_pktlen * 2, ts_pktlen, &start_index);
-	//printf("Ts starting at offset %d\n", start_index);
-	// hexdump(ptr+start_index, ts_pktlen);
+	// printf("Ts packet len %zu, starting at offset %d\n", ts_pktlen, start_index);
 
 	ptr += start_index;
 	len -= start_index;
