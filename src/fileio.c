@@ -68,12 +68,18 @@ static int fileio_end(void)
 	return (file_ops.total_size - file_ops.offset);
 }
 
+static int fileio_tell(void)
+{
+	return (file_ops.offset * 100)/file_ops.total_size;
+}
+
 static struct io_ops file_ops = {
 	.type = IO_FILE,
 	.open = fileio_open,
 	.close = fileio_close,
 	.read = fileio_read,
 	.end = fileio_end,
+	.wip = fileio_tell,
 };
 
 REGISTER_IO_OPS(file, &file_ops);

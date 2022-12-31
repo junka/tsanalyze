@@ -376,6 +376,9 @@ int ts_process()
 	PL_STEP(ptr, len, start_index);
 
 	while (ops->end()) {
+		// if(ops->wip()) {
+		// 	printf("%d%%\n", ops->wip());
+		// }
 		if (pkt_con_len == ts_pktlen) {
 			ts_proc(pkt_con, ts_pktlen);
 			pkt_con_len = 0;

@@ -19,6 +19,7 @@ struct io_ops
 	int (* read)(void **ptr, size_t *len);
 	int (* close)(void);
 	int (* end)(void);
+	int (* wip)(void);	/* tell us the process percentage */
 };
 
 typedef enum {

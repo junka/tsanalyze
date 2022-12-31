@@ -357,6 +357,7 @@ struct descriptor_ops {
 #define __mlv(type, length, name)    type* name;
 #define __mlv_custom(type, length, name, cb) __mlv(type, length, name)
 #define __mploop(type, name, length)	uint8_t name##_num; type *name;
+#define __mploop_custom(type, name, length, parse_cb, dump_cb, free_cb) __mploop(type, name, length)
 #define _(desname, val)                                                                                                \
 	typedef struct                                                                                                     \
 	{                                                                                                                  \
@@ -366,6 +367,7 @@ struct descriptor_ops {
 
 foreach_enum_descriptor
 #undef _
+#undef __mploop_custom
 #undef __mploop
 #undef __mlv_custom
 #undef __mlv
@@ -401,6 +403,12 @@ foreach_enum_descriptor
 #define __mlv(type, length, name)    free(dr->name);
 #define __mlv_custom(type, length, name, cb) __mlv(type, length, name)
 #define __mploop(type, name, length)	free(dr->name);
+#define __mploop_custom(type, name, length, parse_cb, dump_cb, free_cb) \
+	for (int i = 0; i < dr->name##_num; i++) { \
+		free_cb(dr->name + i); \
+	} \
+	__mploop(type, name, length)
+
 #define _(desname, val)                                                                                                \
 	static inline void free_##desname##_descriptor(descriptor_t *ptr)                                                  \
 	{                                                                                                                  \
@@ -411,6 +419,7 @@ foreach_enum_descriptor
 
 foreach_enum_descriptor
 #undef _
+#undef __mploop_custom
 #undef __mploop
 #undef __mlv_custom
 #undef __mlv
@@ -438,14 +447,13 @@ foreach_enum_descriptor
 
 #define __mplast(type, name)                                                                                           \
 	dr->name = NULL; \
-	dr->name##_cnt = (len - bytes_off) / sizeof(type);                                                                 \
-	while(len - bytes_off) { \
+	while(dr->descriptor.length + 2 > bytes_off) { \
 		dr->name = (type *)realloc(dr->name, (dr->name##_cnt + 1) * sizeof(type));                          \
 		memcpy(dr->name + dr->name##_cnt, buf + bytes_off, sizeof(type));	\
 		dr->name##_cnt ++; \
 		bytes_off += sizeof(type) ; \
-	} \
-	assert(len - bytes_off == 0);
+	}
+	// assert(len - bytes_off == 0);
 
 #define __mplast_custom(type, name, callback)  __mplast(type, name)
 
@@ -493,6 +501,15 @@ foreach_enum_descriptor
 		bytes_off += dr->name[dr->name##_num - 1].length; \
 	}
 
+#define __mploop_custom(type, name, length, parse_cb, dump_cb, free_cb) \
+	dr->name##_num = 0;	\
+	dr->name = NULL;	\
+	while(len > bytes_off) { \
+		dr->name##_num ++;	\
+		dr->name = (type *)realloc(dr->name, sizeof(type) * dr->name##_num);	\
+		bytes_off += parse_cb(buf + bytes_off, len - bytes_off, dr->name + dr->name##_num - 1); \
+	}
+
 #define _(desname, val)                                                                                                \
 	static inline int parse_##desname##_descriptor(uint8_t *buf, uint32_t len, void *ptr)                              \
 	{                                                                                                                  \
@@ -510,6 +527,7 @@ foreach_enum_descriptor
 	}
 foreach_enum_descriptor
 #undef _
+#undef __mploop_custom
 #undef __mploop
 #undef __mlv_custom
 #undef __mlv
@@ -598,6 +616,12 @@ extern struct descriptor_ops des_ops[];
 		DUMP_MEMBER(lv, dr, type, name); \
 	}
 
+
+#define __mploop_custom(type, name, length, parse_cb, dump_cb, free_cb) \
+	for (int _i = 0; _i < dr->name##_num; _i++) {	\
+		dump_cb(lv, dr->name + _i); \
+	}
+
 #define _(desname, val)                                                                                       \
 	inline static void dump_##desname##_descriptor(int lv, descriptor_t *p_dr)                                \
 	{                                                                                                         \
@@ -607,6 +631,7 @@ extern struct descriptor_ops des_ops[];
 	}
 foreach_enum_descriptor
 #undef _
+#undef __mploop_custom
 #undef __mploop
 #undef __mlv_custom
 #undef __mlv

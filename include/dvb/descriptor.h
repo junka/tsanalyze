@@ -8,6 +8,7 @@ extern "C" {
 #include "types.h"
 #include "result.h"
 #include "utils.h"
+#include "ts.h"
 
 #define foreach_enum_dvb_descriptor                                                                                    \
 	_(network_name, 0x40)                                                                                              \
@@ -391,32 +392,88 @@ void dump_subtitling_descriptor__(int lv, struct subtitling_node *n)
 
 
 struct multilingual_node {
-	uint24_t ISO_639_language_code;
-	uint8_t name_length;
-	uint8_t *text_char;
+	uint32_t ISO_639_language_code:24;
+	uint32_t name_length:8;
+	uint8_t* text_char;
 };
 
+static inline int
+__parse_multilingual_node(uint8_t *buf, int len, struct multilingual_node *node)
+{
+	node->ISO_639_language_code = TS_READ32_BITS(buf, 24, 0);
+	node->name_length = TS_READ32_BITS(buf, 8, 24);
+	node->text_char = calloc(1, node->name_length + 1);
+	memcpy(node->text_char, buf + 4, node->name_length);
+	return node->name_length + 4;
+}
+
+static inline void
+__dump_multilingual_node(int lv, struct multilingual_node *node)
+{
+	rout(lv, "ISO_639_language_code", "%c%c%c", (node->ISO_639_language_code>>16) &0xFF, 
+		 (node->ISO_639_language_code>>8) &0xFF,  (node->ISO_639_language_code) &0xFF);
+	rout(lv, "text_char", "%s", node->text_char);
+}
+
+static inline void
+__free_multilingual_node(struct multilingual_node *node)
+{
+	free(node->text_char);
+}
+
 #define foreach_multilingual_network_name_member	\
-	__mploop(struct multilingual_node, network_name, name_length)
+	__mploop_custom(struct multilingual_node, network_name, name_length, __parse_multilingual_node, __dump_multilingual_node, __free_multilingual_node)
 
 #define foreach_multilingual_bouquet_name_member	\
-	__mploop(struct multilingual_node, bouquet_name, name_length)
+	__mploop_custom(struct multilingual_node, bouquet_name, name_length, __parse_multilingual_node, __dump_multilingual_node, __free_multilingual_node)
 
 struct multilingual_service_node {
-	uint24_t ISO_639_language_code;
-	uint8_t name_length;
+	uint32_t ISO_639_language_code:24;
+	uint32_t name_length:8;
 	uint8_t *text_char;
 	uint8_t service_name_length;
 	uint8_t *service_char;
 };
 
+
+static inline int
+__parse_multilingual_service_node(uint8_t *buf, int len, struct multilingual_service_node *node)
+{
+	node->ISO_639_language_code = TS_READ32_BITS(buf, 24, 0);
+	node->name_length = TS_READ32_BITS(buf, 8, 24);
+	node->text_char = calloc(1, node->name_length + 1);
+	memcpy(node->text_char, buf + 4, node->name_length);
+	node->service_name_length = TS_READ8(buf + 4 + node->name_length);
+	node->service_char = calloc(1, node->service_name_length + 1);
+	memcpy(node->service_char, buf + 5 + node->name_length, node->service_name_length);
+	return node->name_length + 5 + node->service_name_length;
+}
+
+static inline void
+__dump_multilingual_service_node(int lv, struct multilingual_service_node *node)
+{
+	rout(lv, "ISO_639_language_code", "%c%c%c", (node->ISO_639_language_code>>16) &0xFF, 
+		 (node->ISO_639_language_code>>8) &0xFF,  (node->ISO_639_language_code) &0xFF);
+	rout(lv, "name_length", "%d", node->name_length);
+	rout(lv, "text_char", "%s", node->text_char);
+	rout(lv, "service_name_length", "%d", node->service_name_length);
+	rout(lv, "service_char", "%s", node->service_char);
+}
+
+static inline void
+__free_multilingual_service_node(struct multilingual_service_node *node)
+{
+	free(node->text_char);
+	free(node->service_char);
+}
+
 #define foreach_multilingual_service_name_member	\
-	__mploop(struct multilingual_service_node, service_name, name_length)
+	__mploop_custom(struct multilingual_service_node, service_name, name_length, __parse_multilingual_service_node, __dump_multilingual_service_node, __free_multilingual_service_node)
 
 
 #define foreach_multilingual_component_member	\
 	__m1(uint8_t, component_tag)	\
-	__mploop(struct multilingual_node, component, name_length)
+	__mploop_custom(struct multilingual_node, component, name_length, __parse_multilingual_node, __dump_multilingual_node, __free_multilingual_node)
 
 
 #define foreach_private_data_specifier_member	\
