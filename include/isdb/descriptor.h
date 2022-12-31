@@ -325,7 +325,7 @@ struct event_group_data{
 #define foreach_event_group_member  \
     __m(uint8_t, group_type, 4) \
     __m(uint8_t, event_count, 4)   \
-    __mlv(struct event_group, event_count*sizeof(struct event_group), event_groups)    \
+    __mlv(struct event_group, event_count, event_groups)    \
     __mplast(struct event_group_data, private_data)
 
 struct table_description{
@@ -452,7 +452,7 @@ struct area {
     __m(uint8_t, signal_level, 1)   \
     __m(uint8_t, reserved, 6)   \
     __m1(uint8_t, area_code_length) \
-    __mlv(struct area, area_code_length, areas)
+    __mlv(struct area, area_code_length/2, areas)
 
 /*0xFD*/
 #define foreach_data_component_member   \

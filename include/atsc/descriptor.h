@@ -89,7 +89,7 @@ struct content_advisory_info {
 #define foreach_extended_channel_name_member   \
     __mplast(uint8_t, long_channel_name_text)
 
-struct service_location_info{
+struct service_location_info {
     uint8_t stream_type;
     uint16_t reserved:3;
     uint16_t elementary_PID:13;
@@ -109,7 +109,7 @@ void dump_service_locations__(int lv, struct service_location_info *locs)
     __m(uint16_t, reserved, 3)      \
     __m(uint16_t, PCR_PID, 13)  \
     __m1(uint8_t, number_elements)  \
-    __mplast_custom(struct service_location_info, service_locations, dump_service_locations__)
+    __mlv_custom(struct service_location_info, number_elements, service_locations, dump_service_locations__)
 
 struct time_shifted_service{
     uint16_t reserved : 6;
@@ -117,12 +117,12 @@ struct time_shifted_service{
     uint32_t reserved1 : 4;
     uint32_t major_channel_number : 10;
     uint32_t minor_channel_number : 10;
-};
+} __attribute__((packed));
 
 #define foreach_atsc_time_shifted_service_member \
     __m(uint8_t, reserved, 3)   \
     __m(uint8_t, number_of_services, 5) \
-    __mplast(struct time_shifted_service, time_shift_services)
+    __mlv(struct time_shifted_service, number_of_services, time_shift_services)
 
 #define foreach_component_name_member   \
     __mplast(uint8_t, component_name_string)

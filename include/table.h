@@ -194,7 +194,6 @@ typedef struct
 typedef struct
 {
 	struct table_header cat_header;
-	// struct descriptor *list; /* may have multicrypt CA descriptor here */
 	struct list_head list; /* ca_descriptor list */
 	uint32_t crc32;
 } cat_t;

@@ -78,7 +78,7 @@ struct audio_component {
     uint32_t Bit_Stream_Mode:3;
     uint32_t Num_Channels:4;
     uint32_t Full_Srvc_Audio:1;
-};
+}__attribute__((packed));
 
 #define foreach_audio_member \
 	__m(uint8_t, audio_count, 4)    \

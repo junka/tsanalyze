@@ -777,9 +777,7 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 	pdata += 2;
 	section_len -= 2;
 	pPMT->program_info_length = TS_READ16(pdata) & 0x0FFF;
-
 	pdata += 2;
-
 
 	parse_descriptors(&(pPMT->list), pdata, pPMT->program_info_length);
 	pdata += pPMT->program_info_length;
