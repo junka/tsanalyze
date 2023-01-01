@@ -14,6 +14,7 @@
 #include "teletext.h"
 
 static mpeg_psi_t psi;
+static atsc_psip_t psip;
 
 
 static void init_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask, filter_cb func)
@@ -1162,6 +1163,530 @@ static int tdt_tot_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint
 	return 0;
 }
 
+
+void free_multi_string(struct multiple_string *str)
+{
+	for (int i = 0; i < str->number_strings; i ++) {
+		for (int j = 0; j < str->strings[i].number_segments; j++) {
+			free(str->strings[i].segments[j].compressed_string_byte);
+		}
+		free(str->strings[i].segments);
+	}
+	free(str->strings);
+}
+
+int parse_multi_string(uint8_t *pbuf, struct multiple_string *str)
+{
+	uint8_t *pdata = pbuf;
+	str->number_strings = TS_READ8(pdata);
+	pdata += 1;
+	str->strings = calloc(str->number_strings, sizeof(struct lang_string));
+	for (int i = 0; i < str->number_strings; i ++) {
+		str->strings[i].ISO_639_language_code = TS_READ32_BITS(pdata, 24, 0);
+		str->strings[i].number_segments = TS_READ32_BITS(pdata, 8, 24);
+		pdata += 4;
+		str->strings[i].segments = calloc(str->strings[i].number_segments, sizeof(struct string_segment));
+		for (int j =0; j < str->strings[i].number_segments; j ++) {
+			str->strings[i].segments[j].compression_type = TS_READ8(pdata);
+			pdata += 1;
+			str->strings[i].segments[j].mode = TS_READ8(pdata);
+			pdata += 1;
+			str->strings[i].segments[j].number_bytes = TS_READ8(pdata);
+			pdata += 1;
+			str->strings[i].segments[j].compressed_string_byte = calloc(1, str->strings[i].segments[j].number_bytes);
+			memcpy(str->strings[i].segments[j].compressed_string_byte, pdata, str->strings[i].segments[j].number_bytes);
+			pdata += str->strings[i].segments[j].number_bytes;
+		}
+	}
+	return pdata - pbuf;
+}
+
+static int parse_mgt(uint8_t *pbuf, uint16_t buf_size, atsc_mgt_t *mgt)
+{
+
+	uint16_t section_len = 0;
+	uint8_t *pdata = pbuf;
+
+	int ret = parse_section_header(pbuf, buf_size, &mgt->mgt_header);
+	if (ret != 0)
+		return ret;
+
+	if (mgt->tables) {
+		for (int i = 0; i < mgt->tables_defined; i++) {
+			if (!list_empty(&mgt->tables[i].list))
+				free_descriptors(&mgt->tables[i].list);
+		}
+		free(mgt->tables);
+	}
+	if (!list_empty(&mgt->list))
+		free_descriptors(&mgt->list);
+
+
+	section_len = mgt->mgt_header.section_length;
+	pdata = mgt->mgt_header.private_data_byte;
+	section_len -= (5 + 4);
+	mgt->protocol_version = TS_READ8(pdata);
+	pdata += 1;
+	mgt->tables_defined = TS_READ16(pdata);
+	pdata += 2;
+	section_len -= 3;
+	mgt->tables = calloc(mgt->tables_defined, sizeof(struct define_table));
+	for (int i= 0; i < mgt->tables_defined; i ++) {
+		mgt->tables[i].table_type = TS_READ16(pdata);
+		pdata += 2;
+		mgt->tables[i].table_type_PID = TS_READ16_BITS(pdata, 13, 3);
+		pdata += 2;
+		mgt->tables[i].table_type_version_number = TS_READ8_BITS(pdata, 5, 3);
+		pdata += 1;
+		mgt->tables[i].number_bytes = TS_READ32(pdata);
+		pdata += 4;
+		mgt->tables[i].table_type_descriptors_length = TS_READ16_BITS(pdata, 12, 4);
+		pdata += 2;
+		list_head_init(&mgt->tables[i].list);
+		parse_descriptors(&mgt->tables[i].list, pdata, mgt->tables[i].table_type_descriptors_length);
+		pdata += mgt->tables[i].table_type_descriptors_length;
+	}
+	mgt->descriptors_length = TS_READ16_BITS(pdata, 12, 4);
+	pdata += 2;
+	list_head_init(&mgt->list);
+	parse_descriptors(&(mgt->list), pdata, mgt->descriptors_length);
+	return 0;
+}
+
+static int parse_tvct(uint8_t *pbuf, uint16_t buf_size, atsc_vct_t *tvct)
+{
+	uint16_t section_len = 0;
+	uint8_t *pdata = pbuf;
+
+	int ret = parse_section_header(pbuf, buf_size, &tvct->vct_header);
+	if (ret != 0)
+		return ret;
+
+	if (tvct->channels) {
+		for (int i = 0; i < tvct->num_channels_in_section; i ++) {
+			if (!list_empty(&tvct->channels[i].list)) {
+				free_descriptors(&tvct->channels[i].list);
+			}
+		}
+		free(tvct->channels);
+	}
+	if (!list_empty(&tvct->list))
+		free_descriptors(&tvct->list);
+
+	section_len = tvct->vct_header.section_length;
+	pdata = tvct->vct_header.private_data_byte;
+	section_len -= (5 + 4);
+	tvct->protocol_version = TS_READ8(pdata);
+	pdata += 1;
+	tvct->num_channels_in_section = TS_READ8(pdata);
+	pdata += 1;
+	section_len -= 2;
+	tvct->channels = calloc(tvct->num_channels_in_section, sizeof(struct define_channel));
+	for (int i = 0; i < tvct->num_channels_in_section; i ++) {
+		memcpy(tvct->channels[i].short_name, pdata, 7*16);
+		pdata += 7*16;
+		tvct->channels[i].major_channel_number = TS_READ32_BITS(pdata, 10, 4);
+		tvct->channels[i].minor_channel_number = TS_READ32_BITS(pdata, 10, 14);
+		tvct->channels[i].modulation_mode = TS_READ32_BITS(pdata, 8, 24);
+		pdata += 4;
+		tvct->channels[i].carrier_frequency = TS_READ32(pdata);
+		pdata += 4;
+		tvct->channels[i].channel_TSID = TS_READ16(pdata);
+		pdata += 2;
+		tvct->channels[i].program_number = TS_READ16(pdata);
+		pdata += 2;
+		tvct->channels[i].ETM_location = TS_READ16_BITS(pdata, 2, 0);
+		tvct->channels[i].access_controlled = TS_READ16_BITS(pdata, 1, 2);
+		tvct->channels[i].hidden = TS_READ16_BITS(pdata, 1, 3);
+		tvct->channels[i].hide_guide = TS_READ16_BITS(pdata, 1, 6);
+		tvct->channels[i].service_type = TS_READ16_BITS(pdata, 6, 10);
+		pdata += 2;
+		tvct->channels[i].source_id = TS_READ16(pdata);
+		pdata += 2;
+		tvct->channels[i].descriptors_length = TS_READ16_BITS(pdata, 10, 6);
+		pdata += 2;
+		list_head_init(&tvct->channels[i].list);
+		parse_descriptors(&tvct->channels[i].list, pdata, tvct->channels[i].descriptors_length);
+		pdata += tvct->channels[i].descriptors_length;
+	}
+	tvct->additional_descriptors_length = TS_READ16_BITS(pdata, 10, 6);
+	pdata += 2;
+	list_head_init(&tvct->list);
+	parse_descriptors(&tvct->list, pdata, tvct->additional_descriptors_length);
+	pdata += tvct->additional_descriptors_length;
+	return 0;
+}
+
+static int parse_cvct(uint8_t *pbuf, uint16_t buf_size, atsc_vct_t *cvct)
+{
+	uint16_t section_len = 0;
+	uint8_t *pdata = pbuf;
+
+	int ret = parse_section_header(pbuf, buf_size, &cvct->vct_header);
+	if (ret != 0)
+		return ret;
+
+	if (cvct->channels) {
+		for (int i = 0; i < cvct->num_channels_in_section; i ++) {
+			if (!list_empty(&cvct->channels[i].list)) {
+				free_descriptors(&cvct->channels[i].list);
+			}
+		}
+		free(cvct->channels);
+	}
+	if (!list_empty(&cvct->list))
+		free_descriptors(&cvct->list);
+
+	section_len = cvct->vct_header.section_length;
+	pdata = cvct->vct_header.private_data_byte;
+	section_len -= (5 + 4);
+	cvct->protocol_version = TS_READ8(pdata);
+	pdata += 1;
+
+	cvct->num_channels_in_section = TS_READ8(pdata);
+	pdata += 1;
+	section_len -= 2;
+	cvct->channels = calloc(cvct->num_channels_in_section, sizeof(struct define_channel));
+	for (int i = 0; i < cvct->num_channels_in_section; i ++) {
+		memcpy(cvct->channels[i].short_name, pdata, 7*16);
+		pdata += 7*16;
+		cvct->channels[i].major_channel_number = TS_READ32_BITS(pdata, 10, 4);
+		cvct->channels[i].minor_channel_number = TS_READ32_BITS(pdata, 10, 14);
+		cvct->channels[i].modulation_mode = TS_READ32_BITS(pdata, 8, 24);
+		pdata += 4;
+		cvct->channels[i].carrier_frequency = TS_READ32(pdata);
+		pdata += 4;
+		cvct->channels[i].channel_TSID = TS_READ16(pdata);
+		pdata += 2;
+		cvct->channels[i].program_number = TS_READ16(pdata);
+		pdata += 2;
+		cvct->channels[i].ETM_location = TS_READ16_BITS(pdata, 2, 0);
+		cvct->channels[i].access_controlled = TS_READ16_BITS(pdata, 1, 2);
+		cvct->channels[i].hidden = TS_READ16_BITS(pdata, 1, 3);
+		cvct->channels[i].path_select = TS_READ16_BITS(pdata, 1, 4);
+		cvct->channels[i].out_of_band = TS_READ16_BITS(pdata, 1, 5);
+		cvct->channels[i].hide_guide = TS_READ16_BITS(pdata, 1, 6);
+		cvct->channels[i].service_type = TS_READ16_BITS(pdata, 6, 10);
+		pdata += 2;
+		cvct->channels[i].source_id = TS_READ16(pdata);
+		pdata += 2;
+		cvct->channels[i].descriptors_length = TS_READ16_BITS(pdata, 10, 6);
+		pdata += 2;
+		list_head_init(&cvct->channels[i].list);
+		parse_descriptors(&cvct->channels[i].list, pdata, cvct->channels[i].descriptors_length);
+		pdata += cvct->channels[i].descriptors_length;
+	}
+	cvct->additional_descriptors_length = TS_READ16_BITS(pdata, 10, 6);
+	pdata += 2;
+	list_head_init(&cvct->list);
+	parse_descriptors(&cvct->list, pdata, cvct->additional_descriptors_length);
+	pdata += cvct->additional_descriptors_length;
+	return 0;
+}
+
+static int parse_rrt(uint8_t *pbuf, uint16_t buf_size, atsc_rrt_t *rrt)
+{
+	uint16_t section_len = 0;
+	uint8_t *pdata = pbuf;
+
+	int ret = parse_section_header(pbuf, buf_size, &rrt->rrt_header);
+	if (ret != 0)
+		return ret;
+
+	
+	free_multi_string(&rrt->rating_region_name_text);
+	if (rrt->dimensions) {
+		for (int i = 0; i < rrt->dimensions_defined; i++) {
+			free_multi_string(&rrt->dimensions[i].dimension_name_text);
+			for (int j = 0; j < rrt->dimensions[i].values_defined; j++) {
+				free_multi_string(&rrt->dimensions[i].rating[j].abbrev_rating_value_text);
+				free_multi_string(&rrt->dimensions[i].rating[j].rating_value_text);
+			}
+		}
+	}
+	if (!list_empty(&rrt->list))
+		free_descriptors(&rrt->list);
+
+	section_len = rrt->rrt_header.section_length;
+	pdata = rrt->rrt_header.private_data_byte;
+	section_len -= (5 + 4);
+	rrt->protocol_version = TS_READ8(pdata);
+	pdata += 1;
+	rrt->rating_region_name_length = TS_READ8(pdata);
+	pdata += 1;
+	parse_multi_string(pdata, &rrt->rating_region_name_text);
+	pdata += rrt->rating_region_name_length;
+	rrt->dimensions_defined = TS_READ8(pdata);
+	pdata += 1;
+	for (int i = 0; i < rrt->dimensions_defined; i ++) {
+		rrt->dimensions[i].dimension_name_length = TS_READ8(pdata);
+		pdata += 1;
+		parse_multi_string(pdata, &rrt->dimensions[i].dimension_name_text);
+		pdata += rrt->dimensions[i].dimension_name_length;
+		rrt->dimensions[i].graduated_scale = TS_READ8_BITS(pdata, 1, 3);
+		rrt->dimensions[i].values_defined = TS_READ8_BITS(pdata, 4, 4);
+		pdata += 1;
+		rrt->dimensions[i].rating = calloc(rrt->dimensions[i].values_defined, sizeof(struct define_rating));
+		for (int j = 0; j < rrt->dimensions[i].values_defined; j ++) {
+			rrt->dimensions[i].rating[j].abbrev_rating_value_length = TS_READ8(pdata);
+			pdata += 1;
+			parse_multi_string(pdata, &rrt->dimensions[i].rating[j].abbrev_rating_value_text);
+			pdata += rrt->dimensions[i].rating[j].abbrev_rating_value_length;
+			rrt->dimensions[i].rating[j].rating_value_length = TS_READ8(pdata);
+			pdata += 1;
+			parse_multi_string(pdata, &rrt->dimensions[i].rating[j].rating_value_text);
+			pdata += rrt->dimensions[i].rating[j].rating_value_length;
+		}
+	}
+	rrt->descriptors_length = TS_READ16_BITS(pdata, 10, 6);
+	pdata += 2;
+	list_head_init(&rrt->list);
+	parse_descriptors(&rrt->list, pdata, rrt->descriptors_length);
+
+	return 0;
+}
+
+static int parse_ett(uint8_t *pbuf, uint16_t buf_size, atsc_ett_t *ett)
+{
+	uint16_t section_len = 0;
+	uint8_t *pdata = pbuf;
+
+	int ret = parse_section_header(pbuf, buf_size, &ett->ett_header);
+	if (ret != 0)
+		return ret;
+
+	section_len = ett->ett_header.section_length;
+	pdata = ett->ett_header.private_data_byte;
+	section_len -= (5 + 4);
+	ett->protocol_version = TS_READ8(pdata);
+	pdata += 1;
+	ett->ETM_id = TS_READ32(pdata);
+	pdata += 4;
+	parse_multi_string(pdata, &ett->extended_text_message);
+	return 0;
+}
+
+static int parse_atsc_eit(uint8_t *pbuf, uint16_t buf_size, atsc_eit_t* eit)
+{
+	uint16_t section_len = 0;
+	uint8_t *pdata = pbuf;
+
+	int ret = parse_section_header(pbuf, buf_size, &eit->eit_header);
+	if (ret != 0)
+		return ret;
+	if (eit->events) {
+		for (int i = 0; i < eit->num_events_in_section; i ++) {
+			free_multi_string(&eit->events[i].title_text);
+			free_descriptors(&eit->events[i].list);
+		}
+		free(eit->events);
+	}
+
+	section_len = eit->eit_header.section_length;
+	pdata = eit->eit_header.private_data_byte;
+	section_len -= (5 + 4);
+	eit->protocol_version = TS_READ8(pdata);
+	pdata += 1;
+	eit->num_events_in_section = TS_READ8(pdata);
+	pdata += 1;
+	eit->events = calloc(eit->num_events_in_section, sizeof(struct define_event));
+	for (int i = 0; i < eit->num_events_in_section; i ++) {
+		eit->events[i].event_id = TS_READ16_BITS(pdata, 14, 2);
+		pdata += 2;
+		eit->events[i].start_time = TS_READ32(pdata);
+		pdata += 4;
+		eit->events[i].ETM_location = TS_READ32_BITS(pdata, 2, 2);
+		eit->events[i].length_in_seconds = TS_READ32_BITS(pdata, 20, 4);
+		eit->events[i].title_length = TS_READ32_BITS(pdata, 8, 24);
+		pdata += 4;
+		parse_multi_string(pdata, &eit->events[i].title_text);
+		pdata += eit->events[i].title_length;
+		eit->events[i].descriptors_length = TS_READ16_BITS(pdata, 12, 4);
+		pdata += 2;
+		list_head_init(&eit->events[i].list);
+		parse_descriptors(&eit->events[i].list, pdata, eit->events[i].descriptors_length);
+	}
+
+	return 0;
+}
+
+static int parse_stt(uint8_t *pbuf, uint16_t buf_size, atsc_stt_t* stt)
+{
+	uint16_t section_len = 0;
+	uint8_t *pdata = pbuf;
+
+	int ret = parse_section_header(pbuf, buf_size, &stt->stt_header);
+	if (ret != 0)
+		return ret;
+
+	section_len = stt->stt_header.section_length;
+	pdata = stt->stt_header.private_data_byte;
+	section_len -= (5 + 4);
+	stt->protocol_version = TS_READ8(pdata);
+	pdata += 1;
+	stt->system_time = TS_READ32(pdata);
+	pdata += 4;
+	stt->GPS_UTC_offset = TS_READ8(pdata);
+	pdata += 1;
+	stt->daylight_saving = TS_READ16(pdata);
+	pdata += 2;
+	section_len -= 8;
+
+	if (!list_empty(&(stt->list))) {
+		free_descriptors(&(stt->list));
+	}
+
+	while (section_len > 0) {
+		list_head_init(&(stt->list));
+		parse_descriptors(&(stt->list), pdata, (int)section_len);
+	}
+
+	return 0;
+}
+
+static int parse_dcct(uint8_t *pbuf, uint16_t buf_size, atsc_dcct_t* dcct)
+{
+	uint16_t section_len = 0;
+	uint8_t *pdata = pbuf;
+
+	int ret = parse_section_header(pbuf, buf_size, &dcct->dcct_header);
+	if (ret != 0)
+		return ret;
+
+	section_len = dcct->dcct_header.section_length;
+	pdata = dcct->dcct_header.private_data_byte;
+	section_len -= (5 + 4);
+	dcct->protocol_version = TS_READ8(pdata);
+	pdata += 1;
+	dcct->dcc_test_count = TS_READ8(pdata);
+	pdata += 1;
+	dcct->dcc_tests = calloc(dcct->dcc_test_count, sizeof(struct define_dcc_test));
+	for (int i = 0; i < dcct->dcc_test_count; i ++) {
+		dcct->dcc_tests[i].dcc_context = TS_READ64_BITS(pdata, 1, 0);
+		dcct->dcc_tests[i].dcc_from_major_channel_number = TS_READ64_BITS(pdata, 10, 4);
+		dcct->dcc_tests[i].dcc_from_minor_channel_number = TS_READ64_BITS(pdata, 10, 14);
+		dcct->dcc_tests[i].dcc_to_major_channel_number = TS_READ64_BITS(pdata, 10, 28);
+		dcct->dcc_tests[i].dcc_to_minor_channel_number = TS_READ64_BITS(pdata, 10, 38);
+		dcct->dcc_tests[i].dcc_start_time = TS_READ64_BITS(pdata, 16, 48);
+		pdata += 8;
+		dcct->dcc_tests[i].dcc_start_time1 = TS_READ16(pdata);
+		pdata += 2;
+		dcct->dcc_tests[i].dcc_end_time = TS_READ32(pdata);
+		pdata += 4;
+		dcct->dcc_tests[i].dcc_term_count = TS_READ8(pdata);
+		pdata += 1;
+		dcct->dcc_tests[i].dcc_terms = calloc(dcct->dcc_tests[i].dcc_term_count, sizeof(struct define_dcc_term));
+		for (int j = 0; j < dcct->dcc_tests[i].dcc_term_count; j ++) {
+			dcct->dcc_tests[i].dcc_terms[j].dcc_selection_type = TS_READ8(pdata);
+			pdata += 1;
+			dcct->dcc_tests[i].dcc_terms[j].dcc_selection_id = TS_READ64(pdata);
+			pdata += 8;
+			dcct->dcc_tests[i].dcc_terms[j].dcc_term_descriptors_length = TS_READ16_BITS(pdata, 10, 6);
+			pdata += 2;
+			list_head_init(&dcct->dcc_tests[i].dcc_terms[j].list);
+			parse_descriptors(&dcct->dcc_tests[i].dcc_terms[j].list, pdata, dcct->dcc_tests[i].dcc_terms[j].dcc_term_descriptors_length);
+			pdata += dcct->dcc_tests[i].dcc_terms[j].dcc_term_descriptors_length;
+		}
+		dcct->dcc_tests[i].dcc_test_descriptors_length = TS_READ16_BITS(pdata, 10, 6);
+		pdata += 2;
+		list_head_init(&dcct->dcc_tests[i].list);
+		parse_descriptors(&dcct->dcc_tests[i].list, pdata, dcct->dcc_tests[i].dcc_test_descriptors_length);
+		pdata += dcct->dcc_tests[i].dcc_test_descriptors_length;
+	}
+	dcct->dcc_additional_descriptors_length = TS_READ16_BITS(pdata, 10, 6);
+	pdata += 2;
+	list_head_init(&dcct->list);
+	parse_descriptors(&dcct->list, pdata, dcct->dcc_additional_descriptors_length);
+	return 0;
+}
+
+static int parse_dccsct(uint8_t *pbuf, uint16_t buf_size, atsc_dccsct_t* dccsct)
+{
+	uint16_t section_len = 0;
+	uint8_t *pdata = pbuf;
+
+	int ret = parse_section_header(pbuf, buf_size, &dccsct->dccsct_header);
+	if (ret != 0)
+		return ret;
+
+	section_len = dccsct->dccsct_header.section_length;
+	pdata = dccsct->dccsct_header.private_data_byte;
+	section_len -= (5 + 4);
+	dccsct->protocol_version = TS_READ8(pdata);
+	pdata += 1;
+	dccsct->updates_defined = TS_READ8(pdata);
+	pdata += 1;
+	dccsct->updates = calloc(dccsct->updates_defined, sizeof(struct define_update));
+	for (int i = 0; i < dccsct->updates_defined; i++) {
+		dccsct->updates[i].update_type = TS_READ8(pdata);
+		pdata += 1;
+		dccsct->updates[i].update_data_length = TS_READ8(pdata);
+		pdata += 1;
+		if (dccsct->updates[i].update_type == 0x01) {
+			dccsct->updates[i].genre_category_code = TS_READ8(pdata);
+			pdata += 1;
+			pdata += parse_multi_string(pdata, &dccsct->updates[i].genre_category_name_text);
+		} else if (dccsct->updates[i].update_type == 0x02) {
+			dccsct->updates[i].dcc_state_location_code = TS_READ8(pdata);
+			pdata += 1;
+			pdata += parse_multi_string(pdata, &dccsct->updates[i].dcc_state_location_code_text);
+		} else if (dccsct->updates[i].update_type == 0x03) {
+			dccsct->updates[i].state_code = TS_READ8(pdata);
+			pdata += 1;
+			dccsct->updates[i].dcc_county_location_code = TS_READ16_BITS(pdata, 10, 6);
+			pdata += 2;
+			pdata += parse_multi_string(pdata, &dccsct->updates[i].dcc_county_location_code_text);
+		}
+		dccsct->updates[i].dccsct_descriptors_length = TS_READ16_BITS(pdata, 10, 6);
+		pdata += 2;
+		list_head_init(&dccsct->updates[i].list);
+		parse_descriptors(&dccsct->updates[i].list, pdata, dccsct->updates[i].dccsct_descriptors_length);
+		pdata += dccsct->updates[i].dccsct_descriptors_length;
+	}
+	dccsct->dccsct_additional_descriptors_length = TS_READ16_BITS(pdata, 10, 6);
+	pdata += 2;
+	list_head_init(&dccsct->list);
+	parse_descriptors(&dccsct->list, pdata, dccsct->dccsct_additional_descriptors_length);
+
+	return 0;
+}
+
+static int psip_proc(__attribute__((unused))uint16_t pid, uint8_t *pkt, uint16_t len)
+{
+	switch (pkt[0]) {
+		case MGT_TID:
+			parse_mgt(pkt, len, &psip.mgt);
+			break;
+		case TVCT_TID:
+			parse_tvct(pkt, len, &psip.tvct);
+			break;
+		case CVCT_TID:
+			parse_cvct(pkt, len, &psip.cvct);
+			break;
+		case RRT_TID:
+			parse_rrt(pkt, len, &psip.rrt);
+			break;
+		case ETT_TID:
+			parse_ett(pkt, len, &psip.ett);
+			break;
+		case EIT_TID:
+			parse_atsc_eit(pkt, len, &psip.eit);
+			break;
+		case STT_TID:
+			parse_stt(pkt, len, &psip.stt);
+			break;
+		case DCCT_TID:
+			parse_dcct(pkt, len, &psip.dcct);
+			break;
+		case DCCSCT_TID:
+			parse_dccsct(pkt, len, &psip.dccsct);
+			break;
+		default:
+			break;
+	}
+	return 0;
+}
+
 static int default_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	switch (pid)
@@ -1221,6 +1746,13 @@ void init_table_ops(void)
 	init_table_filter(TDT_PID, TDT_TID, 0xFF, tdt_tot_proc);
 	init_table_filter(TOT_PID, TOT_TID, 0xFF, tdt_tot_proc);
 
+	init_table_filter(MGT_PID, MGT_TID, 0xFF, psip_proc);
+	init_table_filter(TVCT_PID, TVCT_TID, 0xFF, psip_proc);
+	init_table_filter(CVCT_PID, CVCT_TID, 0xFF, psip_proc);
+	init_table_filter(RRT_PID, RRT_TID, 0xFF, psip_proc);
+	init_table_filter(STT_PID, STT_TID, 0xFF, psip_proc);
+	init_table_filter(DCCT_PID, DCCT_TID, 0xFF, psip_proc);
+	init_table_filter(DCCSCT_PID, DCCSCT_TID, 0xFF, psip_proc);
 }
 
 void uninit_table_ops(void)

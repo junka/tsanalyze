@@ -182,6 +182,7 @@ static int parse_splice_info(uint8_t *pbuf, uint16_t buf_size, scte_t *splice)
 		return -1;
 	}
 	splice->section_length = section_len;
+    printf("section len %d\n", section_len);
 	splice->protocol_version = TS_READ8(pdata);
 	splice->encrypted_packet = TS_READ8_BITS(pdata, 1, 0);
 	splice->encryption_algorithm = TS_READ8_BITS(pdata, 6, 1);
@@ -216,6 +217,7 @@ static int parse_splice_info(uint8_t *pbuf, uint16_t buf_size, scte_t *splice)
 	}
 	pdata += splice->splice_command_length;
 	splice->descriptor_loop_length = TS_READ16(pdata);
+    printf("%d\n", splice->descriptor_loop_length);
 	pdata += 2;
 	parse_descriptors(&(splice->list), pdata, splice->descriptor_loop_length);
     pdata += splice->descriptor_loop_length;

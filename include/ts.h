@@ -75,6 +75,16 @@ enum PID_e {
 	DIT_PID = 0x001E,
 	SIT_PID = 0x001F,
 
+
+	/* PSIP tables */
+	MGT_PID = 0x1FFB,
+	TVCT_PID = 0x1FFB,
+	CVCT_PID = 0x1FFB,
+	RRT_PID = 0x1FFB,
+	STT_PID = 0x1FFB,
+	DCCT_PID = 0x1FFB,
+	DCCSCT_PID = 0x1FFB,
+
 	/* 32-8186 for PMT */
 	NULL_PID = 0x1FFF,
 };

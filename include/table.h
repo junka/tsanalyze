@@ -112,6 +112,20 @@ typedef enum {
 
 	/* 0x90 - 0xFE: PRIVATE */
 
+	/* see ATSC A/65 */
+	/* PSIP tables */
+	MGT_TID = 0xC7,
+	TVCT_TID = 0xC8,
+	CVCT_TID = 0xC9,
+	RRT_TID = 0xCA,
+	EIT_TID = 0xCB,
+	ETT_TID = 0xCC,
+	STT_TID = 0xCD,
+
+	/* 0xCE - 0xD2 atsc coordinated values */
+	DCCT_TID = 0xD3,
+	DCCSCT_TID = 0xD4,
+
 	/* see SCTE 35 2022 Digital Program Insertion Cueing Message */
 	SCTE_SPLICE_TID = 0xFC,
 
@@ -403,6 +417,238 @@ typedef struct
 	tot_t tot;
 	stats_t stats;
 } mpeg_psi_t;
+
+
+typedef struct {
+	/* 0xCD */
+	struct table_header stt_header;
+	uint8_t protocol_version;
+	uint32_t system_time;
+	uint8_t GPS_UTC_offset;
+	uint16_t daylight_saving;
+	struct list_head list;
+} atsc_stt_t;
+
+struct define_table {
+	uint16_t table_type;
+	uint16_t reserved:3;
+	uint16_t table_type_PID:13;
+	uint8_t reserved1:3;
+	uint8_t table_type_version_number:5;
+	uint32_t number_bytes;
+	uint16_t reserved2:4;
+	uint16_t table_type_descriptors_length:12;
+	struct list_head list;
+};
+
+typedef struct {
+	/* 0xC7 */
+	struct table_header mgt_header;
+	uint8_t protocol_version;
+	uint16_t tables_defined;
+	struct define_table *tables;
+	uint16_t reserved:4;
+	uint16_t descriptors_length:12;
+	struct list_head list;
+	uint32_t crc;
+} atsc_mgt_t;
+
+struct define_channel {
+	uint16_t short_name[7];
+	uint32_t reserved:4;
+	uint32_t major_channel_number:10;
+	uint32_t minor_channel_number:10;
+	uint32_t modulation_mode:8;
+	uint32_t carrier_frequency;
+	uint16_t channel_TSID;
+	uint16_t program_number;
+	uint16_t ETM_location:2;
+	uint16_t access_controlled:1;
+	uint16_t hidden:1;
+	uint16_t path_select:1;
+	uint16_t out_of_band:1;
+	uint16_t hide_guide:1;
+	uint16_t reserved2:3;
+	uint16_t service_type:6;
+	uint16_t source_id;
+	uint16_t reserved3:6;
+	uint16_t descriptors_length:10;
+	struct list_head list;
+};
+
+typedef struct {
+	/* 0xC8, 0xC9 */
+	struct table_header vct_header;
+	uint8_t protocol_version;
+	uint8_t num_channels_in_section;
+	struct define_channel *channels;
+	uint16_t reserved:4;
+	uint16_t additional_descriptors_length:12;
+	struct list_head list;
+} atsc_vct_t;
+
+
+struct string_segment {
+	uint8_t compression_type;
+	uint8_t mode;
+	uint8_t number_bytes;
+	uint8_t *compressed_string_byte;
+};
+
+struct lang_string {
+	uint32_t ISO_639_language_code:24;
+	uint32_t number_segments:8;
+	struct string_segment *segments;
+};
+
+
+struct multiple_string {
+	uint8_t number_strings;
+	struct lang_string *strings;
+};
+
+struct define_rating {
+	uint8_t abbrev_rating_value_length;
+	struct multiple_string abbrev_rating_value_text;
+	uint8_t rating_value_length;
+	struct multiple_string rating_value_text;
+};
+
+struct define_dimension {
+	uint8_t dimension_name_length;
+	struct multiple_string dimension_name_text;
+	uint8_t reserved:3;
+	uint8_t graduated_scale:1;
+	uint8_t values_defined:4;
+	struct define_rating *rating;
+};
+
+typedef struct {
+	/* 0xCA */
+	struct table_header rrt_header;
+	uint8_t protocol_version;
+	uint8_t rating_region_name_length;
+	struct multiple_string rating_region_name_text;
+	uint8_t dimensions_defined;
+	struct define_dimension *dimensions;
+	uint16_t reserved3:6;
+	uint16_t descriptors_length:10;
+	struct list_head list;
+} atsc_rrt_t;
+
+struct define_event {
+	uint16_t reserved:2;
+	uint16_t event_id:14;
+	uint32_t start_time;
+	uint32_t reserved1:2;
+	uint32_t ETM_location:2;
+	uint32_t length_in_seconds:20;
+	uint32_t title_length:8;
+	struct multiple_string title_text;
+	uint16_t reserved2:4;
+	uint16_t descriptors_length:12;
+	struct list_head list;
+};
+
+typedef struct {
+	/* 0xCB */
+	struct table_header eit_header;
+	uint8_t protocol_version;
+	uint8_t num_events_in_section;
+	struct define_event *events;
+} atsc_eit_t;
+
+typedef struct {
+	/* 0xCC */
+	struct table_header ett_header;
+	uint8_t protocol_version;
+	uint32_t ETM_id;
+	struct multiple_string extended_text_message;
+} atsc_ett_t;
+
+struct define_dcc_term {
+	uint8_t dcc_selection_type;
+	uint64_t dcc_selection_id;
+	uint16_t reserved:6;
+	uint16_t dcc_term_descriptors_length:10;
+	struct list_head list;
+};
+
+struct define_dcc_test {
+	uint64_t dcc_context:1;
+	uint64_t reserved:4;
+	uint64_t dcc_from_major_channel_number:10;
+	uint64_t dcc_from_minor_channel_number:10;
+	uint64_t reserved1:4;
+	uint64_t dcc_to_major_channel_number:10;
+	uint64_t dcc_to_minor_channel_number:10;
+	uint64_t dcc_start_time:16;
+	uint16_t dcc_start_time1;
+	uint32_t dcc_end_time;
+	uint8_t dcc_term_count;
+	struct define_dcc_term *dcc_terms;
+	uint16_t reserved2:6;
+	uint16_t dcc_test_descriptors_length:10;
+	struct list_head list;
+};
+
+typedef struct {
+	/* 0xD3 */
+	struct table_header dcct_header;
+	uint8_t protocol_version;
+	uint8_t dcc_test_count;
+	struct define_dcc_test *dcc_tests;
+	uint16_t reserved:6;
+	uint16_t dcc_additional_descriptors_length:10;
+	struct list_head list;
+} atsc_dcct_t;
+
+struct define_update {
+	uint8_t update_type;
+	uint8_t update_data_length;
+	union {
+		struct {
+			uint8_t genre_category_code;
+			struct multiple_string genre_category_name_text;
+		};
+		struct {
+			uint8_t dcc_state_location_code;
+			struct multiple_string dcc_state_location_code_text;
+		};
+		struct {
+			uint8_t state_code;
+			uint16_t reserved:6;
+			uint16_t dcc_county_location_code:10;
+			struct multiple_string dcc_county_location_code_text;
+		};
+	};
+	uint16_t reserved1:6;
+	uint16_t dccsct_descriptors_length:10;
+	struct list_head list;
+};
+
+typedef struct {
+	/* 0xD4 */
+	struct table_header dccsct_header;
+	uint8_t protocol_version;
+	uint8_t updates_defined;
+	struct define_update *updates;
+	uint16_t reserved:6;
+	uint16_t dccsct_additional_descriptors_length:10;
+	struct list_head list;
+} atsc_dccsct_t;
+
+typedef struct {
+	atsc_stt_t stt;
+	atsc_mgt_t mgt;
+	atsc_vct_t tvct;
+	atsc_vct_t cvct;
+	atsc_rrt_t rrt;
+	atsc_eit_t eit;
+	atsc_ett_t ett;
+	atsc_dcct_t dcct;
+	atsc_dccsct_t dccsct;
+} atsc_psip_t;
 
 
 static inline char const *get_stream_type(uint8_t type)
