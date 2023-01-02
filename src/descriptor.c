@@ -33,16 +33,12 @@ void free_reserved(descriptor_t *ptr)
 #define BUF_LINE (512)
 void dump_reserved(int lv, descriptor_t *p_descriptor)
 {
-	int i = 0, ret = 0;
-	char buf[BUF_LINE];
-	for (i = 0; i < p_descriptor->length; i++) {
-		int n = snprintf(buf + ret, BUF_LINE - ret, "%c", p_descriptor->data[i]);
-		if (n < 0 || n >= BUF_LINE - ret) {
-			break;
-		}
-		ret += n;
+	char buf[BUF_LINE] = {0};
+	for (int i = 0; i < p_descriptor->length; i++) {
+		buf[i] = p_descriptor->data[i];
 	}
-	rout(lv, NULL, buf);
+	rout(lv, des_ops[p_descriptor->tag].tag_name, "0x%02x len %d", p_descriptor->tag, p_descriptor->length);
+	rout(lv+1, NULL, "%s", buf);
 }
 
 void init_descriptor_parsers(void)
@@ -75,7 +71,7 @@ void parse_descriptors(struct list_head *h, uint8_t *buf, int len)
 	descriptor_t *more = NULL;
 	void *des = NULL;
 	while (l > 0) {
-		// printf("%s(0x%x) : %d, %d",des_ops[ptr[0]].tag_name, ptr[0], l, ptr[1]);
+		// printf("%s(0x%x) : %d, %d\n", des_ops[ptr[0]].tag_name, ptr[0], l, ptr[1]);
 		uint8_t tag = ptr[0];
 		des = des_ops[tag].descriptor_alloc();
 		more = (descriptor_t *)des;
