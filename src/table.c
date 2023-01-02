@@ -161,7 +161,9 @@ static void dump_pmt(pmt_t *p_pmt, uint16_t pid)
 		char buff[512];
 		sprintf(buff, "0x%02x (%s) @ 0x%x", pn->stream_type, get_stream_type(pn->stream_type), pn->elementary_PID);
 		rout(3, buff, NULL);
-		dump_descriptors(4, &(pn->list));
+		if (!list_empty(&pn->list)) {
+			dump_descriptors(4, &(pn->list));
+		}
 	}
 }
 

@@ -21,62 +21,62 @@ typedef struct {
 mpegts_scte_t scte;
 
 
-int parse_splice_schedule(uint8_t *pbuf, int plen)
+int parse_splice_schedule(uint8_t *pbuf, int plen, struct splice_schedule *sche)
 {
     uint16_t len = 0;
     uint8_t *pdata = pbuf;
-    uint8_t splice_count = TS_READ8(pdata);
+    sche->splice_count = TS_READ8(pdata);
     pdata += 1;
     len += 1;
-    struct splice_event evt;
-    for (int i = 0; i < splice_count; i ++) {
-        evt.splice_event_id = TS_READ32(pdata);
+    sche->splices = calloc(sche->splice_count, sizeof(struct splice_event));
+    for (int i = 0; i < sche->splice_count; i ++) {
+        sche->splices[i].splice_event_id = TS_READ32(pdata);
         pdata += 4;
         len += 4;
-        evt.splice_event_cancel_indicator = TS_READ8_BITS(pdata, 1, 0);
+        sche->splices[i].splice_event_cancel_indicator = TS_READ8_BITS(pdata, 1, 0);
         pdata += 1;
         len += 1;
-        if (evt.splice_event_cancel_indicator == 0) {
-            evt.out_of_network_indicator = TS_READ8_BITS(pdata, 1, 0);
-            evt.program_splice_flag = TS_READ8_BITS(pdata, 1, 1);
-            evt.duration_flag = TS_READ8_BITS(pdata, 1, 2);
+        if (sche->splices[i].splice_event_cancel_indicator == 0) {
+            sche->splices[i].out_of_network_indicator = TS_READ8_BITS(pdata, 1, 0);
+            sche->splices[i].program_splice_flag = TS_READ8_BITS(pdata, 1, 1);
+            sche->splices[i].duration_flag = TS_READ8_BITS(pdata, 1, 2);
             pdata += 1;
             len += 1;
-            if (evt.program_splice_flag == 1) {
-                evt.utc_splice_time = TS_READ32(pdata);
+            if (sche->splices[i].program_splice_flag == 1) {
+                sche->splices[i].utc_splice_time = TS_READ32(pdata);
                 pdata += 4;
                 len += 4;
             }
-            if (evt.program_splice_flag == 0) {
-                evt.component_count = TS_READ8(pdata);
+            if (sche->splices[i].program_splice_flag == 0) {
+                sche->splices[i].component_count = TS_READ8(pdata);
                 pdata += 1;
                 len += 1;
-                evt.components = calloc(evt.component_count, sizeof(struct event_component));
-                for (int j = 0; j < evt.component_count; j++) {
-                    evt.components[j].component_tag = TS_READ8(pdata);
+                sche->splices[i].components = calloc(sche->splices[i].component_count, sizeof(struct event_component));
+                for (int j = 0; j < sche->splices[i].component_count; j++) {
+                    sche->splices[i].components[j].component_tag = TS_READ8(pdata);
                     pdata += 1;
                     len += 1;
-                    evt.components[j].utc_splice_time = TS_READ32(pdata);
+                    sche->splices[i].components[j].utc_splice_time = TS_READ32(pdata);
                     pdata += 4;
                     len += 4;
                 }
             }
-            if (evt.duration_flag) {
-                evt.duration.auto_return = TS_READ8_BITS(pdata, 1, 0);
-                evt.duration.duration_h = TS_READ8_BITS(pdata, 1, 7);
+            if (sche->splices[i].duration_flag) {
+                sche->splices[i].duration.auto_return = TS_READ8_BITS(pdata, 1, 0);
+                sche->splices[i].duration.duration_h = TS_READ8_BITS(pdata, 1, 7);
                 pdata += 1;
                 len += 1;
-                evt.duration.duration = TS_READ32(pdata);
+                sche->splices[i].duration.duration = TS_READ32(pdata);
                 pdata += 4;
                 len += 4;
             }
-            evt.unique_program_id = TS_READ16(pdata);
+            sche->splices[i].unique_program_id = TS_READ16(pdata);
             pdata += 2;
             len += 2;
-            evt.avail_num = TS_READ8(pdata);
+            sche->splices[i].avail_num = TS_READ8(pdata);
             pdata += 1;
             len += 1;
-            evt.avails_expected = TS_READ8(pdata);
+            sche->splices[i].avails_expected = TS_READ8(pdata);
             pdata += 1;
             len += 1;
         }
@@ -100,63 +100,62 @@ int parse_splice_time(uint8_t *pbuf, struct splice_time *time)
     return len;
 }
 
-int parse_splice_insert(uint8_t *pbuf, int plen)
+int parse_splice_insert(uint8_t *pbuf, int plen, struct splice_event *evt)
 {
     uint16_t len = 0;
     uint8_t *pdata = pbuf;
     int ret = 0;
 
-    struct splice_event evt;
-    evt.splice_event_id = TS_READ32(pdata);
+    evt->splice_event_id = TS_READ32(pdata);
     pdata += 4;
     len += 4;
-    evt.splice_event_cancel_indicator = TS_READ8_BITS(pdata, 1, 0);
+    evt->splice_event_cancel_indicator = TS_READ8_BITS(pdata, 1, 0);
     pdata += 1;
     len += 1;
-    if (evt.splice_event_cancel_indicator == 0) {
-        evt.out_of_network_indicator = TS_READ8_BITS(pdata, 1, 0);
-        evt.program_splice_flag = TS_READ8_BITS(pdata, 1, 1);
-        evt.duration_flag = TS_READ8_BITS(pdata, 1, 2);
-        evt.splice_immediate_flag = TS_READ8_BITS(pdata, 1, 3);
+    if (evt->splice_event_cancel_indicator == 0) {
+        evt->out_of_network_indicator = TS_READ8_BITS(pdata, 1, 0);
+        evt->program_splice_flag = TS_READ8_BITS(pdata, 1, 1);
+        evt->duration_flag = TS_READ8_BITS(pdata, 1, 2);
+        evt->splice_immediate_flag = TS_READ8_BITS(pdata, 1, 3);
         pdata += 1;
         len += 1;
-        if (evt.program_splice_flag == 1 && evt.splice_immediate_flag == 0) {
-            ret = parse_splice_time(pdata, &evt.time);
+        if (evt->program_splice_flag == 1 && evt->splice_immediate_flag == 0) {
+            ret = parse_splice_time(pdata, &evt->time);
             pdata += ret;
             len += ret;
         }
-        if (evt.program_splice_flag == 0) {
-            evt.component_count = TS_READ8(pdata);
+        if (evt->program_splice_flag == 0) {
+            evt->component_count = TS_READ8(pdata);
             pdata += 1;
             len += 1;
-            evt.components = calloc(evt.component_count, sizeof(struct event_component));
-            for (int i = 0; i < evt.component_count; i ++) {
-                evt.components[i].component_tag = TS_READ8(pdata);
+            evt->components = calloc(evt->component_count, sizeof(struct event_component));
+            for (int i = 0; i < evt->component_count; i ++) {
+                evt->components[i].component_tag = TS_READ8(pdata);
                 pdata += 1;
                 len += 1;
-                if (evt.splice_immediate_flag == 0) {
-                    ret = parse_splice_time(pdata, &evt.components[i].time);
+                if (evt->splice_immediate_flag == 0) {
+                    ret = parse_splice_time(pdata, &evt->components[i].time);
                     pdata += ret;
                     len += ret;
                 }
             }
         }
-        if (evt.duration_flag == 1) {
-            evt.duration.auto_return = TS_READ8_BITS(pdata, 1, 0);
-            evt.duration.duration_h = TS_READ8_BITS(pdata, 1, 7);
+        if (evt->duration_flag == 1) {
+            evt->duration.auto_return = TS_READ8_BITS(pdata, 1, 0);
+            evt->duration.duration_h = TS_READ8_BITS(pdata, 1, 7);
             pdata += 1;
             len += 1;
-            evt.duration.duration = TS_READ32(pdata);
+            evt->duration.duration = TS_READ32(pdata);
             pdata += 4;
             len += 4;
         }
-        evt.unique_program_id = TS_READ16(pdata);
+        evt->unique_program_id = TS_READ16(pdata);
         pdata += 2;
         len += 2;
-        evt.avail_num = TS_READ8(pdata);
+        evt->avail_num = TS_READ8(pdata);
         pdata += 1;
         len += 1;
-        evt.avails_expected = TS_READ8(pdata);
+        evt->avails_expected = TS_READ8(pdata);
         pdata += 1;
         len += 1;
     }
@@ -181,9 +180,16 @@ static int parse_splice_info(uint8_t *pbuf, uint16_t buf_size, scte_t *splice)
 	} else if (splice->section_syntax_indicator == 0 && (section_len > 0xFFD)) {
 		return -1;
 	}
+
+    if (!list_empty(&(splice->list)))
+        free_descriptors(&(splice->list));
+
+    // res_hexdump(0, "", pbuf, buf_size);
+    // printf("section len %d, buf_size %d\n", section_len, buf_size);
+
 	splice->section_length = section_len;
-    printf("section len %d\n", section_len);
 	splice->protocol_version = TS_READ8(pdata);
+    pdata += 1;
 	splice->encrypted_packet = TS_READ8_BITS(pdata, 1, 0);
 	splice->encryption_algorithm = TS_READ8_BITS(pdata, 6, 1);
 	splice->pts_adjustment_h = TS_READ8_BITS(pdata, 1, 7);
@@ -196,16 +202,16 @@ static int parse_splice_info(uint8_t *pbuf, uint16_t buf_size, scte_t *splice)
 	splice->splice_command_length = TS_READ32_BITS(pdata, 12, 12);
 	splice->splice_command_type = TS_READ32_BITS(pdata, 8, 24);
 	pdata += 4;
-    struct splice_time t;
-	switch (splice->splice_command_type) {
-        case SPLICE_SCEDULE:
-            ret = parse_splice_schedule(pdata, splice->splice_command_length);
+    // printf("tier %d, splice_command_type %d, splice_command_length %d\n", splice->tier, splice->splice_command_type, splice->splice_command_length);
+    switch (splice->splice_command_type) {
+        case SPLICE_SCHEDULE:
+            ret = parse_splice_schedule(pdata, splice->splice_command_length, &splice->schedule);
             break;
         case SPLICE_INSERT:
-            ret = parse_splice_insert(pdata, splice->splice_command_length);
+            ret = parse_splice_insert(pdata, splice->splice_command_length, &splice->evt);
             break;
         case SPLICE_TIME_SIGNAL:
-            ret = parse_splice_time(pdata, &t);
+            ret = parse_splice_time(pdata, &splice->t);
             break;
         case SPLICE_BANDWIDTH_RESERVATION:
             break;
@@ -215,9 +221,11 @@ static int parse_splice_info(uint8_t *pbuf, uint16_t buf_size, scte_t *splice)
         default:
             break;
 	}
-	pdata += splice->splice_command_length;
+    if (splice->splice_command_length != 0xFFF)
+	    pdata += splice->splice_command_length;
+    else
+        pdata += ret;
 	splice->descriptor_loop_length = TS_READ16(pdata);
-    printf("%d\n", splice->descriptor_loop_length);
 	pdata += 2;
 	parse_descriptors(&(splice->list), pdata, splice->descriptor_loop_length);
     pdata += splice->descriptor_loop_length;
@@ -280,23 +288,97 @@ void unregister_scte_ops(void)
 
 void dump_scte_info(void)
 {
-	struct tsa_config *tsaconf = get_config();
-	if (!tsaconf->detail)
-		return;
+    struct tsa_config *tsaconf = get_config();
+    if (!tsaconf->detail)
+        return;
 
     if (scte.pid_num == 0) {
         return;
     }
 
-	rout(0, "SCTE", NULL);
+    rout(0, "SCTE", NULL);
     for (int i = 0; i < scte.pid_num; i ++) {
         rout(1, "PID", "%d", scte.list[i].pid);
         rout(2, "sap_type", "%d", scte.list[i].sap_type);
+        rout(2, "protocol_version", "%d", scte.list[i].protocol_version);
+        rout(2, "encrypted_packet", "%d", scte.list[i].encrypted_packet);
+        rout(2, "encryption_algorithm", "%d", scte.list[i].encryption_algorithm);
+        rout(2, "cw_index", "%d", scte.list[i].cw_index);
+        rout(2, "tier", "%d", scte.list[i].tier);
         rout(2, "splice_command_type", "%d", scte.list[i].splice_command_type);
         rout(2, "splice_command_length", "%d", scte.list[i].splice_command_length);
+        switch (scte.list[i].splice_command_type) {
+            case SPLICE_SCHEDULE:
+                rout(3, "splice_count", "%d", scte.list[i].schedule.splice_count);
+                for (int k = 0; k < scte.list[i].schedule.splice_count; k ++) {
+                    struct splice_event* evt = &scte.list[i].schedule.splices[k];
+                    rout(3, "splice_event_id", "%d", evt->splice_event_id);
+                    rout(3, "splice_event_cancel_indicator", "%d", evt->splice_event_cancel_indicator);
+                    if (evt->splice_event_cancel_indicator == 0) {
+                        rout(3, "out_of_network_indicator", "%d", evt->out_of_network_indicator);
+                        rout(3, "program_splice_flag", "%d", evt->program_splice_flag);
+                        rout(3, "duration_flag", "%d", evt->duration_flag);
+                        if (evt->program_splice_flag == 1) {
+                            rout(3, "utc_splice_time", "%u", evt->utc_splice_time);
+                        }
+                        if (evt->program_splice_flag == 0) {
+                            rout(3, "component_count", "%d", evt->component_count);
+                            for (int j = 0; j < evt->component_count; j ++) {
+                                rout(3, "component_tag", "0x%x", evt->components[j].component_tag);
+                                if (evt->splice_immediate_flag == 0)
+                                    rout(3, "utc_splice_time", "%u", evt->components[j].utc_splice_time);
+                            }
+                        }
+                        if (evt->duration_flag == 1) {
+                            rout(3, "duration", "%lu", (uint64_t)evt->duration.duration_h << 32 | evt->duration.duration);
+                        }
+                        rout(3, "unique_program_id", "%d", evt->unique_program_id);
+                        rout(3, "avail_num", "%d", evt->avail_num);
+                        rout(3, "avails_expected", "%d", evt->avails_expected);
+                    }
+                }
+                break;
+            case SPLICE_INSERT:
+                rout(3, "splice_event_id", "0x%x", scte.list[i].evt.splice_event_id);
+                rout(3, "splice_event_cancel_indicator", "%d", scte.list[i].evt.splice_event_cancel_indicator);
+                if (scte.list[i].evt.splice_event_cancel_indicator == 0) {
+                    rout(3, "out_of_network_indicator", "%d", scte.list[i].evt.out_of_network_indicator);
+                    rout(3, "program_splice_flag", "%d", scte.list[i].evt.program_splice_flag);
+                    rout(3, "duration_flag", "%d", scte.list[i].evt.duration_flag);
+                    rout(3, "splice_immediate_flag", "%d", scte.list[i].evt.splice_immediate_flag);
+                    if (scte.list[i].evt.program_splice_flag && scte.list[i].evt.splice_immediate_flag == 0) {
+                        rout(3, "pts_time", "%lu",  (uint64_t)scte.list[i].evt.time.pts_time_h << 32 | scte.list[i].evt.time.pts_time);
+                    }
+                    if (scte.list[i].evt.program_splice_flag == 0) {
+                        rout(3, "component_count", "%d", scte.list[i].evt.component_count);
+                        for (int j = 0; j < scte.list[i].evt.component_count; j ++) {
+                            rout(3, "component_tag", "0x%x", scte.list[i].evt.components[j].component_tag);
+                            if (scte.list[i].evt.splice_immediate_flag == 0)
+                                rout(3, "pts_time", "%lu",  (uint64_t)scte.list[i].evt.components[j].time.pts_time_h <<32 | scte.list[i].evt.components[j].time.pts_time);
+                        }
+                    }
+                    if (scte.list[i].evt.duration_flag == 1) {
+                        rout(3, "duration", "%lu",  (uint64_t)scte.list[i].evt.duration.duration_h << 32 | scte.list[i].evt.duration.duration);
+                    }
+                    rout(3, "unique_program_id", "%d", scte.list[i].evt.unique_program_id);
+                    rout(3, "avail_num", "%d", scte.list[i].evt.avail_num);
+                    rout(3, "avails_expected", "%d", scte.list[i].evt.avails_expected);
+                }
+                break;
+            case SPLICE_TIME_SIGNAL:
+                break;
+            case SPLICE_BANDWIDTH_RESERVATION:
+                break;
+            case SPLICE_PRIVATE:
+                break;
+            case SPLICE_NULL:
+                break;
+            default:
+                break;
+        }
         if (!list_empty(&(scte.list[i].list)))
-		    dump_descriptors(2, &(scte.list[i].list));
+            dump_descriptors(2, &(scte.list[i].list));
     }
 
-	return;
+    return;
 }
