@@ -64,12 +64,12 @@ enum descriptor_e {
 };
 
 /* dump and skip reserved member field */
-#define DUMP_MEMBER(lv, dr, type, name)                                                                               \
-	if (strncmp(#name, "reserved", sizeof("reserved")-1))                                                                \
+#define DUMP_MEMBER(lv, dr, type, name)                                                                             \
+	if (strncmp(#name, "reserved", sizeof("reserved")-1))                                                           \
 		rout(lv+1, #name, "0x%x", dr->name)
 
 /* see ISO/IEC 13818-1 chapter 2.6 */
-#define foreach_video_stream_member                                                                                    \
+#define foreach_video_stream_member                                                                                 \
 	__m(uint8_t, multiple_frame_rate_flag, 1)                                                                       \
 	__m(uint8_t, frame_rate_code, 4)                                                                                \
 	__m(uint8_t, MPEG_1_only_flag, 1)                                                                               \
@@ -81,7 +81,7 @@ enum descriptor_e {
 	__m(uint8_t, reserved, 5)
 /* video stream descriptor */
 
-#define foreach_audio_stream_member                                                                                    \
+#define foreach_audio_stream_member                                                                                 \
 	__m(uint8_t, free_format_flag, 1) \
 	__m(uint8_t, ID, 1) \
 	__m(uint8_t, layer, 2)                              \
@@ -99,7 +99,7 @@ enum hierarchy_type_e {
 	base_layer = 15,
 };
 
-#define foreach_hierarchy_member                                                                                       \
+#define foreach_hierarchy_member  \
 	__m(uint8_t, reserved, 4) \
 	__m(uint8_t, hierarchy_type, 4)            \
 	__m(uint8_t, reserved1, 2) \
@@ -109,7 +109,7 @@ enum hierarchy_type_e {
 	__m(uint8_t, reserved3, 2)                           \
 	__m(uint8_t, hierarchy_channel, 6)
 
-#define foreach_registration_member                                                                                    \
+#define foreach_registration_member  \
 	__m1(uint32_t, format_identifier) \
 	__m1(uint8_t, additional_identification_info)
 
@@ -127,20 +127,20 @@ enum video_alignment_type_e {
 	__m1(uint8_t, alignment_type)
 /* see definition in @video_alignment_type_e */
 
-#define foreach_target_background_grid_member                                                                          \
-	__m(uint32_t, horizontal_size, 14) 											\
-	__m(uint32_t, vertical_size, 14)                                          \
+#define foreach_target_background_grid_member \
+	__m(uint32_t, horizontal_size, 14) \
+	__m(uint32_t, vertical_size, 14)  \
 	__m(uint32_t, aspect_ratio_information, 4)
 
-#define foreach_video_window_member                                                                                    \
+#define foreach_video_window_member  \
 	__m(uint32_t, horizontal_offset, 14) \
 	__m(uint32_t, vertical_offset, 14) \
 	__m(uint32_t, window_priority, 4)
 
-#define foreach_CA_member                                                                                              \
+#define foreach_CA_member     \
 	__m1(uint16_t, CA_system_ID) \
 	__m(uint16_t, reserved, 3) \
-	__m(uint16_t, CA_PID, 13)                         \
+	__m(uint16_t, CA_PID, 13) \
 	__mplast(uint8_t, private_data_byte)
 
 enum audio_type_e {
@@ -169,14 +169,14 @@ void dump_ISO_639_language_descriptor__(int lv, struct language_node *n)
 #define foreach_ISO_639_language_member \
 	__mplast_custom(struct language_node, languages, dump_ISO_639_language_descriptor__)
 
-#define foreach_system_clock_member                                                                                    \
+#define foreach_system_clock_member    \
 	__m(uint8_t, external_clock_reference_indicator, 1) \
-	__m(uint8_t, reserved, 1)                                \
+	__m(uint8_t, reserved, 1)  \
 	__m(uint8_t, clock_accuracy_integer, 6) \
-	__m(uint8_t, clock_accuracy_exponent, 3)                         \
+	__m(uint8_t, clock_accuracy_exponent, 3)  \
 	__m(uint8_t, reserved1, 5)
 
-#define foreach_multiplex_buffer_utilization_member                                                                    \
+#define foreach_multiplex_buffer_utilization_member  \
 	__m(uint16_t, bound_valid_flag, 1)     \
 	__m(uint16_t, LTW_offset_lower_bound, 15)   \
 	__m(uint16_t, reserved, 1)   \
@@ -206,7 +206,7 @@ void dump_ISO_639_language_descriptor__(int lv, struct language_node *n)
 	__m(uint8_t, reserved, 7) \
 	__m(uint8_t, leak_valid_flag, 1)
 
-#define foreach_ibp_member                                                                                             \
+#define foreach_ibp_member  \
 	__m(uint16_t, closed_gop_flag, 1) \
 	__m(uint16_t, identical_gop_flag, 1) \
 	__m(uint16_t, max_gop_length, 14)
@@ -412,9 +412,9 @@ foreach_enum_descriptor
 #define _(desname, val)                                                                                                \
 	static inline void free_##desname##_descriptor(descriptor_t *ptr)                                                  \
 	{                                                                                                                  \
-        desname##_descriptor_t *dr = (desname##_descriptor_t *)ptr;	\
+        desname##_descriptor_t *dr = (desname##_descriptor_t *)ptr;                                                    \
         foreach_##desname##_member                                                                                     \
-		free(dr);                                                                                                     \
+		free(dr);                                                                                                      \
 	}
 
 foreach_enum_descriptor
@@ -516,7 +516,7 @@ foreach_enum_descriptor
 		if (buf[0] != dr_##desname) {                                                                                  \
 			return -1;                                                                                                 \
 		}                                                                                                              \
-		uint8_t bits_off = 0, bytes_off = 0;                                                                           \
+		uint32_t bits_off = 0, bytes_off = 0;                                                                           \
 		desname##_descriptor_t *dr = (desname##_descriptor_t *)ptr;                                                    \
 		dr->descriptor.tag = buf[0];                                                                                   \
 		dr->descriptor.length = buf[1];                                                                                \
@@ -598,7 +598,7 @@ extern struct descriptor_ops des_ops[];
 					ret_##name += snprintf(buf_##name + ret_##name, 512 - ret_##name, " 0x%x", addr[k_##name]);        \
 					k_##name ++;\
 				} \
-				i_##name += sizeof(type);                                                                                             \
+				i_##name += sizeof(type);                                                                              \
 				j_##name ++ ;   \
 			}            \
 			rout(lv+1, #name, "%s", buf_##name);	                   \
@@ -626,7 +626,7 @@ extern struct descriptor_ops des_ops[];
 	inline static void dump_##desname##_descriptor(int lv, descriptor_t *p_dr)                                \
 	{                                                                                                         \
 		desname##_descriptor_t *dr = container_of(p_dr, desname##_descriptor_t, descriptor);                  \
-		rout(lv, des_ops[p_dr->tag].tag_name, "0x%02x len %d", dr->descriptor.tag, p_dr->length);      \
+		rout(lv, des_ops[p_dr->tag].tag_name, "0x%02x len %d", dr->descriptor.tag, p_dr->length);             \
 		foreach_##desname##_member                                                                            \
 	}
 foreach_enum_descriptor

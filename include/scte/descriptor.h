@@ -9,9 +9,6 @@ extern "C" {
 
 #define foreach_enum_scte_pmt_descriptor \
     _(cue_identifier, 0x8A)
-    /* below is what already defined in gerneic/DVB */
-    //_(registration, 0x05) /* identifier 0x43554549 (ASCII “CUEI”)  */ \
-    //_(stream_identifier, 0x52) 
 
 
 enum cue_stream_type {

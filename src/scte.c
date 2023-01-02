@@ -162,6 +162,76 @@ int parse_splice_insert(uint8_t *pbuf, int plen, struct splice_event *evt)
     return len;
 }
 
+static int parse_splice_private(uint8_t *pbuf)
+{
+    int len = 0;
+    uint8_t *pdata = pbuf;
+    // uint32_t identifier = TS_READ32(pdata);
+    pdata += 4;
+    len += 4;
+
+    return len;
+}
+
+/* see table 17 */
+void parse_splice_descriptors(struct list_head *h, uint8_t *buf, int len)
+{
+	int l = len;
+	uint8_t *ptr = buf;
+	descriptor_t *more = NULL;
+    uint32_t identifier;
+	void *des = NULL;
+	while (l > 0) {
+		// printf("%s(0x%x) : %d, %d\n", des_ops[ptr[0]].tag_name, ptr[0], l, ptr[1]);
+		uint8_t tag = ptr[0];
+		// des = des_ops[tag].descriptor_alloc();
+        des = calloc(1, sizeof(descriptor_t) + ptr[1]);
+		more = (descriptor_t *)des;
+		more->tag = tag;
+		more->length = ptr[1];
+        ptr += 2;
+        identifier = TS_READ32(ptr);
+        if (identifier != 0x43554549) /* CUEI*/ {
+            // printf("invalid splice descriptor 0x%x\n", identifier);
+        }
+        ptr += 4;
+        memcpy(more->data, ptr, more->length - 4);
+		l -= more->length - 6;
+		ptr += more->length;
+		list_add_tail(h, &(more->n));
+	}
+}
+
+
+void dump_splice_descriptors(int lv, struct list_head *list)
+{
+    char *tag_name[] = {
+#define _(a, v) #a,
+foreach_enum_scte_splice_descriptor
+#undef _
+    };
+    descriptor_t *p = NULL, *next = NULL;
+    list_for_each_safe(list, p, next, n) {
+        if (p->tag < 5) {
+            rout(lv, tag_name[p->tag], "0x%x len %d", p->tag, p->length);
+            if (p->tag == 0x0) {
+                struct avail_splice_descriptor avail;
+                avail.provider_avail_id = TS_READ32(p->data);
+                rout(lv+1, "provider_avail_id", "0x%x", avail.provider_avail_id);
+            } else if (p->tag == 0x1) {
+                struct DTMF_splice_descriptor dtmf;
+                dtmf.preroll = TS_READ8(p->data);
+                dtmf.dtmf_count = (p->data[1] >> 5) & 0x11;
+                dtmf.DTMF_char = &p->data[2];
+                rout(lv+1, "preroll", "%d", dtmf.preroll);
+                rout(lv+1, "dtmf_count", "%d", dtmf.dtmf_count);
+                rout(lv+1, "DTMF_char", "%s", dtmf.DTMF_char);
+            }
+        }
+    }
+}
+
+
 static int parse_splice_info(uint8_t *pbuf, uint16_t buf_size, scte_t *splice)
 {
 	uint16_t section_len = 0;
@@ -216,6 +286,7 @@ static int parse_splice_info(uint8_t *pbuf, uint16_t buf_size, scte_t *splice)
         case SPLICE_BANDWIDTH_RESERVATION:
             break;
         case SPLICE_PRIVATE:
+            ret = parse_splice_private(pdata);
             break;
         case SPLICE_NULL:
         default:
@@ -227,7 +298,7 @@ static int parse_splice_info(uint8_t *pbuf, uint16_t buf_size, scte_t *splice)
         pdata += ret;
 	splice->descriptor_loop_length = TS_READ16(pdata);
 	pdata += 2;
-	parse_descriptors(&(splice->list), pdata, splice->descriptor_loop_length);
+	parse_splice_descriptors(&(splice->list), pdata, splice->descriptor_loop_length);
     pdata += splice->descriptor_loop_length;
 	/* skip alignment bytes and crc */
 
@@ -366,6 +437,7 @@ void dump_scte_info(void)
                 }
                 break;
             case SPLICE_TIME_SIGNAL:
+                rout(3, "pts_time", "%lu", (uint64_t) scte.list[i].t.pts_time_h << 32 | scte.list[i].t.pts_time);
                 break;
             case SPLICE_BANDWIDTH_RESERVATION:
                 break;
@@ -377,7 +449,7 @@ void dump_scte_info(void)
                 break;
         }
         if (!list_empty(&(scte.list[i].list)))
-            dump_descriptors(2, &(scte.list[i].list));
+            dump_splice_descriptors(2, &(scte.list[i].list));
     }
 
     return;
