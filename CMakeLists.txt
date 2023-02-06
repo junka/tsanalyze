@@ -1,20 +1,19 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
 project(Tsanalyze)
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include)
 AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src SRC_LIST)
 
+set(CMAKE_C_STANDARD 11)
+
 SET(CMAKE_C_COMPILER "/usr/bin/gcc")
-message(${CMAKE_SYSTEM_NAME})
 
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -W -Wall -Wfatal-errors -Wstrict-prototypes -Wshadow -Wno-unused-parameter")
 
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -W -Wall -Wfatal-errors -Wstrict-prototypes -Wshadow -Wno-unused-parameter")
 IF(${CMAKE_BUILD_TYPE} MATCHES "debug")
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g")
 ELSE()
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
 ENDIF()
 
 ADD_EXECUTABLE(tsanalyze ${SRC_LIST})
-
-
