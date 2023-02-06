@@ -166,7 +166,7 @@ static int parse_splice_private(uint8_t *pbuf)
 {
     int len = 0;
     uint8_t *pdata = pbuf;
-    uint32_t identifier __unused = TS_READ32(pdata);
+    uint32_t identifier __attribute__((__unused__)) = TS_READ32(pdata);
     pdata += 4;
     len += 4;
 

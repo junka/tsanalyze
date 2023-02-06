@@ -6,7 +6,7 @@ AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src SRC_LIST)
 
 set(CMAKE_C_STANDARD 11)
 
-SET(CMAKE_C_COMPILER "/usr/bin/gcc")
+SET(CMAKE_C_COMPILER "/usr/bin/clang")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -W -Wall -Wfatal-errors -Wstrict-prototypes -Wshadow -Wno-unused-parameter")
 

@@ -12,7 +12,7 @@
 int parse_system_header(uint8_t *pkt, uint16_t len, system_header *sh)
 {
 	uint8_t *buf = pkt;
-	uint16_t l __unused = len;
+	uint16_t l __attribute__((__unused__)) = len;
 
 	sh->system_header_start_code = TS_READ32(buf);
 	PL_STEP(buf, l, 4);
