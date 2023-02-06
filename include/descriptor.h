@@ -516,7 +516,7 @@ foreach_enum_descriptor
 		if (buf[0] != dr_##desname) {                                                                                  \
 			return -1;                                                                                                 \
 		}                                                                                                              \
-		uint32_t bits_off = 0, bytes_off = 0;                                                                           \
+		uint32_t bits_off = 0, bytes_off __unused = 0;                                                                           \
 		desname##_descriptor_t *dr = (desname##_descriptor_t *)ptr;                                                    \
 		dr->descriptor.tag = buf[0];                                                                                   \
 		dr->descriptor.length = buf[1];                                                                                \

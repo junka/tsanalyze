@@ -268,7 +268,7 @@ static void dump_eit(eit_t *p_eit)
 	}
 }
 
-void convert_pids_to_tables()
+static void convert_pids_to_tables(void)
 {
 	struct tsa_config *tsaconf = get_config();
 	for (int i = 0; i < 8192; i ++) {
@@ -1205,8 +1205,6 @@ int parse_multi_string(uint8_t *pbuf, struct multiple_string *str)
 
 static int parse_mgt(uint8_t *pbuf, uint16_t buf_size, atsc_mgt_t *mgt)
 {
-
-	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
 	int ret = parse_section_header(pbuf, buf_size, &mgt->mgt_header);
@@ -1223,15 +1221,11 @@ static int parse_mgt(uint8_t *pbuf, uint16_t buf_size, atsc_mgt_t *mgt)
 	if (!list_empty(&mgt->list))
 		free_descriptors(&mgt->list);
 
-
-	section_len = mgt->mgt_header.section_length;
 	pdata = mgt->mgt_header.private_data_byte;
-	section_len -= (5 + 4);
 	mgt->protocol_version = TS_READ8(pdata);
 	pdata += 1;
 	mgt->tables_defined = TS_READ16(pdata);
 	pdata += 2;
-	section_len -= 3;
 	mgt->tables = calloc(mgt->tables_defined, sizeof(struct define_table));
 	for (int i= 0; i < mgt->tables_defined; i ++) {
 		mgt->tables[i].table_type = TS_READ16(pdata);
@@ -1257,7 +1251,6 @@ static int parse_mgt(uint8_t *pbuf, uint16_t buf_size, atsc_mgt_t *mgt)
 
 static int parse_tvct(uint8_t *pbuf, uint16_t buf_size, atsc_vct_t *tvct)
 {
-	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
 	int ret = parse_section_header(pbuf, buf_size, &tvct->vct_header);
@@ -1275,14 +1268,11 @@ static int parse_tvct(uint8_t *pbuf, uint16_t buf_size, atsc_vct_t *tvct)
 	if (!list_empty(&tvct->list))
 		free_descriptors(&tvct->list);
 
-	section_len = tvct->vct_header.section_length;
 	pdata = tvct->vct_header.private_data_byte;
-	section_len -= (5 + 4);
 	tvct->protocol_version = TS_READ8(pdata);
 	pdata += 1;
 	tvct->num_channels_in_section = TS_READ8(pdata);
 	pdata += 1;
-	section_len -= 2;
 	tvct->channels = calloc(tvct->num_channels_in_section, sizeof(struct define_channel));
 	for (int i = 0; i < tvct->num_channels_in_section; i ++) {
 		memcpy(tvct->channels[i].short_name, pdata, 7*16);
@@ -1321,7 +1311,6 @@ static int parse_tvct(uint8_t *pbuf, uint16_t buf_size, atsc_vct_t *tvct)
 
 static int parse_cvct(uint8_t *pbuf, uint16_t buf_size, atsc_vct_t *cvct)
 {
-	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
 	int ret = parse_section_header(pbuf, buf_size, &cvct->vct_header);
@@ -1339,15 +1328,12 @@ static int parse_cvct(uint8_t *pbuf, uint16_t buf_size, atsc_vct_t *cvct)
 	if (!list_empty(&cvct->list))
 		free_descriptors(&cvct->list);
 
-	section_len = cvct->vct_header.section_length;
 	pdata = cvct->vct_header.private_data_byte;
-	section_len -= (5 + 4);
 	cvct->protocol_version = TS_READ8(pdata);
 	pdata += 1;
 
 	cvct->num_channels_in_section = TS_READ8(pdata);
 	pdata += 1;
-	section_len -= 2;
 	cvct->channels = calloc(cvct->num_channels_in_section, sizeof(struct define_channel));
 	for (int i = 0; i < cvct->num_channels_in_section; i ++) {
 		memcpy(cvct->channels[i].short_name, pdata, 7*16);
@@ -1388,13 +1374,11 @@ static int parse_cvct(uint8_t *pbuf, uint16_t buf_size, atsc_vct_t *cvct)
 
 static int parse_rrt(uint8_t *pbuf, uint16_t buf_size, atsc_rrt_t *rrt)
 {
-	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
 	int ret = parse_section_header(pbuf, buf_size, &rrt->rrt_header);
 	if (ret != 0)
 		return ret;
-
 	
 	free_multi_string(&rrt->rating_region_name_text);
 	if (rrt->dimensions) {
@@ -1409,9 +1393,7 @@ static int parse_rrt(uint8_t *pbuf, uint16_t buf_size, atsc_rrt_t *rrt)
 	if (!list_empty(&rrt->list))
 		free_descriptors(&rrt->list);
 
-	section_len = rrt->rrt_header.section_length;
 	pdata = rrt->rrt_header.private_data_byte;
-	section_len -= (5 + 4);
 	rrt->protocol_version = TS_READ8(pdata);
 	pdata += 1;
 	rrt->rating_region_name_length = TS_READ8(pdata);
@@ -1450,16 +1432,13 @@ static int parse_rrt(uint8_t *pbuf, uint16_t buf_size, atsc_rrt_t *rrt)
 
 static int parse_ett(uint8_t *pbuf, uint16_t buf_size, atsc_ett_t *ett)
 {
-	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
 	int ret = parse_section_header(pbuf, buf_size, &ett->ett_header);
 	if (ret != 0)
 		return ret;
 
-	section_len = ett->ett_header.section_length;
 	pdata = ett->ett_header.private_data_byte;
-	section_len -= (5 + 4);
 	ett->protocol_version = TS_READ8(pdata);
 	pdata += 1;
 	ett->ETM_id = TS_READ32(pdata);
@@ -1470,7 +1449,6 @@ static int parse_ett(uint8_t *pbuf, uint16_t buf_size, atsc_ett_t *ett)
 
 static int parse_atsc_eit(uint8_t *pbuf, uint16_t buf_size, atsc_eit_t* eit)
 {
-	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
 	int ret = parse_section_header(pbuf, buf_size, &eit->eit_header);
@@ -1484,9 +1462,7 @@ static int parse_atsc_eit(uint8_t *pbuf, uint16_t buf_size, atsc_eit_t* eit)
 		free(eit->events);
 	}
 
-	section_len = eit->eit_header.section_length;
 	pdata = eit->eit_header.private_data_byte;
-	section_len -= (5 + 4);
 	eit->protocol_version = TS_READ8(pdata);
 	pdata += 1;
 	eit->num_events_in_section = TS_READ8(pdata);
@@ -1548,16 +1524,13 @@ static int parse_stt(uint8_t *pbuf, uint16_t buf_size, atsc_stt_t* stt)
 
 static int parse_dcct(uint8_t *pbuf, uint16_t buf_size, atsc_dcct_t* dcct)
 {
-	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
 	int ret = parse_section_header(pbuf, buf_size, &dcct->dcct_header);
 	if (ret != 0)
 		return ret;
 
-	section_len = dcct->dcct_header.section_length;
 	pdata = dcct->dcct_header.private_data_byte;
-	section_len -= (5 + 4);
 	dcct->protocol_version = TS_READ8(pdata);
 	pdata += 1;
 	dcct->dcc_test_count = TS_READ8(pdata);
@@ -1604,16 +1577,13 @@ static int parse_dcct(uint8_t *pbuf, uint16_t buf_size, atsc_dcct_t* dcct)
 
 static int parse_dccsct(uint8_t *pbuf, uint16_t buf_size, atsc_dccsct_t* dccsct)
 {
-	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
 	int ret = parse_section_header(pbuf, buf_size, &dccsct->dccsct_header);
 	if (ret != 0)
 		return ret;
 
-	section_len = dccsct->dccsct_header.section_length;
 	pdata = dccsct->dccsct_header.private_data_byte;
-	section_len -= (5 + 4);
 	dccsct->protocol_version = TS_READ8(pdata);
 	pdata += 1;
 	dccsct->updates_defined = TS_READ8(pdata);
