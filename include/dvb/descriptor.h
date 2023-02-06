@@ -173,48 +173,129 @@ struct mobile_handover_info{
 		uint16_t network_id;
 		uint16_t initial_service_id;
 	};
-};
+}__attribute__((packed));
 
 struct event_linkage_info{
 	uint16_t target_event_id;
 	uint8_t target_listed : 1;
 	uint8_t event_simulcast : 1;
 	uint8_t reserved : 6;
-};
+}__attribute__((packed));
 
 struct extend_event_linkage_subinfo{
 	uint16_t target_event_id;
 	uint8_t target_listed : 1;
 	uint8_t event_simulcast : 1;
-	uint8_t linka_type : 2;
+	uint8_t link_type : 2;
 	uint8_t target_id_type : 2;
 	uint8_t original_network_id_flag : 1;
 	uint8_t service_id_flag : 1;
-	union{
-		uint16_t user_defined_id;
-		uint16_t target_transport_stream_id;
-		uint16_t target_original_network_id;
-		uint16_t target_service_id;
-	};
-};
+	
+	uint16_t user_defined_id;
+	uint16_t target_transport_stream_id;
+	uint16_t target_original_network_id;
+	uint16_t target_service_id;
+	
+}__attribute__((packed));
 
 struct extend_event_linkage_info{
 	uint8_t loop_length;
+	int n_subinfo;
 	struct extend_event_linkage_subinfo * subinfo;
 };
 
-#define foreach_linkage_member	\
+static inline int
+__parse_extend_event_linkage_info(uint8_t *buf, int len, struct extend_event_linkage_info *e)
+{
+	uint8_t *ptr = buf;
+	e->loop_length = TS_READ8(ptr);
+	ptr += 1;
+	int l = 0, i = 0;
+	while (l < e->loop_length) {
+		e->subinfo = realloc(e->subinfo , (i+1) * sizeof(struct extend_event_linkage_subinfo));
+		e->subinfo[i].target_event_id = TS_READ16(ptr);
+		ptr += 2;
+		l += 2;
 
-/*
+		e->subinfo[i].target_listed = TS_READ8_BITS(buf, 1, 0);
+		e->subinfo[i].event_simulcast = TS_READ8_BITS(buf, 1, 1);
+		e->subinfo[i].link_type = TS_READ8_BITS(buf, 2, 2);
+		e->subinfo[i].target_id_type = TS_READ8_BITS(buf, 2, 4);
+		e->subinfo[i].original_network_id_flag = TS_READ8_BITS(buf, 1, 6);
+		e->subinfo[i].service_id_flag = TS_READ8_BITS(buf, 1, 7);
+		ptr += 1;
+		l += 1;
+		if (e->subinfo[i].target_id_type == 3) {
+			e->subinfo[i].user_defined_id = TS_READ16(ptr);
+			ptr += 2;
+			l += 2;
+		} else {
+			if (e->subinfo[i].target_id_type == 1) {
+				e->subinfo[i].target_transport_stream_id = TS_READ16(ptr);
+				ptr += 2;
+				l += 2;
+			}
+			if (e->subinfo[i].original_network_id_flag) {
+				e->subinfo[i].target_original_network_id = TS_READ16(ptr);
+				ptr += 2;
+				l += 2;
+			}
+			if (e->subinfo[i].service_id_flag) {
+				e->subinfo[i].target_service_id = TS_READ16(ptr);
+				ptr += 2;
+				l += 2;
+			}
+		}
+		i ++;
+	}
+	e->n_subinfo = i;
+	return e->loop_length + 1;
+}
+
+static inline void
+__dump_extend_event_linkage_info(int lv, struct extend_event_linkage_info *e)
+{
+	rout(lv, "loop_length", "%d", e->loop_length);
+	for (int i = 0; i < e->n_subinfo; i ++) {
+		rout(lv, "target_event_id", "%d", e->subinfo[i].target_event_id);
+		rout(lv, "target_listed", "%d", e->subinfo[i].target_listed);
+		rout(lv, "event_simulcast", "%d", e->subinfo[i].event_simulcast);
+		rout(lv, "link_type", "%d", e->subinfo[i].link_type);
+		rout(lv, "target_id_type", "%d", e->subinfo[i].target_id_type);
+		rout(lv, "original_network_id_flag", "%d", e->subinfo[i].original_network_id_flag);
+		rout(lv, "service_id_flag", "%d", e->subinfo[i].service_id_flag);
+		if (e->subinfo[i].target_id_type == 3) {
+			rout(lv, "user_defined_id", "%d", e->subinfo[i].user_defined_id);
+		} else {
+			if (e->subinfo[i].target_id_type == 1) {
+				rout(lv, "target_transport_stream_id", "%d", e->subinfo[i].target_transport_stream_id);
+			}
+			if (e->subinfo[i].original_network_id_flag) {
+				rout(lv, "target_original_network_id", "%d", e->subinfo[i].target_original_network_id);
+			}
+			if (e->subinfo[i].service_id_flag) {
+				rout(lv, "target_service_id", "%d", e->subinfo[i].target_service_id);
+			}
+		}
+	}
+}
+static inline void
+__free_extend_event_linkage_info(struct extend_event_linkage_info *e)
+{
+	free(e->subinfo);
+}
+
+/* 0x4A */
+#define foreach_linkage_member	\
 	__m1(uint16_t, transport_stream_id)	\
 	__m1(uint16_t, original_network_id)	\
 	__m1(uint16_t, service_id)	\
 	__m1(uint8_t, linkage_type)	\
 	__mif(struct mobile_handover_info, mobile_handover, linkage_type, 0x08)	\
-	__mif(struct extend_event_linkage_info, event_linkage, linkage_type, 0x0D)	\
-	__mrangelv(struct extend_event_linkage_subinfo, loop_length, extend_event_linkage, linkage_type, 0x0E, 0x1F)	\
+	__mif(struct event_linkage_info, event_linkage, linkage_type, 0x0D)	\
+	__mrangelv_custom(struct extend_event_linkage_info, extend_event_linkage, linkage_type, 0x0E, 0x1F, __parse_extend_event_linkage_info, __dump_extend_event_linkage_info, __free_extend_event_linkage_info)	\
 	__mplast(uint8_t, private_data_byte)
-*/
+
 
 struct NVOD_reference_node {
 	uint16_t transport_stream_id;

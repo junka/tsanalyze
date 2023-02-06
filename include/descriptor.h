@@ -296,14 +296,14 @@ struct MuxCodeSlot
 {
 	uint8_t m4MuxChannel;
 	uint8_t numberOfBytes;
-};
+}__attribute__((packed));
 
 struct MuxCodeSubstrue
 {
 	uint8_t slotCount : 5;
 	uint8_t repetitionCount : 3;
 	struct MuxCodeSlot slots[7];
-};
+} __attribute__((packed));
 
 struct MuxCodeTableEntry
 {
@@ -312,10 +312,10 @@ struct MuxCodeTableEntry
 	uint8_t version : 4;
 	uint8_t substructureCount;
 	struct MuxCodeSubstrue substructure;
-};
+}__attribute__((packed));
 
-#define foreach_muxcode_member
-// __mplast(struct MuxCodeTableEntry, entries, 2)
+#define foreach_muxcode_member	\
+	__mplast(struct MuxCodeTableEntry, entries)
 
 /* see ISO/IEC 14496-1 */
 struct DefaultFlexMuxBufferDescriptor
@@ -353,7 +353,8 @@ struct descriptor_ops {
 #define __mplast(type, name)    uint16_t name##_cnt; type *name;
 #define __mplast_custom(type, name, callback)  __mplast(type, name)
 #define __mif(type, name, cond, val) type name;
-#define __mrangelv(type, length, name, cond, floor, ceiling) uint8_t length; type* name;
+#define __mrangelv(type, name, cond, floor, ceiling) type name;
+#define __mrangelv_custom(type, name, cond, floor, ceiling, parser, dumper, destroy) __mrangelv(type, name, cond, floor, ceiling)
 #define __mlv(type, length, name)    type* name;
 #define __mlv_custom(type, length, name, cb) __mlv(type, length, name)
 #define __mploop(type, name, length)	uint8_t name##_num; type *name;
@@ -371,6 +372,7 @@ foreach_enum_descriptor
 #undef __mploop
 #undef __mlv_custom
 #undef __mlv
+#undef __mrangelv_custom
 #undef __mrangelv
 #undef __mif
 #undef __mplast_custom
@@ -399,7 +401,8 @@ foreach_enum_descriptor
 #define __mplast(type, name)    if(dr->name) free(dr->name);
 #define __mplast_custom(type, name, callback)  __mplast(type, name)
 #define __mif(type, name, cond, val)
-#define __mrangelv(type, length, name, cond, floor, ceiling) free(dr->name);
+#define __mrangelv(type, name, cond, floor, ceiling)
+#define __mrangelv_custom(type, name, cond, floor, ceiling, parser, dumper, destroy) destroy(&dr->name);
 #define __mlv(type, length, name)    free(dr->name);
 #define __mlv_custom(type, length, name, cb) __mlv(type, length, name)
 #define __mploop(type, name, length)	free(dr->name);
@@ -423,6 +426,7 @@ foreach_enum_descriptor
 #undef __mploop
 #undef __mlv_custom
 #undef __mlv
+#undef __mrangelv_custom
 #undef __mrangelv
 #undef __mif
 #undef __mplast_custom
@@ -463,13 +467,9 @@ foreach_enum_descriptor
 		bytes_off += sizeof(type);	\
 	}
 
-#define __mrangelv(type, length, name, cond, floor, ceiling)	\
+#define __mrangelv_custom(type, name, cond, floor, ceiling, custom_parse, custom_dump, custom_free)	\
 	if(dr->cond >= floor && dr->cond <= ceiling) { \
-		dr->length = TS_READ8(buf + bytes_off);	\
-		bytes_off ++;	\
-		dr->name = (type *)calloc(1, sizeof(type));	\
-		memcpy(dr->name, buf + bytes_off, dr->length);	\
-		bytes_off += dr->length;	\
+		custom_parse(buf + bytes_off, len - bytes_off,  &dr->name); \
 	}
 
 #define __mlv(type, length, name)	\
@@ -516,7 +516,7 @@ foreach_enum_descriptor
 		if (buf[0] != dr_##desname) {                                                                                  \
 			return -1;                                                                                                 \
 		}                                                                                                              \
-		uint32_t bits_off = 0, bytes_off __unused = 0;                                                                           \
+		uint32_t bits_off = 0, bytes_off = 0;                                                                           \
 		desname##_descriptor_t *dr = (desname##_descriptor_t *)ptr;                                                    \
 		dr->descriptor.tag = buf[0];                                                                                   \
 		dr->descriptor.length = buf[1];                                                                                \
@@ -531,7 +531,7 @@ foreach_enum_descriptor
 #undef __mploop
 #undef __mlv_custom
 #undef __mlv
-#undef __mrangelv
+#undef __mrangelv_custom
 #undef __mif
 #undef __mplast_custom
 #undef __mplast
@@ -580,7 +580,10 @@ extern struct descriptor_ops des_ops[];
 		DUMP_MEMBER(lv, dr, type, name);	\
 	}
 
-#define __mrangelv(type, length, name, cond, floor, ceiling)	
+#define __mrangelv_custom(type, name, cond, floor, ceiling, custom_parse, custom_dump, custom_free) \
+	if(dr->cond >= floor && dr->cond <= ceiling) { \
+		custom_dump(lv, &dr->name); \
+	}
 
 #define __mlv(type, length, name)	\
 	size_t i_##name = 0, j_##name = 0, ret_##name = 0;	\
