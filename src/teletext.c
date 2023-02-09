@@ -233,7 +233,7 @@ int parse_teletext_data(uint16_t addr, uint8_t data[40])
         /* Packets with Y = 26 to 31 may also use byte 6 to extend the packet address range.
          * Byte 6 is then Hamming 8/4 coded and is referred to as the Designation Code. 
          */
-        uint8_t designation_code __unused = HAMMING8_DATA(decode_hamming8_code(data[0]));
+        uint8_t designation_code __attribute__((__unused__)) = HAMMING8_DATA(decode_hamming8_code(data[0]));
         // decode_hamming24_code(data+3)
         // uint32_t triplet = HAMMING24_DATA(data);
 
