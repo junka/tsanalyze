@@ -121,7 +121,7 @@ struct VBI_data_node {
 	uint8_t data_service_id;
 	uint8_t data_service_descriptor_length;
 	uint8_t *reserved;
-};
+} __attribute__((packed));
 
 #define foreach_VBI_data_member	\
 	__mploop(struct VBI_data_node, vbi_data, data_service_descriptor_length)
@@ -476,7 +476,7 @@ struct multilingual_node {
 	uint32_t ISO_639_language_code:24;
 	uint32_t name_length:8;
 	uint8_t* text_char;
-};
+}__attribute__((packed));
 
 static inline int
 __parse_multilingual_node(uint8_t *buf, int len, struct multilingual_node *node)
@@ -641,13 +641,12 @@ struct ancillary_data_identifier {
 #define foreach_ancillary_data_member	\
 	__m1(uint8_t, ancillary_data_identifier)
 
-struct subcell_list_node {
+struct subcell_list_info {
 	uint64_t cell_id_extension : 8;
 	uint64_t subcell_latitude : 16;
 	uint64_t subcell_longitude : 16;
 	uint64_t subcell_extent_of_latitude : 12;
 	uint64_t subcell_extent_of_longitude : 12;
-	struct list_node n;
 };
 
 struct cell_list_node {
@@ -657,32 +656,123 @@ struct cell_list_node {
 	uint32_t cell_extent_of_latitude : 12;
 	uint32_t cell_extent_of_longitude : 12;
 	uint32_t subcell_info_loop_length : 8;
-	// struct subcell_list_info *subcell_list;
-	struct list_head list;
-	struct list_node n;
+	struct subcell_list_info *subcell_list;
 };
+
+static inline
+void dump_cell_list_descriptor__(int lv, struct cell_list_node *info)
+{
+	struct subcell_list_info *sub;
+	rout(lv, "cell_id", "%d", info->cell_id);
+	rout(lv, "cell_latitude", "0x%x", info->cell_latitude);
+	rout(lv, "cell_longitude", "0x%x", info->cell_longitude);
+	rout(lv, "cell_extent_of_latitude", "0x%x", info->cell_extent_of_latitude);
+	rout(lv, "cell_extent_of_longitude", "0x%x", info->cell_extent_of_longitude);
+	rout(lv, "subcell_info_loop_length", "%d", info->subcell_info_loop_length);
+	int n = info->subcell_info_loop_length / sizeof(struct subcell_list_info);
+	for (int i = 0; i < n; i ++) {
+		sub  = info->subcell_list + i;
+		rout(lv, "cell_id_extension", "%d", sub->cell_id_extension);
+		rout(lv, "subcell_latitude", "%d", sub->subcell_latitude);
+		rout(lv, "subcell_longitude", "%d", sub->subcell_longitude);
+		rout(lv, "subcell_extent_of_latitude", "%d", sub->subcell_extent_of_latitude);
+		rout(lv, "subcell_extent_of_longitude", "%d", sub->subcell_extent_of_longitude);
+	}
+}
+
+static inline int
+parse_cell_list_descriptor__(uint8_t *buf, int len, struct cell_list_node *n)
+{
+	uint8_t *ptr = buf;
+	n->cell_id = TS_READ16(ptr);
+	ptr += 2;
+	n->cell_latitude = TS_READ16(ptr);
+	ptr += 2;
+	n->cell_longitude = TS_READ16(ptr);
+	ptr += 2;
+	n->cell_extent_of_latitude = TS_READ32_BITS(ptr, 12, 0);
+	n->cell_extent_of_longitude = TS_READ32_BITS(ptr, 12, 12);
+	n->subcell_info_loop_length = TS_READ32_BITS(ptr, 8, 24);
+	ptr += 4;
+	int num = n->subcell_info_loop_length / sizeof(struct subcell_list_info);
+	n->subcell_list = calloc(num, sizeof(struct subcell_list_info));
+	for (int i = 0; i < num; i ++) {
+		n->subcell_list[i].cell_id_extension = TS_READ64_BITS(ptr, 8, 0);
+		n->subcell_list[i].subcell_latitude = TS_READ64_BITS(ptr, 16, 8);
+		n->subcell_list[i].subcell_longitude = TS_READ64_BITS(ptr, 16, 24);
+		n->subcell_list[i].subcell_extent_of_latitude = TS_READ64_BITS(ptr, 12, 40);
+		n->subcell_list[i].subcell_extent_of_longitude = TS_READ64_BITS(ptr, 12, 52);
+		ptr += 8;
+	}
+	return (int) (ptr - buf);
+}
+
+
+static inline void
+free_cell_list_descriptor__(struct cell_list_node *info)
+{
+	free(info->subcell_list);
+}
 
 //TODO
-#define foreach_cell_list_member
+#define foreach_cell_list_member	\
+	__mplast_custom_sub(struct cell_list_node, cell_list, parse_cell_list_descriptor__, dump_cell_list_descriptor__, free_cell_list_descriptor__)
 
-struct subcell_node {
+
+struct subcell_info {
 	uint8_t cell_id_extension;
 	uint32_t transposer_frequency;
-	struct list_node n;
-	// struct subcell_info *next;
-};
+} __attribute__((packed));
 
 struct cell_frequency_node {
 	uint16_t cell_id;
 	uint32_t frequency;
 	uint8_t subcell_info_loop_length;
-	// struct subcell_info *subcell_info_list;
-	struct list_head list;
+	struct subcell_info *subcell_info_list;
 };
 
-//TODO
-#define foreach_cell_frequency_link_member 
 
+static inline
+void dump_cell_frequency_link_descriptor__(int lv, struct cell_frequency_node *n)
+{
+	rout(lv, "cell_id", "%d", n->cell_id);
+	rout(lv, "frequency", "%d", n->frequency);
+	rout(lv, "subcell_info_loop_length", "%d", n->subcell_info_loop_length);
+	int num = n->subcell_info_loop_length / sizeof(struct subcell_info);
+	for (int i = 0; i < num; i ++) {
+		rout(lv, "cell_id_extension", "%d", n->subcell_info_list[i].cell_id_extension);
+		rout(lv, "transposer_frequency", "%u", n->subcell_info_list[i].transposer_frequency);
+	}
+}
+
+static inline int
+parse_cell_frequency_link_descriptor__(uint8_t *buf, int len, struct cell_frequency_node *n)
+{
+	uint8_t *ptr = buf;
+	n->cell_id = TS_READ16(ptr);
+	ptr += 2;
+	n->frequency = TS_READ32(ptr);
+	ptr += 4;
+	n->subcell_info_loop_length = TS_READ8(ptr);
+	ptr += 1;
+	int num = n->subcell_info_loop_length / sizeof(struct subcell_info);
+	n->subcell_info_list = calloc(num, sizeof(struct subcell_info));
+	for (int i = 0; i < num; i ++) {
+		n->subcell_info_list[i].cell_id_extension = TS_READ8(ptr);
+		ptr += 1;
+		n->subcell_info_list[i].transposer_frequency = TS_READ32(ptr);
+		ptr += 4;
+	}
+	return (int)(ptr - buf);
+}
+static inline void
+free_cell_frequency_link_descriptor__(struct cell_frequency_node *info)
+{
+	free(info->subcell_info_list);
+}
+
+#define foreach_cell_frequency_link_member \
+	__mplast_custom_sub(struct cell_frequency_node, cell_frequency_list, parse_cell_frequency_link_descriptor__, dump_cell_frequency_link_descriptor__, free_cell_frequency_link_descriptor__)
 
 /*Announcement support descriptor*/
 struct announcement_support_indicator {

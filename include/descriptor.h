@@ -352,9 +352,11 @@ struct descriptor_ops {
 #define __m1(type, name) type name;
 #define __mplast(type, name)    uint16_t name##_cnt; type *name;
 #define __mplast_custom(type, name, callback)  __mplast(type, name)
+#define __mplast_custom_sub(type, name, parser, dump_cb, free_cb) __mplast(type, name)
 #define __mif(type, name, cond, val) type name;
+#define __mif_custom(type, name, conf, val, parser, dump_cb, free_cb) __mif(type, name, cond, val)
 #define __mrangelv(type, name, cond, floor, ceiling) type name;
-#define __mrangelv_custom(type, name, cond, floor, ceiling, parser, dumper, destroy) __mrangelv(type, name, cond, floor, ceiling)
+#define __mrangelv_custom(type, name, cond, floor, ceiling, parser, dump_cb, free_cb) __mrangelv(type, name, cond, floor, ceiling)
 #define __mlv(type, length, name)    type* name;
 #define __mlv_custom(type, length, name, cb) __mlv(type, length, name)
 #define __mploop(type, name, length)	uint8_t name##_num; type *name;
@@ -374,7 +376,9 @@ foreach_enum_descriptor
 #undef __mlv
 #undef __mrangelv_custom
 #undef __mrangelv
+#undef __mif_custom
 #undef __mif
+#undef __mplast_custom_sub
 #undef __mplast_custom
 #undef __mplast
 #undef __m1
@@ -400,17 +404,35 @@ foreach_enum_descriptor
 #define __m1(type, name) 
 #define __mplast(type, name)    if(dr->name) free(dr->name);
 #define __mplast_custom(type, name, callback)  __mplast(type, name)
+#define __mplast_custom_sub(type, name, parse_cb, dump_cb, free_cb) \
+	for (int i = 0; i < dr->name##_cnt; i ++) { \
+		free_cb(dr->name + i); \
+	} \
+	__mplast(type, name)
+
 #define __mif(type, name, cond, val)
+#define __mif_custom(type, name, cond, val, parse_cb, dump_cb, free_cb) \
+	free_cb(&dr->name); \
+	__mif(type, name, cond, val)
+
 #define __mrangelv(type, name, cond, floor, ceiling)
-#define __mrangelv_custom(type, name, cond, floor, ceiling, parser, dumper, destroy) destroy(&dr->name);
+#define __mrangelv_custom(type, name, cond, floor, ceiling, parse_cb, dump_cb, free_cb) free_cb(&dr->name);
 #define __mlv(type, length, name)    free(dr->name);
 #define __mlv_custom(type, length, name, cb) __mlv(type, length, name)
-#define __mploop(type, name, length)	free(dr->name);
+#define __mploop(type, name, length)	\
+	uint8_t *v = (uint8_t *)(dr->name + dr->name##_num - 1); \
+	for (int i = 0; i < dr->name##_num; i ++) { \
+		v += offsetof(type, length) + sizeof(dr->name[i].length); \
+		uintptr_t **vv = (uintptr_t **)v;	\
+		free(*vv);	\
+	} \
+	free(dr->name);
+
 #define __mploop_custom(type, name, length, parse_cb, dump_cb, free_cb) \
 	for (int i = 0; i < dr->name##_num; i++) { \
 		free_cb(dr->name + i); \
 	} \
-	__mploop(type, name, length)
+	free(dr->name);
 
 #define _(desname, val)                                                                                                \
 	static inline void free_##desname##_descriptor(descriptor_t *ptr)                                                  \
@@ -428,7 +450,9 @@ foreach_enum_descriptor
 #undef __mlv
 #undef __mrangelv_custom
 #undef __mrangelv
+#undef __mif_custom
 #undef __mif
+#undef __mplast_custom_sub
 #undef __mplast_custom
 #undef __mplast
 #undef __m1
@@ -461,15 +485,29 @@ foreach_enum_descriptor
 
 #define __mplast_custom(type, name, callback)  __mplast(type, name)
 
+#define __mplast_custom_sub(type, name, parse_cb, dump_cb, free_cb) \
+	dr->name = NULL; \
+	while (dr->descriptor.length + 2 > bytes_off) { \
+		dr->name = (type *) realloc(dr->name, ((dr->name##_cnt + 1) * sizeof(type))); \
+		bytes_off += parse_cb(buf + bytes_off, dr->descriptor.length- bytes_off, &dr->name[dr->name##_cnt]); \
+		dr->name##_cnt ++; \
+	}
+	
+
 #define __mif(type, name, cond, val)	\
 	if(dr->cond == val) { \
 		memcpy(&dr->name, buf+ bytes_off, sizeof(type));	\
 		bytes_off += sizeof(type);	\
 	}
 
-#define __mrangelv_custom(type, name, cond, floor, ceiling, custom_parse, custom_dump, custom_free)	\
+#define __mif_custom(type, name, cond, val, parse_cb, dump_cb, free_cb) \
+	if (dr->cond == val) { \
+		bytes_off += parse_cb(buf + bytes_off, len - bytes_off, &dr->name); \
+	}
+
+#define __mrangelv_custom(type, name, cond, floor, ceiling, parse_cb, dump_cb, free_cb)	\
 	if(dr->cond >= floor && dr->cond <= ceiling) { \
-		custom_parse(buf + bytes_off, len - bytes_off,  &dr->name); \
+		bytes_off += parse_cb(buf + bytes_off, len - bytes_off,  &dr->name); \
 	}
 
 #define __mlv(type, length, name)	\
@@ -485,6 +523,7 @@ foreach_enum_descriptor
 
 #define __mlv_custom(type, length, name, cb) __mlv(type, length, name)
 
+//TODO: length could be more than 1 byte size, and struct should be aligned to 8 or packed
 #define __mploop(type, name, length)	\
 	dr->name##_num = 0;	\
 	dr->name = NULL;	\
@@ -497,7 +536,9 @@ foreach_enum_descriptor
 		bytes_off += 1;	\
 		uint8_t *v = (uint8_t *)(dr->name + dr->name##_num - 1); \
 		v += offsetof(type, length) + sizeof(dr->name[dr->name##_num - 1].length); \
-		memcpy(v, buf + bytes_off, dr->name[dr->name##_num - 1].length);	\
+		uintptr_t **vv = (uintptr_t **)v;	\
+		*vv = (uintptr_t *) calloc(1, dr->name[dr->name##_num - 1].length);   \
+		memcpy(*vv, buf + bytes_off, dr->name[dr->name##_num - 1].length);	\
 		bytes_off += dr->name[dr->name##_num - 1].length; \
 	}
 
@@ -532,7 +573,9 @@ foreach_enum_descriptor
 #undef __mlv_custom
 #undef __mlv
 #undef __mrangelv_custom
+#undef __mif_custom
 #undef __mif
+#undef __mplast_custom_sub
 #undef __mplast_custom
 #undef __mplast
 #undef __m1
@@ -570,19 +613,26 @@ extern struct descriptor_ops des_ops[];
 		}	\
 	}
 
-#define __mplast_custom(type, name, custom_dump)                                  \
+#define __mplast_custom(type, name, dump_cb)                                  \
 	for (size_t i = 0; i < dr->name##_cnt; i ++) {                                \
-		custom_dump(lv+1, dr->name + i);                                          \
+		dump_cb(lv+1, dr->name + i);                                          \
 	}
+
+#define __mplast_custom_sub(type, name, parse_cb, dump_cb, free_cb) __mplast_custom(type, name, dump_cb)
 
 #define __mif(type, name, cond, val)	\
 	if(dr->cond == val) { 				\
 		DUMP_MEMBER(lv, dr, type, name);	\
 	}
 
-#define __mrangelv_custom(type, name, cond, floor, ceiling, custom_parse, custom_dump, custom_free) \
+#define __mif_custom(type, name, cond, val, parse_cb, dump_cb, free_cb) \
+	if (dr->cond == val) { \
+		dump_cb(lv, &dr->name); \
+	}
+
+#define __mrangelv_custom(type, name, cond, floor, ceiling, parse_cb, dump_cb, free_cb) \
 	if(dr->cond >= floor && dr->cond <= ceiling) { \
-		custom_dump(lv, &dr->name); \
+		dump_cb(lv, &dr->name); \
 	}
 
 #define __mlv(type, length, name)	\
@@ -608,9 +658,9 @@ extern struct descriptor_ops des_ops[];
 		}	\
 	}
 
-#define __mlv_custom(type, length, name, custom_dump)	\
+#define __mlv_custom(type, length, name, dump_cb)	\
 	for (size_t i = 0; i < dr->length; i ++) {                                \
-		custom_dump(lv+1, dr->name + i);                                          \
+		dump_cb(lv+1, dr->name + i);                                          \
 	}
 
 
@@ -639,7 +689,9 @@ foreach_enum_descriptor
 #undef __mlv_custom
 #undef __mlv
 #undef __mrangelv
+#undef __mif_custom
 #undef __mif
+#undef __mplast_custom_sub
 #undef __mplast_custom
 #undef __mplast
 #undef __m1

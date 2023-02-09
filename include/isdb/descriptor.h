@@ -47,7 +47,7 @@ extern "C" {
     _(service_group, 0xE0)  \
     _(carousel_compatible_composite, 0xF7)  \
     _(conditional_playback, 0xF8)   \
-    _(cable_TS_division_system, 0xF9)   \
+    /* _(cable_TS_division_system, 0xF9)  */ \
     _(isdb_terrestrial_delivery_system, 0xFA)   \
     _(partial_reception, 0xFB)  \
     _(emergency_information, 0xFC)  \
@@ -162,13 +162,224 @@ struct component_control {
 
 /*0xC8*/
 #define foreach_video_decode_control_member \
-    __m(uint8_t, still_picture_flag,1) \
-    __m(uint8_t, sequence_end_code_flag,1) \
-    __m(uint8_t, video_encode_format,4) \
-    __m(uint8_t, reserved, 2) 
+    __m(uint8_t, still_picture_flag, 1) \
+    __m(uint8_t, sequence_end_code_flag, 1) \
+    __m(uint8_t, video_encode_format, 4) \
+    __m(uint8_t, reserved, 2)
+
+
+struct sub_descriptor{
+    uint8_t sub_descriptor_tag;
+    uint8_t sub_descriptor_length;
+    uint8_t* sub_descriptor_byte;
+}__attribute__((packed));;
+
+struct compatobilitylist_descriptor {
+    uint8_t type;
+    uint8_t length;
+    uint32_t specifierType:8;
+    uint32_t specifierData:24;
+    uint16_t model;
+    uint16_t version;
+    uint8_t count;
+    struct sub_descriptor * sub;
+};
+
+struct compatibility_descriptor {
+    uint16_t length;
+    uint16_t count;
+    struct compatobilitylist_descriptor *sub;
+};
+
+static inline int
+__parse_compatibility_descriptor(uint8_t *buf, int len, struct compatibility_descriptor *c)
+{
+    uint8_t *ptr = buf;
+    c->length = TS_READ16(ptr);
+    ptr += 2;
+    c->count = TS_READ16(ptr);
+    ptr += 2;
+    c->sub = calloc(c->count, sizeof(struct compatobilitylist_descriptor));
+    for (int i = 0; i < c->count; i++) {
+        c->sub[i].type = TS_READ8(ptr);
+        ptr += 1;
+        c->sub[i].length = TS_READ8(ptr);
+        ptr += 1;
+        c->sub[i].specifierType = TS_READ32_BITS(ptr, 8, 0);
+        c->sub[i].specifierData = TS_READ32_BITS(ptr, 24, 8);
+        ptr += 4;
+        c->sub[i].model = TS_READ16(ptr);
+        ptr += 2;
+        c->sub[i].version = TS_READ16(ptr);
+        ptr += 2;
+        c->sub[i].count = TS_READ8(ptr);
+        ptr += 1;
+        c->sub[i].sub = calloc(c->sub[i].count, sizeof(struct sub_descriptor));
+        for (int j = 0; j < c->sub[i].count; j ++) {
+            c->sub[i].sub[j].sub_descriptor_tag = TS_READ8(ptr);
+            ptr += 1;
+            c->sub[i].sub[j].sub_descriptor_length = TS_READ8(ptr);
+            ptr += 1;
+            c->sub[i].sub[j].sub_descriptor_byte = calloc(1, c->sub[i].sub[j].sub_descriptor_length);
+            for (int m = 0; m < c->sub[i].sub[j].sub_descriptor_length; m ++) {
+                c->sub[i].sub[j].sub_descriptor_byte[m] = TS_READ8(ptr);
+                ptr ++;
+            }
+        }
+    }
+    return ptr - buf;
+}
+
+static inline void
+__dump_compatibility_descriptor(int lv, struct compatibility_descriptor *c)
+{
+    rout(lv, "length", "%d", c->length);
+    rout(lv, "count", "%d", c->count);
+    for (int i = 0; i < c->count; i++) {
+        rout(lv, "type", "%d", c->sub[i].type);
+        rout(lv, "length", "%d", c->sub[i].length);
+        rout(lv, "specifierType", "%d", c->sub[i].specifierType);
+        rout(lv, "specifierData", "%d", c->sub[i].specifierData);
+        rout(lv, "model", "%d", c->sub[i].model);
+        rout(lv, "version", "%d", c->sub[i].version);
+        rout(lv, "count", "%d", c->sub[i].count);
+        for (int j = 0; j < c->sub[i].count; j ++) {
+            rout(lv, "sub_descriptor_tag", "%d", c->sub[i].sub[j].sub_descriptor_tag);
+            rout(lv, "sub_descriptor_length", "%d", c->sub[i].sub[j].sub_descriptor_length);
+            rout(lv, "sub_descriptor_byte", "%s", c->sub[i].sub[j].sub_descriptor_byte);
+        }
+    }
+}
+
+static inline void
+__free_compatibility_descriptor(struct compatibility_descriptor *c)
+{
+    for (int i = 0; i < c->count; i ++) {
+        for (int j = 0; j < c->sub[i].count; j ++) {
+            free(c->sub[i].sub[j].sub_descriptor_byte);
+        }
+        free(c->sub[i].sub);
+    }
+    free(c->sub);
+}
+
+struct module_info{
+    uint16_t module_id;
+    uint32_t module_size;
+    uint8_t module_info_length;
+    uint8_t *module_info_byte;
+};
+struct module_info_list {
+    uint16_t num_of_modules;
+    struct module_info *info;
+};
+
+static inline int
+__parse_module_info_list(uint8_t *buf, int len, struct module_info_list *m)
+{
+    uint8_t * ptr = buf;
+    m->num_of_modules = TS_READ16(ptr);
+    ptr += 2;
+    m->info = calloc(m->num_of_modules, sizeof(struct module_info));
+    for (int i = 0; i < m->num_of_modules; i ++) {
+        m->info[i].module_id = TS_READ16(ptr);
+        ptr += 2;
+        m->info[i].module_size = TS_READ32(ptr);
+        ptr += 4;
+        m->info[i].module_info_length = TS_READ8(ptr);
+        ptr += 1;
+        m->info[i].module_info_byte = calloc(1, m->info[i].module_info_length);
+        for (int j = 0; j < m->info[i].module_info_length; j ++) {
+            m->info[i].module_info_byte[j] = TS_READ8(ptr);
+            ptr += 1;
+        }
+    }
+    return ptr - buf;
+}
+
+static inline void
+__dump_module_info_list(int lv, struct module_info_list *m)
+{
+    rout(lv, "num_of_modules", "%d", m->num_of_modules);
+    for (int i = 0; i < m->num_of_modules; i ++) {
+        rout(lv, "module_id", "%d", m->info[i].module_id);
+        rout(lv, "module_size", "%d", m->info[i].module_size);
+        rout(lv, "module_info_length", "%d", m->info[i].module_info_length);
+        rout(lv, "module_info_byte", "%s", m->info[i].module_info_byte);
+    }
+}
+
+static inline void
+__free_module_info_list(struct module_info_list *m)
+{
+    for (int i = 0; i < m->num_of_modules; i ++) {
+        free(m->info[i].module_info_byte);
+    }
+    free(m->info);
+}
+
+struct text_info {
+    uint32_t ISO_639_language_code:24;
+    uint32_t text_length:8;
+    uint8_t *text_char;
+};
+
+static inline int
+__parse_text_info(uint8_t *buf, int len, struct text_info *t)
+{
+    uint8_t *ptr = buf;
+    t->ISO_639_language_code = TS_READ32_BITS(ptr, 24, 0);
+    t->text_length = TS_READ32_BITS(ptr, 8, 24);
+    ptr += 4;
+
+    t->text_char = calloc(1, t->text_length);
+    for (int i = 0; i < t->text_length; i++) {
+        t->text_char[i] = TS_READ8(ptr);
+        ptr += 1;
+    }
+
+    return ptr - buf;
+}
+
+static inline void
+__dump_text_info(int lv, struct text_info *t)
+{
+	rout(lv, "ISO_639_language_code", "%c%c%c", (t->ISO_639_language_code >> 16)&0xFF ,
+		(t->ISO_639_language_code >> 8) & 0xFF, t->ISO_639_language_code& 0xFF);
+    rout(lv, "text_length", "%d", t->text_length);
+    rout(lv, "text_char", "%s", t->text_char);
+}
+
+static inline void
+__free_text_info(struct text_info *t)
+{
+    free(t->text_char);
+}
 
 /*0xC9*/
-#define foreach_download_content_member 
+/* ARIB STD-B1, B21  Table 12-2
+* https://www.arib.or.jp/english/html/overview/doc/6-STD-B21v5_12-E1.pdf */
+#define foreach_download_content_member  \
+    __m(uint8_t, reboot, 1) \
+    __m(uint8_t, add_on, 1) \
+    __m(uint8_t, compatibility_flag, 1) \
+    __m(uint8_t, module_info_flag, 1) \
+    __m(uint8_t, text_info_flag, 1) \
+    __m(uint8_t, reserved1, 3) \
+    __m1(uint32_t, component_size) \
+    __m1(uint32_t, download_id) \
+    __m1(uint32_t, time_out_value_DII) \
+    __m(uint32_t, leak_rate, 22) \
+    __m(uint32_t, reserved2, 2) \
+    __m(uint32_t, component_tag, 8) \
+    __mif_custom(struct compatibility_descriptor, compat_desc, compatibility_flag, 1, __parse_compatibility_descriptor, __dump_compatibility_descriptor, __free_compatibility_descriptor) \
+    __mif_custom(struct module_info_list, modules, module_info_flag, 1, __parse_module_info_list, __dump_module_info_list, __free_module_info_list) \
+    __m1(uint8_t, private_data_length) \
+    __mlv(uint8_t, private_data_length, private_data_byte) \
+    __mif_custom(struct text_info, text, text_info_flag, 1, __parse_text_info, __dump_text_info, __free_text_info)
+
+
+
 
 /*0xCA*/
 #define foreach_CA_emm_ts_member    \
@@ -202,16 +413,17 @@ struct ts_information{
     uint16_t* service_id;
 };
 
-/*0xCD*/ /* Table 6-28 in STD-B10v4_6 */
-#define foreach_ts_information_member   
-/*
-    __m1(uint8_t, remote_control_key_identification)    \
+/*0xCD*/
+/* Table 6-28 in STD-B10v4_6 */
+#define foreach_ts_information_member   \
+    __m1(uint8_t, remote_control_key_identification) \
     __m(uint8_t, length_of_ts_name, 6)  \
     __m(uint8_t, transmission_type_count, 2)   \
-    __mlv(uint8_t, length_of_ts_name, TS_name) \
-    __mpcount(struct ts_information, info, transmission_type_count)  \
-    __mplast(uint8_t, reserved_for_future)
-*/
+    __mlv(uint8_t, length_of_ts_name, ts_name_char) \
+    __mploop(struct ts_information, info, num)  \
+    __mplast(uint8_t, reserved_for_future)  \
+
+
 
 struct __attribute__((packed)) broadcaster_id {
     uint16_t original_network_id;
@@ -332,7 +544,7 @@ struct table_description{
     uint8_t table_id;
     uint8_t table_description_length;
     uint8_t *table_description_byte;
-};
+}__attribute__((packed));;
 
 /*0xD7*///TODO
 #define foreach_SI_parameter_member    \
@@ -344,8 +556,13 @@ struct table_description{
 #define foreach_broadcaster_name_member \
     __mplast(uint8_t, text_char)
 
-/*0xD9*///TODO
-#define foreach_component_group_member
+/*0xD9*/
+#define foreach_component_group_member  \
+    __m(uint8_t, component_group_type, 3) \
+    __m(uint8_t, total_bit_rate_flag, 1) \
+    __m(uint8_t, num_of_group, 4) \
+    
+
 
 /*0xDA*/
 #define foreach_SI_prime_TS_member  \
@@ -410,12 +627,6 @@ struct service_group_info{
     __m(uint8_t, undefined, 4)  \
     __mplast(struct service_group_info, service_info)
 
-struct sub_descriptor{
-    uint8_t sub_descriptor_tag;
-    uint8_t sub_descriptor_length;
-    uint8_t* sub_descriptor_byte;
-};
-
 /*0xF7*/
 #define foreach_carousel_compatible_composite_member    \
     __mploop(struct sub_descriptor, subdescriptor, sub_descriptor_length)
@@ -427,7 +638,7 @@ struct sub_descriptor{
     __m(uint16_t, conditional_playback_PID, 13) \
     __mplast(uint8_t, private_data)
 
-#define foreach_cable_TS_division_system_member
+// #define foreach_cable_TS_division_system_member
 
 /*0xFA*/
 #define foreach_isdb_terrestrial_delivery_system_member  \
