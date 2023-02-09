@@ -85,11 +85,41 @@ struct service_info {
 	uint8_t service_type;
 } __attribute__((packed));
 
+enum service_type_e {
+	SERVICE_DIGITAL_TELEVISION = 0x1,
+	SERVICE_H264_AVC = 0x2,
+	SERVICE_H264_AVC_FRAME_COMPATIBLE_STEREOSCOPIC_HD = 0x9,
+	SERVICE_ADVANCE_CODEC_DIGITAL_RADIO_SOUND = 0xA,
+	SERVICE_HEVC_DIGITAL_TELEVISION = 0x1F,
+	SERVICE_HEVC_UHD_DIGITAL_TELEVISION = 0x20,
+};
+
+static inline char * server_type_name(int service_type)
+{
+	if (SERVICE_H264_AVC <= service_type &&
+		service_type <= SERVICE_H264_AVC_FRAME_COMPATIBLE_STEREOSCOPIC_HD) {
+		return "H.264/AVC";
+		// return "H.264/AVC frame compatible stereoscopic HD";
+	}
+	switch(service_type) {
+	case SERVICE_DIGITAL_TELEVISION:
+		return "digital television service";
+	case SERVICE_ADVANCE_CODEC_DIGITAL_RADIO_SOUND:
+		return "advanced codec digital radio sound service";
+	case SERVICE_HEVC_DIGITAL_TELEVISION:
+		return "HEVC digital television service";
+	case SERVICE_HEVC_UHD_DIGITAL_TELEVISION:
+		return "HEVC UHD digital television service";
+	default:
+		return "unknown type";
+	}
+}
+
 static inline
 void dump_service_list__(int lv, struct service_info *info)
 {
 	rout(lv, "service_id", "0x%x", info->service_id);
-	rout(lv, "service_type", "%d", info->service_type);
+	rout(lv, "service_type", "%s", server_type_name(info->service_type));
 }
 
 #define foreach_service_list_member	\
@@ -792,16 +822,16 @@ struct reference {
 	uint16_t transport_stream_id;
 	uint16_t service_id;
 	uint8_t component_tag;
-};
+}__attribute__((packed));
 
 struct announcement_node {
 	uint8_t announcement_type : 4;
 	uint8_t reserved_future_use : 1;
 	uint8_t reference_type : 3;
 	struct reference ref;
-	struct list_node n;
+	// struct list_node n;
 	// struct announcement_info * next;
-};
+}__attribute__((packed));
 
 #define foreach_announcement_support_member	\
 	__m1(uint16_t, announcement_support_indicator)	\
