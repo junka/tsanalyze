@@ -26,7 +26,16 @@ char *convert_UTC(UTC_time_t *t)
 	Y = Y1 + K + 1900;
 	M = M1 - 1 - K * 12;
 
-	snprintf(str, 20, "%04d/%02d/%02d %02d:%02d:%02d", Y, M, D, hour, min, sec);
+#if __GNUC__ && !defined( __has_warning )
+#define SUPPRESSING
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
+	snprintf(str, 20, "%04d/%02u/%02u %02d:%02d:%02d", Y, M, D, hour, min, sec);
+#ifdef  SUPPRESSING
+#pragma GCC diagnostic pop
+#endif
+
 	return str;
 }
 
