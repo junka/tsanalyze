@@ -475,7 +475,7 @@ foreach_enum_descriptor
 
 #define __mplast(type, name)                                                                                           \
 	dr->name = NULL; \
-	while(dr->descriptor.length + 2 > bytes_off) { \
+	while(dr->descriptor.length + 2 - bytes_off > 0) { \
 		dr->name = (type *)realloc(dr->name, (dr->name##_cnt + 1) * sizeof(type));                          \
 		memcpy(dr->name + dr->name##_cnt, buf + bytes_off, sizeof(type));	\
 		dr->name##_cnt ++; \
@@ -487,7 +487,7 @@ foreach_enum_descriptor
 
 #define __mplast_custom_sub(type, name, parse_cb, dump_cb, free_cb) \
 	dr->name = NULL; \
-	while (dr->descriptor.length + 2 > bytes_off) { \
+	while (dr->descriptor.length + 2 - bytes_off > 0) { \
 		dr->name = (type *) realloc(dr->name, ((dr->name##_cnt + 1) * sizeof(type))); \
 		bytes_off += parse_cb(buf + bytes_off, dr->descriptor.length- bytes_off, &dr->name[dr->name##_cnt]); \
 		dr->name##_cnt ++; \

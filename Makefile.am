@@ -6,4 +6,4 @@ tsanalyze_SOURCES = src/main.c src/ts.c src/pes.c src/filter.c src/io.c \
 			src/scte.c src/subtitle.c src/teletext.c
 tsanalyze_CPPFLAGS = -I$(top_srcdir)/include/
 
-AM_CFLAGS = -std=c11 -W -Wall -Wfatal-errors -Wstrict-prototypes -Wshadow -Wno-unused-parameter -fno-omit-frame-pointer
+AM_CFLAGS = -D_GNU_SOURCE -std=c11 -W -Wall -Wfatal-errors -Wstrict-prototypes -Wshadow -Wno-unused-parameter -fno-omit-frame-pointer
