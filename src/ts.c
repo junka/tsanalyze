@@ -340,7 +340,7 @@ void uninit_pid_processor(void)
 	uninit_table_ops();
 }
 
-int ts_process()
+int ts_process(void)
 {
 	struct tsa_config *tsaconf = get_config();
 	struct io_ops *ops = lookup_io_ops(tsaconf->type);

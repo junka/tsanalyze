@@ -261,7 +261,7 @@ void free_pes_private(pes_t *pt)
 	}
 }
 
-void dump_pes_infos()
+void dump_pes_infos(void)
 {
 	struct tsa_config *tsaconf = get_config();
 	if (!tsaconf->detail)
@@ -305,7 +305,7 @@ void register_pes_ops(uint16_t pid, uint8_t stream_type)
 	}
 }
 
-void unregister_pes_ops()
+void unregister_pes_ops(void)
 {
 	filter_param_t para = {
 		.depth = 1,
