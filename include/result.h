@@ -12,7 +12,6 @@ enum {
     RES_STD = 0,
     RES_TXT,
     RES_JSON,
-    RES_YAML,
     RES_NUM,
 };
 
