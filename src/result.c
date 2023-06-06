@@ -32,10 +32,6 @@ int res_open(const char *filename)
 			snprintf(outfile, LINE_LEN, "%s.json", filename);
 			rops[outtype].f = fopen(outfile, "w");
 			break;
-		case RES_YAML:
-			snprintf(outfile, LINE_LEN, "%s.yaml", filename);
-			rops[outtype].f = fopen(outfile, "w");
-			break;
 		case RES_STD:
 		default:
 			rops[outtype].f = stdout;
@@ -182,43 +178,6 @@ int res_put(int lv, const char * key, const char *fmt, ...)
 				goto end;
 			buf[ret++] = '\"';
 		}
-	} else if (outtype == RES_YAML) {
-		if (lv == 0) {
-			n = snprintf(buf + ret, LINE_LEN - ret, "---");
-			if (n < 0 || n >= LINE_LEN - ret)
-				goto end;
-			ret += n;
-		} else if (lv > last_put_lv) {
-			if (prev_fmt_null && lv > 1) {
-				if (ret + 2 > LINE_LEN)
-					goto end;
-				buf[ret++] = '-';
-				buf[ret++] = ' ';
-				/* push a space */
-				comma[lv] = '-';
-				lv_dep[lv] = 2;
-			} else {
-				lv_dep[lv] = 0;
-			}
-		} else if (lv == last_put_lv) {
-			if (lv_dep[lv] > 0) {
-				if (ret + lv_dep[lv] > LINE_LEN)
-					goto end;
-				buf[ret++] = comma[lv];
-				for (int i = 1; i < lv_dep[lv]; i ++) {
-					buf[ret++] = ' ';
-				}
-			}
-		} else {
-			if (ret + lv_dep[lv] > LINE_LEN)
-				goto end;
-			if (lv_dep[lv] > 0) {
-				buf[ret++] = comma[lv];
-				for (int i = 1; i < lv_dep[lv]; i ++) {
-					buf[ret++] = ' ';
-				}
-			}
-		}
 	}
 	if (lv == 0 && outtype != RES_JSON) {
 		n = snprintf(buf + ret, LINE_LEN - ret, "\n");
@@ -261,16 +220,7 @@ int res_put(int lv, const char * key, const char *fmt, ...)
 		}
 		prev_fmt_null = false;
 	}
-	if (outtype == RES_YAML) {
-		if (!fmt) {
-			if (key) {
-				if (ret + 1 > LINE_LEN)
-					goto end;
-				buf[ret++] = ':';
-			}
-			prev_fmt_null = true;
-		}
-	} else if (outtype == RES_JSON) {
+	if (outtype == RES_JSON) {
 		if (lv == 0 && key) {
 			if (ret + 2 > LINE_LEN)
 				goto end;
