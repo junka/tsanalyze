@@ -1,6 +1,7 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
+#include <stdint.h>
 #include "list.h"
 
 #ifdef __cplusplus
@@ -14,24 +15,36 @@ extern "C" {
 #define EXT_STD_C11
 #endif
 
+#ifdef _MSC_VER
+#define PACK 
+#else
+#define PACK __attribute__((packed))
+#endif
+
+#ifdef __GNUC__
+#define __maybe_unused __attribute__((unused))
+#else
+#define __maybe_unused
+#endif
+
 #ifndef uint24_t
 typedef struct uint24 {
 	uint8_t bits[3];
-} __attribute__((packed)) uint24_t;
+} PACK uint24_t;
 #endif
 
 typedef struct uint40 {
 	uint64_t bits : 40;
-} __attribute__((packed)) uint40_t;
+} PACK uint40_t;
 
 typedef struct uint48 {
 	uint64_t bits : 48;
-} __attribute__((packed)) uint48_t;
+} PACK uint48_t;
 
 typedef struct
 {
 	uint8_t time[5];
-} __attribute__((packed)) UTC_time_t;
+} PACK UTC_time_t;
 
 typedef struct descriptor
 {

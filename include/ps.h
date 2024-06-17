@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <list.h>
 
+#include "types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,7 +22,7 @@ typedef struct
 	uint16_t one : 2;
 	uint16_t PSTD_buffer_bound_scale : 1;
 	uint16_t PSTD_buffer_size_bound : 13;
-}__attribute__((packed)) estd;
+} PACK estd;
 
 /* see Table 2-34 in iso13818-1 */
 typedef struct

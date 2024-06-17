@@ -4,6 +4,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 #include <stdlib.h>
 #include <string.h>
 #include "atsc/descriptor.h"
@@ -283,7 +284,7 @@ struct FMC_node
 {
 	uint16_t ES_ID;
 	uint8_t FlexMuxChannel;
-} __attribute__((packed));
+} PACK;
 
 #define foreach_FMC_member \
 	__mplast(struct FMC_node, FMCs)
@@ -296,14 +297,14 @@ struct MuxCodeSlot
 {
 	uint8_t m4MuxChannel;
 	uint8_t numberOfBytes;
-}__attribute__((packed));
+} PACK;
 
 struct MuxCodeSubstrue
 {
 	uint8_t slotCount : 5;
 	uint8_t repetitionCount : 3;
 	struct MuxCodeSlot slots[7];
-} __attribute__((packed));
+} PACK;
 
 struct MuxCodeTableEntry
 {
@@ -312,7 +313,7 @@ struct MuxCodeTableEntry
 	uint8_t version : 4;
 	uint8_t substructureCount;
 	struct MuxCodeSubstrue substructure;
-}__attribute__((packed));
+} PACK;
 
 #define foreach_muxcode_member	\
 	__mplast(struct MuxCodeTableEntry, entries)
@@ -557,7 +558,7 @@ foreach_enum_descriptor
 		if (buf[0] != dr_##desname) {                                                                                  \
 			return -1;                                                                                                 \
 		}                                                                                                              \
-		uint32_t bits_off = 0, bytes_off = 0;                                                                           \
+		uint32_t bits_off = 0, bytes_off = 0;                                                                          \
 		desname##_descriptor_t *dr = (desname##_descriptor_t *)ptr;                                                    \
 		dr->descriptor.tag = buf[0];                                                                                   \
 		dr->descriptor.length = buf[1];                                                                                \

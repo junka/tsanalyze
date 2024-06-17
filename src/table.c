@@ -159,7 +159,7 @@ static void dump_pmt(pmt_t *p_pmt, uint16_t pid)
 	list_for_each(&(p_pmt->h), pn, n)
 	{
 		char buff[512];
-		sprintf(buff, "0x%02x (%s) @ 0x%x", pn->stream_type, get_stream_type(pn->stream_type), pn->elementary_PID);
+		snprintf(buff, 512, "0x%02x (%s) @ 0x%x", pn->stream_type, get_stream_type(pn->stream_type), pn->elementary_PID);
 		rout(3, buff, NULL);
 		if (!list_empty(&pn->list)) {
 			dump_descriptors(4, &(pn->list));
@@ -1068,14 +1068,14 @@ static int parse_tot(uint8_t *pbuf, uint16_t buf_size, tot_t *pTOT)
 	return 0;
 }
 
-static int pat_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
+static int pat_proc(__maybe_unused uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	psi.stats.pat_sections ++;
 	parse_pat(pkt, len, &psi.pat);
 	return 0;
 }
 
-static int cat_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
+static int cat_proc(__maybe_unused uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	psi.stats.cat_sections ++;
 	parse_cat(pkt, len, &psi.cat);
@@ -1087,7 +1087,7 @@ static int cat_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t
 	return 0;
 }
 
-static int tsdt_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
+static int tsdt_proc(__maybe_unused uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	psi.stats.tsdt_sections++;
 	parse_tsdt(pkt, len, &psi.tsdt);
@@ -1100,7 +1100,7 @@ static int pmt_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
 	return 0;
 }
 
-static int nit_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
+static int nit_proc(__maybe_unused uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	if(pkt[0] == NIT_ACTUAL_TID) {
 		psi.stats.nit_actual_sections ++;
@@ -1112,7 +1112,7 @@ static int nit_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t
 	return 0;
 }
 
-static int sdt_bat_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
+static int sdt_bat_proc(__maybe_unused uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	switch (pkt[0]) {
 	case BAT_TID:
@@ -1133,7 +1133,7 @@ static int sdt_bat_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint
 	return 0;
 }
 
-static int eit_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
+static int eit_proc(__maybe_unused uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	switch (pkt[0]) {
 	case EIT_ACTUAL_TID:
@@ -1150,7 +1150,7 @@ static int eit_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t
 	return 0;
 }
 
-static int tdt_tot_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
+static int tdt_tot_proc(__maybe_unused uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	switch (pkt[0]) {
 	case TDT_TID:
@@ -1623,7 +1623,7 @@ static int parse_dccsct(uint8_t *pbuf, uint16_t buf_size, atsc_dccsct_t* dccsct)
 	return 0;
 }
 
-static int psip_proc(__attribute__((unused))uint16_t pid, uint8_t *pkt, uint16_t len)
+static int psip_proc(uint16_t pid __maybe_unused, uint8_t *pkt, uint16_t len)
 {
 	switch (pkt[0]) {
 		case MGT_TID:

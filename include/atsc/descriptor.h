@@ -60,7 +60,7 @@ struct caption_service_info {
     uint16_t easy_reader : 1;
     uint16_t wide_aspect_ratio : 1;
     uint16_t reserved1 : 6; /*according to A65, it should be 14, but in real stream it is 6*/
-}__attribute__((packed));
+} PACK;
 
 #define foreach_caption_service_member \
     __m(uint8_t, reserved, 3)   \
@@ -94,7 +94,7 @@ struct service_location_info {
     uint16_t reserved:3;
     uint16_t elementary_PID:13;
     uint8_t ISO_639_language_code[3];
-}__attribute__((packed));
+} PACK;
 
 static inline
 void dump_service_locations__(int lv, struct service_location_info *locs)
@@ -117,7 +117,7 @@ struct time_shifted_service{
     uint32_t reserved1 : 4;
     uint32_t major_channel_number : 10;
     uint32_t minor_channel_number : 10;
-} __attribute__((packed));
+} PACK;
 
 #define foreach_atsc_time_shifted_service_member \
     __m(uint8_t, reserved, 3)   \

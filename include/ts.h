@@ -28,7 +28,7 @@ typedef struct
 	uint8_t transport_scrambling_control : 2;
 	uint8_t adaptation_field_control : 2;
 	uint8_t continuity_counter : 4;
-} __attribute__((packed)) ts_header;
+} PACK ts_header;
 
 enum adaptation_field_e {
 	ADAPT_RESERVED = 0,
@@ -42,7 +42,7 @@ typedef struct
 	uint64_t program_clock_reference_base : 33;
 	uint64_t reserved : 6;
 	uint64_t program_clock_reference_extension : 9;
-} __attribute__((packed)) pcr_clock;
+} PACK pcr_clock;
 
 typedef struct
 {
@@ -55,7 +55,7 @@ typedef struct
 	uint8_t splicing_point_flag : 1;
 	uint8_t transport_private_data_flag : 1;
 	uint8_t adaptation_field_extension_flag : 1;
-} __attribute__((packed)) ts_adaptation_field;
+} PACK ts_adaptation_field;
 
 enum PID_e {
 	PAT_PID = 0x0000,

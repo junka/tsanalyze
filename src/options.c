@@ -11,6 +11,7 @@
 #include "comm.h"
 #include "ts.h"
 #include "result.h"
+#include "options.h"
 
 #define OPT_HELP "help"
 #define OPT_FORMAT "format"
@@ -57,7 +58,7 @@ int check_filepath_valid(const char *filename)
 	return 0;
 }
 
-uint8_t parse_table(const char *table)
+static uint8_t parse_table(const char *table)
 {
 	const char *tables[] = { "pat", "cat", "pmt", "tsdt", "nit",
 			 "sdt", "bat", "tdt", "eit"};
@@ -71,7 +72,7 @@ uint8_t parse_table(const char *table)
 	return UINT8_MAX;
 }
 
-uint8_t parse_format_type(const char *format)
+static uint8_t parse_format_type(const char *format)
 {
 	uint8_t i = 0;
 	const char *formats[] = { "file", "udp" };
@@ -83,7 +84,7 @@ uint8_t parse_format_type(const char *format)
 	return UINT8_MAX;
 }
 
-uint8_t parse_output_type(const char *format)
+static uint8_t parse_output_type(const char *format)
 {
 	uint8_t i = 0;
 	const char *formats[] = { "stdout", "txt", "json" };
@@ -96,7 +97,7 @@ uint8_t parse_output_type(const char *format)
 }
 
 /* return the number of pids*/
-int parse_selected_pids(const char *format)
+static int parse_selected_pids(const char *format)
 {
 	int pid = atoi(format);
 	if (pid < 0 || pid > TS_MAX_PID) {
@@ -107,7 +108,7 @@ int parse_selected_pids(const char *format)
 	return 0;
 }
 
-void prog_usage(FILE *fp, const char *pro_name)
+static void prog_usage(FILE *fp, const char *pro_name)
 {
 	if (fp == NULL)
 		fp = stderr;
@@ -117,7 +118,7 @@ void prog_usage(FILE *fp, const char *pro_name)
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_FORMAT_NUM, ", --" OPT_FORMAT, "Select input format [udp][file]");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_BRIEF_LIST_NUM, ", --" OPT_BRIEF_LIST, "\tShow all infos in brief");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_DETAIL_LIST_NUM, ", --" OPT_DETAIL_LIST, "Show all pes infos");
-	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_STATS_LIST_NUM, ", --" OPT_STATS_LIST, "Show all ts stats");
+	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_STATS_LIST_NUM, ", --" OPT_STATS_LIST, "\tShow all ts stats");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_VERSION_NUM, ", --" OPT_VERSION, "Show version");
 	/*fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_MEMORY_NUM, ", --" OPT_MEMORY, "memory to use");*/
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_TABLE_NUM, ", --" OPT_TABLE, "\tShow table [pat][cat][pmt][tsdt][nit][sdt][bat][tdt]");
@@ -126,7 +127,7 @@ void prog_usage(FILE *fp, const char *pro_name)
 	fprintf(fp, "\n\n");
 }
 
-int prog_parse_args(int argc, char **argv)
+int prog_parse_args(int argc,  char * const *argv)
 {
 	int opt, option_index, ret = 0;
 	const char *prgname = argv[0];

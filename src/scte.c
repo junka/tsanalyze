@@ -165,7 +165,7 @@ static int parse_splice_private(uint8_t *pbuf)
 {
 	int len = 0;
 	uint8_t *pdata = pbuf;
-	uint32_t identifier __attribute__((__unused__)) = TS_READ32(pdata);
+	uint32_t identifier __maybe_unused = TS_READ32(pdata);
 	pdata += 4;
 	len += 4;
 
@@ -205,7 +205,7 @@ void parse_splice_descriptors(struct list_head *h, uint8_t *buf, int len)
 
 void dump_splice_descriptors(int lv, struct list_head *list)
 {
-	char *tag_name[] = {
+	const char *tag_name[] = {
 #define _(a, v) #a,
 		foreach_enum_scte_splice_descriptor
 #undef _
@@ -307,7 +307,7 @@ static int parse_splice_info(uint8_t *pbuf, uint16_t buf_size, scte_t *splice)
 	return 0;
 }
 
-static int scte_proc(__attribute__((unused)) uint16_t pid, uint8_t *pkt, uint16_t len)
+static int scte_proc(__maybe_unused uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	scte.scte_sections++;
 	scte_t *pscte = NULL;

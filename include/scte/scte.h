@@ -30,7 +30,7 @@ struct break_duration {
     uint8_t reserved:6;
     uint8_t duration_h:1;
     uint32_t duration;
-} __attribute__((packed));
+} PACK;
 
 
 struct splice_event {

@@ -194,7 +194,7 @@ void calc_bitrate(uint16_t pid, uint8_t pkt_len, pcr_clock pcr_c)
 int ts_adaptation_field_proc(uint16_t pid, uint8_t pkt_len, uint8_t *data, uint8_t len)
 {
 	ts_adaptation_field adapt;
-	pcr_clock pcr, opcr __attribute__((unused));
+	pcr_clock pcr, opcr __maybe_unused;
 	uint8_t *ptr = data;
 	uint8_t l = len;
 	adapt.discontinuity_indicator = TS_READ_BIT(ptr, 7);

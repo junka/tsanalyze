@@ -47,9 +47,9 @@ void register_pes_data_callback(uint16_t pid, uint8_t stream_type, pes_data_call
 	//run for pes already in parsing
 	if (pt->type == stream_type && !pt->cb) {
 		pt->cb = cb;
-		if (!pt->private) {
+		if (!pt->priv) {
 			pt->tag = tag;
-			pt->private = pes_private_alloc(tag);
+			pt->priv = pes_private_alloc(tag);
 		}
 	}
 
@@ -223,7 +223,7 @@ int parse_pes_packet(uint16_t pid, uint8_t *pkt, uint16_t len)
 	}
 	
 	if (pt->cb && pt->PES_packet_data_byte) {
-		pt->cb(pid, pt->PES_packet_data_byte, pt->PES_packet_length, pt->private);
+		pt->cb(pid, pt->PES_packet_data_byte, pt->PES_packet_length, pt->priv);
 	}
 	/* elementary stream has one type content */
 	return pt->PES_packet_length + 6;
@@ -241,23 +241,23 @@ static int pes_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
 
 void dump_pes_private(pes_t *pt)
 {
-	if (pt->private) {
+	if (pt->priv) {
 		if (pt->tag == 0x59)
-			dump_subtitles(pt->private);
+			dump_subtitles(pt->priv);
 		else if (pt->tag == 0x56)
-			dump_teletext(pt->private);
+			dump_teletext(pt->priv);
 	}
 }
 
 void free_pes_private(pes_t *pt)
 {
-	if (pt && pt->cb && pt->private) {
+	if (pt && pt->cb && pt->priv) {
 		if (pt->tag == 0x59) {
-			free_subtitles(pt->private);
+			free_subtitles(pt->priv);
 		} else if (pt->tag == 0x56) {
-			free_teletext(pt->private);
+			free_teletext(pt->priv);
 		}
-		free(pt->private);
+		free(pt->priv);
 	}
 }
 
@@ -274,7 +274,7 @@ void dump_pes_infos(void)
 		rout(1, "PID", "0x%x(%d)", pes.list[i].pid, pes.list[i].pid);
 		rout(2, "stream_type", "%s", get_stream_type(pes.list[i].type));
 		rout(2, "stream_id", "0x%x", pes.list[i].stream_id);
-		if (pes.list[i].private) {
+		if (pes.list[i].priv) {
 			dump_pes_private(&pes.list[i]);
 		}
 	}
@@ -293,7 +293,7 @@ void register_pes_ops(uint16_t pid, uint8_t stream_type)
 		memset(&pes.list[pes.pid_num], 0, sizeof(pes_t));
 		pes.list[pes.pid_num].type = stream_type;
 		pes.list[pes.pid_num].pid = pid;
-		pes.list[pes.pid_num].private = NULL;
+		pes.list[pes.pid_num].priv = NULL;
 		pes.list[pes.pid_num].cb = NULL;
 		pes.pid_index[pid] = pes.pid_num;
 		//can be null at first

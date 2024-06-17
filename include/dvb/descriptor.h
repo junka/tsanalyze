@@ -5,6 +5,9 @@
 extern "C" {
 #endif
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "types.h"
 #include "result.h"
 #include "utils.h"
@@ -83,7 +86,7 @@ extern "C" {
 struct service_info {
 	uint16_t service_id;
 	uint8_t service_type;
-} __attribute__((packed));
+} PACK;
 
 enum service_type_e {
 	SERVICE_DIGITAL_TELEVISION = 0x1,
@@ -94,7 +97,7 @@ enum service_type_e {
 	SERVICE_HEVC_UHD_DIGITAL_TELEVISION = 0x20,
 };
 
-static inline char * server_type_name(int service_type)
+static inline const char * server_type_name(int service_type)
 {
 	if (SERVICE_H264_AVC <= service_type &&
 		service_type <= SERVICE_H264_AVC_FRAME_COMPATIBLE_STEREOSCOPIC_HD) {
@@ -151,7 +154,7 @@ struct VBI_data_node {
 	uint8_t data_service_id;
 	uint8_t data_service_descriptor_length;
 	uint8_t *reserved;
-} __attribute__((packed));
+} PACK;
 
 #define foreach_VBI_data_member	\
 	__mploop(struct VBI_data_node, vbi_data, data_service_descriptor_length)
@@ -161,7 +164,7 @@ struct teletext_node {
 	uint32_t teletext_type : 5;
 	uint32_t teletext_magazine_number : 3;
 	uint8_t teletext_page_number;
-} __attribute__((packed));
+} PACK;
 
 static inline
 void dump_teletext_infos__(int lv, struct teletext_node *n)
@@ -203,14 +206,14 @@ struct mobile_handover_info{
 		uint16_t network_id;
 		uint16_t initial_service_id;
 	};
-}__attribute__((packed));
+}PACK;
 
 struct event_linkage_info{
 	uint16_t target_event_id;
 	uint8_t target_listed : 1;
 	uint8_t event_simulcast : 1;
 	uint8_t reserved : 6;
-}__attribute__((packed));
+}PACK;
 
 struct extend_event_linkage_subinfo{
 	uint16_t target_event_id;
@@ -226,7 +229,7 @@ struct extend_event_linkage_subinfo{
 	uint16_t target_original_network_id;
 	uint16_t target_service_id;
 	
-}__attribute__((packed));
+}PACK;
 
 struct extend_event_linkage_info{
 	uint8_t loop_length;
@@ -242,7 +245,7 @@ __parse_extend_event_linkage_info(uint8_t *buf, int len, struct extend_event_lin
 	ptr += 1;
 	int l = 0, i = 0;
 	while (l < e->loop_length) {
-		e->subinfo = realloc(e->subinfo , (i+1) * sizeof(struct extend_event_linkage_subinfo));
+		e->subinfo = (struct extend_event_linkage_subinfo *)realloc(e->subinfo , (i+1) * sizeof(struct extend_event_linkage_subinfo));
 		e->subinfo[i].target_event_id = TS_READ16(ptr);
 		ptr += 2;
 		l += 2;
@@ -415,7 +418,7 @@ enum teletext_type {
 // 	uint32_t teletext_type : 5;
 // 	uint32_t teletext_magazine_number : 3;
 // 	uint8_t teletext_page_number;
-// }__attribute__((packed));
+// }PACK;
 
 #define  foreach_teletext_member	\
 	__mplast_custom(struct teletext_node, teletext_infos, dump_teletext_infos__)
@@ -446,7 +449,7 @@ struct local_time_node {
 	uint16_t local_time_offset;
 	UTC_time_t time_of_change;
 	uint16_t next_time_offset;
-}__attribute__((packed));
+} PACK;
 
 static inline
 void dump_local_time_offset__(int lv, struct local_time_node *n)
@@ -468,7 +471,7 @@ struct subtitling_node {
 	uint32_t subtitling_type : 8;
 	uint16_t composition_page_id;
 	uint16_t ancillary_page_id;
-}__attribute__((packed));
+} PACK;
 
 static inline
 void dump_subtitling_descriptor__(int lv, struct subtitling_node *n)
@@ -506,14 +509,14 @@ struct multilingual_node {
 	uint32_t ISO_639_language_code:24;
 	uint32_t name_length:8;
 	uint8_t* text_char;
-}__attribute__((packed));
+}PACK;
 
 static inline int
 __parse_multilingual_node(uint8_t *buf, int len, struct multilingual_node *node)
 {
 	node->ISO_639_language_code = TS_READ32_BITS(buf, 24, 0);
 	node->name_length = TS_READ32_BITS(buf, 8, 24);
-	node->text_char = calloc(1, node->name_length + 1);
+	node->text_char = (uint8_t *)calloc(1, node->name_length + 1);
 	memcpy(node->text_char, buf + 4, node->name_length);
 	return node->name_length + 4;
 }
@@ -552,10 +555,10 @@ __parse_multilingual_service_node(uint8_t *buf, int len, struct multilingual_ser
 {
 	node->ISO_639_language_code = TS_READ32_BITS(buf, 24, 0);
 	node->name_length = TS_READ32_BITS(buf, 8, 24);
-	node->text_char = calloc(1, node->name_length + 1);
+	node->text_char = (uint8_t *)calloc(1, node->name_length + 1);
 	memcpy(node->text_char, buf + 4, node->name_length);
 	node->service_name_length = TS_READ8(buf + 4 + node->name_length);
-	node->service_char = calloc(1, node->service_name_length + 1);
+	node->service_char = (uint8_t *)calloc(1, node->service_name_length + 1);
 	memcpy(node->service_char, buf + 5 + node->name_length, node->service_name_length);
 	return node->name_length + 5 + node->service_name_length;
 }
@@ -725,7 +728,7 @@ parse_cell_list_descriptor__(uint8_t *buf, int len, struct cell_list_node *n)
 	n->subcell_info_loop_length = TS_READ32_BITS(ptr, 8, 24);
 	ptr += 4;
 	int num = n->subcell_info_loop_length / sizeof(struct subcell_list_info);
-	n->subcell_list = calloc(num, sizeof(struct subcell_list_info));
+	n->subcell_list = (struct subcell_list_info *)calloc(num, sizeof(struct subcell_list_info));
 	for (int i = 0; i < num; i ++) {
 		n->subcell_list[i].cell_id_extension = TS_READ64_BITS(ptr, 8, 0);
 		n->subcell_list[i].subcell_latitude = TS_READ64_BITS(ptr, 16, 8);
@@ -752,7 +755,7 @@ free_cell_list_descriptor__(struct cell_list_node *info)
 struct subcell_info {
 	uint8_t cell_id_extension;
 	uint32_t transposer_frequency;
-} __attribute__((packed));
+} PACK;
 
 struct cell_frequency_node {
 	uint16_t cell_id;
@@ -786,7 +789,7 @@ parse_cell_frequency_link_descriptor__(uint8_t *buf, int len, struct cell_freque
 	n->subcell_info_loop_length = TS_READ8(ptr);
 	ptr += 1;
 	int num = n->subcell_info_loop_length / sizeof(struct subcell_info);
-	n->subcell_info_list = calloc(num, sizeof(struct subcell_info));
+	n->subcell_info_list = (struct subcell_info *)calloc(num, sizeof(struct subcell_info));
 	for (int i = 0; i < num; i ++) {
 		n->subcell_info_list[i].cell_id_extension = TS_READ8(ptr);
 		ptr += 1;
@@ -822,7 +825,7 @@ struct reference {
 	uint16_t transport_stream_id;
 	uint16_t service_id;
 	uint8_t component_tag;
-}__attribute__((packed));
+}PACK;
 
 struct announcement_node {
 	uint8_t announcement_type : 4;
@@ -831,7 +834,7 @@ struct announcement_node {
 	struct reference ref;
 	// struct list_node n;
 	// struct announcement_info * next;
-}__attribute__((packed));
+}PACK;
 
 #define foreach_announcement_support_member	\
 	__m1(uint16_t, announcement_support_indicator)	\
@@ -842,7 +845,7 @@ struct application_signalling {
 	uint16_t application_type:15;
 	uint8_t reserved1:3;
 	uint8_t AIT_version_number:5;
-}__attribute__((packed));
+}PACK;
 
 /*see definition in ETSI TS 102 809*/
 #define foreach_application_signalling_member	\
@@ -884,7 +887,7 @@ struct TVA_id {
 	uint16_t TVA_id;
 	uint8_t reserved : 5;
 	uint8_t running_status : 3;
-}__attribute__((packed));
+}PACK;
 
 /*see ETSI TS 102 323*/
 #define foreach_TVA_id_member	\

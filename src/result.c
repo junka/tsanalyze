@@ -40,7 +40,7 @@ int res_open(const char *filename)
 	return 0;
 }
 
-void res_hexdump(int lv, char * title, uint8_t *buf, uint32_t len)
+void res_hexdump(int lv, const char * title, uint8_t *buf, uint32_t len)
 {
 	unsigned int i, ofs, j = lv;
 	const unsigned char *data = buf;

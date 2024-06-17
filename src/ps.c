@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "pes.h"
 #include "ps.h"
@@ -12,7 +11,7 @@
 int parse_system_header(uint8_t *pkt, uint16_t len, system_header *sh)
 {
 	uint8_t *buf = pkt;
-	uint16_t l __attribute__((__unused__)) = len;
+	uint16_t l __maybe_unused= len;
 
 	sh->system_header_start_code = TS_READ32(buf);
 	PL_STEP(buf, l, 4);

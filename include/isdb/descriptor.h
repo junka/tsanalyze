@@ -172,7 +172,7 @@ struct sub_descriptor{
     uint8_t sub_descriptor_tag;
     uint8_t sub_descriptor_length;
     uint8_t* sub_descriptor_byte;
-}__attribute__((packed));;
+}PACK;
 
 struct compatobilitylist_descriptor {
     uint8_t type;
@@ -199,7 +199,7 @@ __parse_compatibility_descriptor(uint8_t *buf, int len, struct compatibility_des
     ptr += 2;
     c->count = TS_READ16(ptr);
     ptr += 2;
-    c->sub = calloc(c->count, sizeof(struct compatobilitylist_descriptor));
+    c->sub = (struct compatobilitylist_descriptor *)calloc(c->count, sizeof(struct compatobilitylist_descriptor));
     for (int i = 0; i < c->count; i++) {
         c->sub[i].type = TS_READ8(ptr);
         ptr += 1;
@@ -214,13 +214,13 @@ __parse_compatibility_descriptor(uint8_t *buf, int len, struct compatibility_des
         ptr += 2;
         c->sub[i].count = TS_READ8(ptr);
         ptr += 1;
-        c->sub[i].sub = calloc(c->sub[i].count, sizeof(struct sub_descriptor));
+        c->sub[i].sub = (struct sub_descriptor *)calloc(c->sub[i].count, sizeof(struct sub_descriptor));
         for (int j = 0; j < c->sub[i].count; j ++) {
             c->sub[i].sub[j].sub_descriptor_tag = TS_READ8(ptr);
             ptr += 1;
             c->sub[i].sub[j].sub_descriptor_length = TS_READ8(ptr);
             ptr += 1;
-            c->sub[i].sub[j].sub_descriptor_byte = calloc(1, c->sub[i].sub[j].sub_descriptor_length);
+            c->sub[i].sub[j].sub_descriptor_byte = (uint8_t *)calloc(1, c->sub[i].sub[j].sub_descriptor_length);
             for (int m = 0; m < c->sub[i].sub[j].sub_descriptor_length; m ++) {
                 c->sub[i].sub[j].sub_descriptor_byte[m] = TS_READ8(ptr);
                 ptr ++;
@@ -280,7 +280,7 @@ __parse_module_info_list(uint8_t *buf, int len, struct module_info_list *m)
     uint8_t * ptr = buf;
     m->num_of_modules = TS_READ16(ptr);
     ptr += 2;
-    m->info = calloc(m->num_of_modules, sizeof(struct module_info));
+    m->info = (struct module_info *)calloc(m->num_of_modules, sizeof(struct module_info));
     for (int i = 0; i < m->num_of_modules; i ++) {
         m->info[i].module_id = TS_READ16(ptr);
         ptr += 2;
@@ -288,7 +288,7 @@ __parse_module_info_list(uint8_t *buf, int len, struct module_info_list *m)
         ptr += 4;
         m->info[i].module_info_length = TS_READ8(ptr);
         ptr += 1;
-        m->info[i].module_info_byte = calloc(1, m->info[i].module_info_length);
+        m->info[i].module_info_byte = (uint8_t *)calloc(1, m->info[i].module_info_length);
         for (int j = 0; j < m->info[i].module_info_length; j ++) {
             m->info[i].module_info_byte[j] = TS_READ8(ptr);
             ptr += 1;
@@ -332,7 +332,7 @@ __parse_text_info(uint8_t *buf, int len, struct text_info *t)
     t->text_length = TS_READ32_BITS(ptr, 8, 24);
     ptr += 4;
 
-    t->text_char = calloc(1, t->text_length);
+    t->text_char = (uint8_t *)calloc(1, t->text_length);
     for (int i = 0; i < t->text_length; i++) {
         t->text_char[i] = TS_READ8(ptr);
         ptr += 1;
@@ -425,10 +425,10 @@ struct ts_information{
 
 
 
-struct __attribute__((packed)) broadcaster_id {
+struct broadcaster_id {
     uint16_t original_network_id;
     uint8_t broadcaster_id;
-};
+} PACK;
 
 /*0xCE*///TODO
 #define foreach_extended_broadcaster_member \
@@ -441,13 +441,13 @@ struct __attribute__((packed)) broadcaster_id {
     __mlv(struct broadcaster_id, number_of_broadcaster_ID, broadcaster_id)  \
     __mplast(uint8_t, parivate_data)
 
-struct __attribute__((packed)) logo_1{
+struct logo_1{
     uint16_t reserved:7;
     uint16_t logo_identifier:9;
     uint16_t reserved1:4;
     uint16_t logo_version:12;
     uint16_t download_data_identifier;
-};
+} PACK;
 
 struct logo_2{
     uint16_t reserved:7;
@@ -470,7 +470,7 @@ struct logo_2{
     __mlv(uint8_t, segmentation_info_length, segmentation_info)   \
     __mplast(uint8_t, component_tag)
 
-struct __attribute__((packed)) reference_info{
+struct reference_info{
     uint16_t reference_node_id;
     uint8_t reference_number;
     uint8_t last_reference_number;
@@ -544,7 +544,7 @@ struct table_description{
     uint8_t table_id;
     uint8_t table_description_length;
     uint8_t *table_description_byte;
-}__attribute__((packed));;
+}PACK;
 
 /*0xD7*///TODO
 #define foreach_SI_parameter_member    \

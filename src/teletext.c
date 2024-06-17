@@ -204,19 +204,19 @@ int parse_teletext_data(uint16_t addr, uint8_t data[40])
         uint8_t tens = HAMMING8_DATA(decode_hamming8_code(data[1]));
         P = tens *10 + units;
         // printf("X %d page %d (%d, %d)\n", X, P, tens, units);
-        uint8_t s1 __attribute__((__unused__)) = HAMMING8_DATA(decode_hamming8_code(data[2]));
-        uint8_t s2 __attribute__((__unused__)) = HAMMING8_DATA(decode_hamming8_code(data[3])) & 0x7;
-        uint8_t s3 __attribute__((__unused__)) = HAMMING8_DATA(decode_hamming8_code(data[4]));
-        uint8_t s4 __attribute__((__unused__)) = HAMMING8_DATA(decode_hamming8_code(data[5])) & 0x3;
-        uint8_t erase __attribute__((__unused__)) = (HAMMING8_DATA(decode_hamming8_code(data[3])) >> 3) & 0x1;
-        uint8_t newflash __attribute__((__unused__)) = (HAMMING8_DATA(decode_hamming8_code(data[5])) >> 2) & 0x1;
-        uint8_t subtitle __attribute__((__unused__)) = (HAMMING8_DATA(decode_hamming8_code(data[5])) >> 3) & 0x1;
-        uint8_t supress_header __attribute__((__unused__)) = HAMMING8_DATA(decode_hamming8_code(data[6])) & 0x1;
-        uint8_t update_indicator __attribute__((__unused__)) = (HAMMING8_DATA(decode_hamming8_code(data[6])) >> 1) & 0x1;
-        uint8_t interrupted_sequence __attribute__((__unused__)) = (HAMMING8_DATA(decode_hamming8_code(data[6])) >> 2) & 0x1;
-        uint8_t inhibit_display __attribute__((__unused__)) = (HAMMING8_DATA(decode_hamming8_code(data[6])) >> 3) & 0x1;
-        uint8_t magazine_serial __attribute__((__unused__)) = (HAMMING8_DATA(decode_hamming8_code(data[7]))) & 0x1;
-        uint8_t national_option __attribute__((__unused__)) = (HAMMING8_DATA(decode_hamming8_code(data[7])) >> 1) & 0x7;
+        uint8_t s1 __maybe_unused = HAMMING8_DATA(decode_hamming8_code(data[2]));
+        uint8_t s2 __maybe_unused = HAMMING8_DATA(decode_hamming8_code(data[3])) & 0x7;
+        uint8_t s3 __maybe_unused = HAMMING8_DATA(decode_hamming8_code(data[4]));
+        uint8_t s4 __maybe_unused = HAMMING8_DATA(decode_hamming8_code(data[5])) & 0x3;
+        uint8_t erase __maybe_unused = (HAMMING8_DATA(decode_hamming8_code(data[3])) >> 3) & 0x1;
+        uint8_t newflash __maybe_unused = (HAMMING8_DATA(decode_hamming8_code(data[5])) >> 2) & 0x1;
+        uint8_t subtitle __maybe_unused = (HAMMING8_DATA(decode_hamming8_code(data[5])) >> 3) & 0x1;
+        uint8_t supress_header __maybe_unused = HAMMING8_DATA(decode_hamming8_code(data[6])) & 0x1;
+        uint8_t update_indicator __maybe_unused = (HAMMING8_DATA(decode_hamming8_code(data[6])) >> 1) & 0x1;
+        uint8_t interrupted_sequence __maybe_unused = (HAMMING8_DATA(decode_hamming8_code(data[6])) >> 2) & 0x1;
+        uint8_t inhibit_display __maybe_unused = (HAMMING8_DATA(decode_hamming8_code(data[6])) >> 3) & 0x1;
+        uint8_t magazine_serial __maybe_unused = (HAMMING8_DATA(decode_hamming8_code(data[7]))) & 0x1;
+        uint8_t national_option __maybe_unused = (HAMMING8_DATA(decode_hamming8_code(data[7])) >> 1) & 0x7;
         //from data 8 to 39, carry 32 bytes character or display control codes
         //byte 32 to 39 are usually coded to represent a real-time clock
         if (erase) {
@@ -233,7 +233,7 @@ int parse_teletext_data(uint16_t addr, uint8_t data[40])
         /* Packets with Y = 26 to 31 may also use byte 6 to extend the packet address range.
          * Byte 6 is then Hamming 8/4 coded and is referred to as the Designation Code. 
          */
-        uint8_t designation_code __attribute__((__unused__)) = HAMMING8_DATA(decode_hamming8_code(data[0]));
+        uint8_t designation_code __maybe_unused = HAMMING8_DATA(decode_hamming8_code(data[0]));
         // decode_hamming24_code(data+3)
         // uint32_t triplet = HAMMING24_DATA(data);
 

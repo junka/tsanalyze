@@ -48,14 +48,14 @@ typedef struct
 	uint64_t mark_bit_3 : 1;
 	uint64_t ESCR_extension : 9;
 	uint64_t mark_bit_4 : 1;
-} __attribute__((packed)) ESCR;
+} PACK ESCR;
 
 typedef struct
 {
 	uint32_t mark_bit_1 : 1;
 	uint32_t ES_rate : 22;
 	uint32_t mark_bit_2 : 1;
-} __attribute__((packed)) ES_rate;
+} PACK ES_rate;
 
 typedef struct
 {
@@ -171,7 +171,7 @@ typedef struct
 	};
 	/* store callback below */
 	uint8_t tag;
-	void *private;
+	void * priv;
 	pes_data_callback cb;
 } pes_t;
 
