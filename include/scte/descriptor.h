@@ -45,7 +45,11 @@ struct splice_desciptor {
 	uint8_t splice_descriptor_tag;
 	uint8_t descriptor_length;
 	uint32_t identifier;
+#ifdef _MSC_VER
+	uint8_t private_byte[1];
+#else
 	uint8_t private_byte[0];
+#endif
 };
 
 #define foreach_avail_member \

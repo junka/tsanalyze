@@ -899,7 +899,11 @@ struct crid {
 	union {
 		struct {
 			uint8_t length;
+#ifdef _MSC_VER
+			uint8_t byte[1]; 
+#else
 			uint8_t byte[0]; 
+#endif
 		};
 		uint16_t ref;
 	};

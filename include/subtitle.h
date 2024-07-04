@@ -27,7 +27,11 @@ struct segment_header {
     uint8_t segment_type;
     uint16_t page_id;
     uint16_t segment_length;
-    uint8_t data[0];
+#ifdef _MSC_VER
+	uint8_t data[1];
+#else
+	uint8_t data[0];
+#endif
 };
 
 /* Table 8-1 in EN 300743 */

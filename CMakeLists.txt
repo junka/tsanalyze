@@ -10,8 +10,11 @@ set(CMAKE_CXX_STANDARD 11)
 # SET(CMAKE_C_COMPILER "/usr/local/opt/llvm/bin/clang")
 # SET(CMAKE_CXX_COMPILER "/usr/local/opt/llvm/bin/clang++")
 
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -W -Wall -Wfatal-errors -Wstrict-prototypes -Wshadow -Wno-unused-parameter")
-
+IF (WIN32)
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+ELSE()
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -W -Wall -Wfatal-errors -Wstrict-prototypes -Wshadow -Wno-unused-parameter")
+ENDIF()
 
 IF(${CMAKE_BUILD_TYPE} MATCHES "debug")
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -g")
@@ -19,12 +22,17 @@ IF(${CMAKE_BUILD_TYPE} MATCHES "debug")
     add_compile_options(-fsanitize=address -fsanitize=leak -fsanitize-recover=all)
     add_link_options(-fsanitize=address -fsanitize=leak -fsanitize-recover=all)
 ELSE()
+IF (WIN32)
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Od")
+ELSE()
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
+ENDIF()
 ENDIF()
 
 ADD_EXECUTABLE(tsanalyze ${SRC_LIST})
 
-find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
-find_package(pybind11 REQUIRED)
+#find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
+#find_package(pybind11 REQUIRED)
+#python3 -m pybind11 --includes
 
-pybind11_add_module(tsana ./pybind/binding.cpp ${SRC_LIST})
+#pybind11_add_module(tsana ./pybind/binding.cpp ${SRC_LIST})

@@ -1,28 +1,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+
 #ifdef __APPLE__
 #include <sys/malloc.h>
 #else
 #include <malloc.h>
 #endif
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
 
-#include "io.h"
+#include <fcntl.h>
+#include <sys/types.h>
+
+#ifndef _MSC_VER
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#else
+#include <WS2tcpip.h>
+#include <WinSock2.h>
+#pragma comment(lib, "ws2_32.lib")
+#endif
+
+#include "tsio.h"
 
 #define URL_NAME_LENGTH 32
 
 struct url {
 	// char proto[URL_NAME_LENGTH];
 	uint32_t addr;
-	uint32_t port;
+	uint16_t port;
 };
 
-void parse_url(const char *url, const char *protocl, uint32_t *addr, uint32_t *port)
+static void parse_url(const char *url, const char *protocl, uint32_t *addr, uint16_t *port)
 {
 	if (url == NULL)
 		return;
@@ -34,12 +44,13 @@ void parse_url(const char *url, const char *protocl, uint32_t *addr, uint32_t *p
 		start = url_dup + strlen(protocl) + 3;
 		p_colon = strchr(start, ':');
 		if (p_colon != NULL) {
-			*port = atoi(p_colon + 1);
+			*port = (uint16_t)atoi(p_colon + 1);
 			*p_colon = '\0';
 		} else {
 			*port = 9001;
 		}
-		*addr = inet_addr(start);
+		//*addr = inet_addr(start);
+		inet_pton(AF_INET, start, addr);
 	}
 	if (url_dup != NULL) {
 		free(url_dup);
@@ -95,8 +106,10 @@ static int udp_open(const char *urlpath)
 	}
 	udp_ops.block_size = 1024 * 2;
 	if (udp_ops.fd != -1) {
+#if defined(F_SETFD) && defined(FD_CLOEXEC)
 		if (fcntl(udp_ops.fd, F_SETFD, FD_CLOEXEC) == -1) {
 		}
+#endif
 	}
 #if defined(SO_NOSIGPIPE) && !defined(MSG_NOSIGNAL)
 	if (udp_ops.fd != -1) {
@@ -115,7 +128,7 @@ static int udp_open(const char *urlpath)
 
 static int udp_read(void **ptr, size_t *len)
 {
-	static unsigned char buf[2048];
+	static char buf[2048];
 	int size = 2048;
 	int ret;
 	ret = recv(udp_ops.fd, buf, size, 0);
@@ -126,8 +139,13 @@ static int udp_read(void **ptr, size_t *len)
 
 static int udp_close(void)
 {
-	if (udp_ops.fd >= 0)
+#ifndef _MSC_VER
+	if (udp_ops.fd >= 0) {
 		close(udp_ops.fd);
+	}
+#else
+	closesocket(udp_ops.fd);
+#endif
 	return 0;
 }
 
@@ -137,4 +155,6 @@ static int udp_end(void)
 	return 1;
 }
 
-REGISTER_IO_OPS(udp, &udp_ops);
+void udp_io_init(void) {
+	register_io_ops(&udp_ops);
+}

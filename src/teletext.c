@@ -40,14 +40,28 @@ void dump_teletext_pages(int X, int P)
     }
 }
 
+#ifdef _MSC_VER
+unsigned int popcount(uint32_t u) {
+	u = (u & 0x55555555) + ((u >> 1) & 0x55555555);
+	u = (u & 0x33333333) + ((u >> 2) & 0x33333333);
+	u = (u & 0x0F0F0F0F) + ((u >> 4) & 0x0F0F0F0F);
+	u = (u & 0x00FF00FF) + ((u >> 8) & 0x00FF00FF);
+	u = (u & 0x0000FFFF) + ((u >> 16) & 0x0000FFFF);
+	return u;
+}
+#else
+#define popcount(x) __builtin_popcount(x)
+#endif // _MSC_VER
+
+
 static inline bool odd_parity8_test(uint8_t value)
 {
-    return (__builtin_popcount(value) % 2) == 1;
+    return (popcount(value) % 2) == 1;
 }
 
 static inline bool odd_parity24_test(uint8_t v1, uint8_t v2, uint8_t v3)
 {
-    return ((__builtin_popcount(v1) + __builtin_popcount(v2) + __builtin_popcount(v3))% 2) == 1;
+	return ((popcount(v1) + popcount(v2) + popcount(v3)) % 2) == 1;
 }
 
 #define REVERSE_BIT(x, v) ((~(1<<v)) & x)

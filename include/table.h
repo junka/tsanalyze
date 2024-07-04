@@ -391,7 +391,11 @@ typedef struct
 	uint16_t reserved_future_use : 1;
 	uint16_t reserved : 2;
 	uint16_t section_length : 12;
+#ifdef _MSC_VER
+	uint8_t data_byte[1];
+#else
 	uint8_t data_byte[0];
+#endif
 } st_t;
 
 typedef struct

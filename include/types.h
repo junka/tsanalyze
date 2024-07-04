@@ -51,7 +51,11 @@ typedef struct descriptor
 	uint8_t tag;
 	uint8_t length;
 	struct list_node n;
+#ifdef _MSC_VER
+	uint8_t data[1];
+#else
 	uint8_t data[0];
+#endif
 } descriptor_t;
 
 #ifdef __cplusplus

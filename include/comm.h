@@ -5,8 +5,13 @@
 extern "C" {
 #endif
 
+#ifndef _MSC_VER
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
+#else
+#define likely(x) !!(x)
+#define unlikely(x) !!(x)
+#endif
 
 #define stringify(x) #x
 
@@ -22,13 +27,20 @@ extern "C" {
 #define container_of(item, type, member) ((type *)((char *)item - (char *)(&((type *)0)->member)))
 #endif
 
-#if HAVE_TYPEOF
+//For msvc cl.exe see https://learn.microsoft.com/zh-cn/cpp/c-language/typeof-c?view=msvc-170
+// see https://learn.microsoft.com/zh-cn/cpp/overview/compiler-versions?view=msvc-170
+
+#if _MSC_VER >= 1939
+#define typeof(x) __typeof__(x)
+#endif
+
+#if (defined HAVE_TYPEOF) || (_MSC_VER >= 1939)
 #define container_of_var(member_ptr, container_var, member) container_of(member_ptr, typeof(*container_var), member)
 #else
 #define container_of_var(member_ptr, container_var, member)                                                            \
 	((void *)((char *)(member_ptr) - container_off_var(container_var, member)))
 #endif
-#if HAVE_TYPEOF
+#if (defined HAVE_TYPEOF) || (_MSC_VER >= 1939)
 #define container_off_var(var, member) container_off(typeof(*var), member)
 #else
 #define container_off_var(var, member) ((const char *)&(var)->member - (const char *)(var))

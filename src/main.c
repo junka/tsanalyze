@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
 
+#include "tsio.h"
 #include "table.h"
 #include "ts.h"
 #include "pes.h"
@@ -28,6 +28,8 @@ void dump_result(int sig)
 
 int main(int argc, char *argv[])
 {
+	fileio_init();
+	udp_io_init();
 	int ret;
 	ret = prog_parse_args(argc, argv);
 	if (ret < 0)

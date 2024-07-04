@@ -1,12 +1,17 @@
 #include <errno.h>
 #include <fcntl.h>
-#include <getopt.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef _MSC_VER
 #include <unistd.h>
+#include <getopt.h>
+#else
+#include "win_getopt.h"
+#endif
 
 #include "comm.h"
 #include "ts.h"
@@ -43,7 +48,7 @@ static struct tsa_config tsaconf = {
 };
 
 struct tsa_config *get_config(void) 
-{ 
+{
 	return &tsaconf;
 }
 

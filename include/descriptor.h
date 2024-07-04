@@ -582,7 +582,7 @@ foreach_enum_descriptor
 #undef __m1
 #undef __m
 
-extern struct descriptor_ops des_ops[];
+extern struct descriptor_ops des_ops[256];
 
 /* dump function macros*/
 #define __m(type, name, bits) DUMP_MEMBER(lv, dr, type, name);

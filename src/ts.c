@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "filter.h"
-#include "io.h"
+#include "tsio.h"
 #include "table.h"
 #include "ts.h"
 #include "utils.h"
@@ -164,6 +164,7 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 
 struct pid_ops {
 	uint16_t pid;
+
 	uint64_t pkts_in;
 	uint64_t sections_in;
 	uint64_t error_in;
@@ -320,9 +321,10 @@ void dump_ts_info(void)
 	rout(0, "TS bits statistics", NULL);
 	rout(1, NULL, "%7s%21s%11s%11s%13s", "PID", "In", "Err", "Sections", "Rate(kbps)");
 	for (pid = 0; pid <= NULL_PID; pid++) {
-		if (pid_dev[pid].pkts_in)
-			rout(1, NULL, "%04d(0x%04x)  %2c  %10" PRIu64 "%10" PRIu64"%10" PRIu64"%13"PRIu64, pid, pid,
-				 ':', pid_dev[pid].pkts_in, pid_dev[pid].error_in, pid_dev[pid].sections_in, pid_dev[pid].bitrate/1000);
+		if (pid_dev[pid].pkts_in) {
+			rout(1, NULL, "%04d(0x%04x)  %2c  %10" PRIu64 "%10" PRIu64 "%10" PRIu64 "%13" PRIu64, pid, pid, ':',
+				 pid_dev[pid].pkts_in, pid_dev[pid].error_in, pid_dev[pid].sections_in, pid_dev[pid].bitrate / 1000);
+		}
 	}
 }
 
@@ -344,7 +346,7 @@ int ts_process(void)
 {
 	struct tsa_config *tsaconf = get_config();
 	struct io_ops *ops = lookup_io_ops(tsaconf->type);
-	void *ptr = NULL;
+	uint8_t *ptr = NULL;
 	size_t len, ts_pktlen = 0, pkt_con_len = 0;
 	int start_index = 0;
 	int typ = 0;
@@ -353,7 +355,7 @@ int ts_process(void)
 	if (ops->open(tsaconf->name) < 0)
 		return -1;
 
-	ops->read(&ptr, &len);
+	ops->read((void **)&ptr, &len);
 
 	typ = mpegts_probe((uint8_t *)ptr, len);
 	if (typ == 0) {
@@ -391,7 +393,7 @@ int ts_process(void)
 			memcpy(pkt_con, ptr, len);
 			pkt_con_len = len;
 		}
-		if (ops->read(&ptr, &len) < 0)
+		if (ops->read((void **)&ptr, &len) < 0)
 			break;
 		if (pkt_con_len) {
 			memcpy(pkt_con + pkt_con_len, ptr, ts_pktlen - pkt_con_len);
