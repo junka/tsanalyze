@@ -372,10 +372,9 @@ int ts_process(void)
 	// res_hexdump(0, "", ptr, 188*2);
 	analyze(ptr, ts_pktlen * 2, ts_pktlen, &start_index);
 	// printf("Ts packet len %zu, starting at offset %d\n", ts_pktlen, start_index);
-
-	ptr += start_index;
-	len -= start_index;
-	PL_STEP(ptr, len, start_index);
+	if (start_index) {
+		PL_STEP(ptr, len, start_index);
+	}
 
 	while (ops->end()) {
 		// if(ops->wip()) {

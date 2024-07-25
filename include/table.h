@@ -300,7 +300,7 @@ struct service_node
 	uint16_t running_status : 3;
 	uint16_t free_CA_mode : 1;
 	uint16_t descriptors_loop_length : 12;
-	// struct descriptor * service_desriptor_list;
+
 	struct list_head list;
 	struct list_node n;
 };

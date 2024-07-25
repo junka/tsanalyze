@@ -524,16 +524,14 @@ void free_tables(void)
 static uint8_t * concat_sections(struct section_node *nodes, int total_length, int num)
 {
 	int len = 0;
-	uint8_t *ret = calloc(total_length, 1);
+	uint8_t *ret = calloc(1, total_length);
 	if (ret == NULL)
 		return NULL;
-	for (int i = 0; i < num; i ++)
-	{
+	for (int i = 0; i < num && len < total_length; i ++) {
 		memcpy(ret + len, nodes[i].ptr, nodes[i].len); 
 		len += nodes[i].len;
 	}
-	if (len != total_length)
-	{
+	if (len != total_length) {
 		free(ret);
 		return NULL;
 	}
@@ -630,8 +628,9 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 		if(bitmap64_full(ptable->section_bitmap, last_sec) != 0)
 			return 1;
 
-		if (ptable->private_data_byte != NULL)
+		if (ptable->private_data_byte != NULL) {
 			free(ptable->private_data_byte);
+		}
 		ptable->private_data_byte = concat_sections(ptable->sections, ptable->section_length,
 				 ptable->last_section_number + 1);
 	}
@@ -944,8 +943,9 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 		list_for_each_safe(&(pSDT->h), pn, next, n)
 		{
 			list_del(&(pn->n));
-			if (!list_empty(&(pn->list)))
+			if (!list_empty(&(pn->list))) {
 				free_descriptors(&(pn->list));
+			}
 			free(pn);
 		}
 	}

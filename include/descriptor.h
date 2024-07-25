@@ -418,7 +418,7 @@ foreach_enum_descriptor
 
 #define __mrangelv(type, name, cond, floor, ceiling)
 #define __mrangelv_custom(type, name, cond, floor, ceiling, parse_cb, dump_cb, free_cb) free_cb(&dr->name);
-#define __mlv(type, length, name)    free(dr->name);
+#define __mlv(type, length, name)    assert(dr->name);free(dr->name);
 #define __mlv_custom(type, length, name, cb) __mlv(type, length, name)
 #define __mploop(type, name, length)	\
 	uint8_t *v = (uint8_t *)(dr->name + dr->name##_num - 1); \
@@ -513,12 +513,12 @@ foreach_enum_descriptor
 
 #define __mlv(type, length, name)	\
 	if (sizeof(type) == 1) { \
-		dr->name = (type *)calloc(1, dr->length + 1);	\
-	} else { \
+		dr->name = (type *)calloc(dr->length + 1, 1);	    \
+	} else {  \
 		dr->name = (type *)calloc(dr->length, sizeof(type));	\
 	} \
 	for (uint32_t i_ = 0; i_ < dr->length; i_++) { \
-		memcpy(dr->name, buf + bytes_off, sizeof(type));	\
+		*(dr->name + i_) = *(type *)(buf + bytes_off);	\
 		bytes_off += sizeof(type); \
 	}
 

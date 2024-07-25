@@ -33,12 +33,8 @@ void free_reserved(descriptor_t *ptr)
 #define BUF_LINE (512)
 void dump_reserved(int lv, descriptor_t *p_descriptor)
 {
-	char buf[BUF_LINE] = {0};
-	for (int i = 0; i < p_descriptor->length; i++) {
-		buf[i] = p_descriptor->data[i];
-	}
-	rout(lv, des_ops[p_descriptor->tag].tag_name, "0x%02x len %d", p_descriptor->tag, p_descriptor->length);
-	rout(lv+1, NULL, "%s", buf);
+	rout(lv, des_ops[p_descriptor->tag].tag_name, "descriptor 0x%02x len %d", p_descriptor->tag, p_descriptor->length);
+	res_hexdump(lv+1, "unknown", p_descriptor->data, p_descriptor->length > 16 ? 16 : p_descriptor->length);
 }
 
 void init_descriptor_parsers(void)
