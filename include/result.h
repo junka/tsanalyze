@@ -18,7 +18,7 @@ enum {
 struct res_ops {
     const char *filename;
     FILE *f;
-    uint8_t t;
+    int t;
     const char *additional;
 };
 

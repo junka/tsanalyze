@@ -18,6 +18,7 @@ extern "C" {
 
 #define TS_SYNC_BYTE (0x47)
 
+#pragma pack(push, 1)
 typedef struct
 {
 	uint8_t sync_byte; /*0x47*/
@@ -28,7 +29,8 @@ typedef struct
 	uint8_t transport_scrambling_control : 2;
 	uint8_t adaptation_field_control : 2;
 	uint8_t continuity_counter : 4;
-} PACK ts_header;
+} ts_header;
+#pragma pack(pop)
 
 enum adaptation_field_e {
 	ADAPT_RESERVED = 0,
@@ -157,8 +159,8 @@ struct tsa_config
 	uint8_t detail : 1;
 	uint8_t stats : 1;
 	uint8_t mem;
-	uint16_t tables;
 	uint8_t output;
+	uint16_t tables;
 };
 
 struct tsa_config *get_config(void);

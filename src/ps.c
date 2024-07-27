@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "pes.h"
 #include "ps.h"
@@ -122,6 +123,9 @@ int parse_program_stream_map(uint8_t *pkt, uint16_t len, ps_map *map)
 	list_head_init(&map->h);
 	while(k < map->elementary_stream_map_length) {
 		es_map * node = calloc(1, sizeof(es_map));
+		if (!node) {
+			return ENOMEM;
+		}
 		list_head_init(&node->list);
 		list_node_init(&node->n);
 		node->stream_type = TS_READ8(buf);
@@ -175,6 +179,9 @@ int parse_directory_PES_packet(uint8_t *pkt, uint16_t len, directory_PES_packet 
 	dpp->marker_bit6 = TS_READ16_BITS(buf, 1, 15);
 	PL_STEP(buf, l, 2);
 	dpp->units = calloc(dpp->number_of_access_units, sizeof(access_unit));
+	if (!dpp->units) {
+		return ENOMEM;
+	}
 	int i = 0;
 	while(i < dpp->number_of_access_units) {
 		dpp->units[i].packet_stream_id = TS_READ8(buf);

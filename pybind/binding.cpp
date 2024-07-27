@@ -8,7 +8,7 @@
 
 namespace py = pybind11;
 
-char** convertPythonListToArgv(const py::list& args_list) {
+static char** convertPythonListToArgv(const py::list& args_list) {
     size_t argc = args_list.size();
     if (argc == 0) {
         return nullptr;
@@ -25,7 +25,7 @@ char** convertPythonListToArgv(const py::list& args_list) {
     return argv;
 }
 
-int parse_args(const py::list& args)
+static int parse_args(const py::list& args)
 {
 	int argc = static_cast<int>(args.size());
 	char ** argv = convertPythonListToArgv(args);
@@ -70,7 +70,7 @@ void deinit()
 
 PYBIND11_MODULE(tsana, m) {
 	m.doc() = "pybind11 tsanalyze";
-	m.def("init", &init, "Init module processer");
+	m.def("init", &init);
 	m.def("run", &run, "run the parser");
 	m.def("result", &result, "show parser results");
 	m.def("deinit", &deinit, "Deinit module and free");

@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdint.h>
+#include <errno.h>
 
 #include "descriptor.h"
 #include "filter.h"
@@ -28,6 +29,9 @@ int parse_splice_schedule(uint8_t *pbuf, int plen, struct splice_schedule *sche)
 	pdata += 1;
 	len += 1;
 	sche->splices = calloc(sche->splice_count, sizeof(struct splice_event));
+	if (!sche->splices) {
+		return ENOMEM;
+	}
 	for (int i = 0; i < sche->splice_count; i++) {
 		sche->splices[i].splice_event_id = TS_READ32(pdata);
 		pdata += 4;
@@ -51,6 +55,9 @@ int parse_splice_schedule(uint8_t *pbuf, int plen, struct splice_schedule *sche)
 				pdata += 1;
 				len += 1;
 				sche->splices[i].components = calloc(sche->splices[i].component_count, sizeof(struct event_component));
+				if (!sche->splices[i].components) {
+					return ENOMEM;
+				}
 				for (int j = 0; j < sche->splices[i].component_count; j++) {
 					sche->splices[i].components[j].component_tag = TS_READ8(pdata);
 					pdata += 1;
@@ -128,6 +135,9 @@ int parse_splice_insert(uint8_t *pbuf, int plen, struct splice_event *evt)
 			pdata += 1;
 			len += 1;
 			evt->components = calloc(evt->component_count, sizeof(struct event_component));
+			if (!evt->components) {
+				return ENOMEM;
+			}
 			for (int i = 0; i < evt->component_count; i++) {
 				evt->components[i].component_tag = TS_READ8(pdata);
 				pdata += 1;
@@ -173,7 +183,7 @@ static int parse_splice_private(uint8_t *pbuf)
 }
 
 /* see table 17 */
-void parse_splice_descriptors(struct list_head *h, uint8_t *buf, int len)
+int parse_splice_descriptors(struct list_head *h, uint8_t *buf, int len)
 {
 	int l = len;
 	uint8_t *ptr = buf;
@@ -186,6 +196,9 @@ void parse_splice_descriptors(struct list_head *h, uint8_t *buf, int len)
 		uint8_t tag = ptr[0];
 		// des = des_ops[tag].descriptor_alloc();
 		des = calloc(1, sizeof(descriptor_t) + ptr[1]);
+		if (!des) {
+			return ENOMEM;
+		}
 		more = (descriptor_t *)des;
 		more->tag = tag;
 		more->length = ptr[1];
@@ -201,6 +214,7 @@ void parse_splice_descriptors(struct list_head *h, uint8_t *buf, int len)
 		ptr += more->length;
 		list_add_tail(h, &(more->n));
 	}
+	return 0;
 }
 
 void dump_splice_descriptors(int lv, struct list_head *list)
@@ -344,7 +358,7 @@ void register_scte_ops(uint16_t pid)
 void unregister_scte_ops(void)
 {
 	filter_param_t para = {
-		.depth = 1, .coff = { SCTE_SPLICE_TID }, .mask = { 0xFF }, .negete = { 0 },
+		.depth = 1, .coff = { SCTE_SPLICE_TID }, .mask = { 0xFF }, .negate = { 0 },
 	};
 	filter_t *f = NULL;
 	for (int i = 0; i < scte.pid_num; i++) {

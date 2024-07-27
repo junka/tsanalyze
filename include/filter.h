@@ -19,7 +19,7 @@ typedef struct filter_param
 	uint8_t depth;
 	uint8_t coff[MAX_FILTER_DEPTH];
 	uint8_t mask[MAX_FILTER_DEPTH];
-	uint8_t negete[MAX_FILTER_DEPTH];
+	uint8_t negate[MAX_FILTER_DEPTH];
 } filter_param_t;
 
 typedef int (*filter_cb)(uint16_t pid, uint8_t *data, uint16_t len);

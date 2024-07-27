@@ -299,7 +299,7 @@ struct MuxCodeSlot
 	uint8_t numberOfBytes;
 } PACK;
 
-struct MuxCodeSubstrue
+struct MuxCodeSubstruct
 {
 	uint8_t slotCount : 5;
 	uint8_t repetitionCount : 3;
@@ -312,7 +312,7 @@ struct MuxCodeTableEntry
 	uint8_t MuxCode : 4;
 	uint8_t version : 4;
 	uint8_t substructureCount;
-	struct MuxCodeSubstrue substructure;
+	struct MuxCodeSubstruct substructure;
 } PACK;
 
 #define foreach_muxcode_member	\
@@ -477,7 +477,9 @@ foreach_enum_descriptor
 #define __mplast(type, name)                                                                                           \
 	dr->name = NULL; \
 	while(dr->descriptor.length + 2 - bytes_off > 0) { \
-		dr->name = (type *)realloc(dr->name, (dr->name##_cnt + 1) * sizeof(type));                          \
+		type *name = (type *)realloc(dr->name, (dr->name##_cnt + 1) * sizeof(type));                          \
+		if (!name) { return ENOMEM; }  \
+		dr->name = name;  \
 		memcpy(dr->name + dr->name##_cnt, buf + bytes_off, sizeof(type));	\
 		dr->name##_cnt ++; \
 		bytes_off += sizeof(type) ; \
@@ -489,7 +491,9 @@ foreach_enum_descriptor
 #define __mplast_custom_sub(type, name, parse_cb, dump_cb, free_cb) \
 	dr->name = NULL; \
 	while (dr->descriptor.length + 2 - bytes_off > 0) { \
-		dr->name = (type *) realloc(dr->name, ((dr->name##_cnt + 1) * sizeof(type))); \
+		type * name = (type *) realloc(dr->name, ((dr->name##_cnt + 1) * sizeof(type))); \
+		if (!name) { return ENOMEM; }  \
+		dr->name = name;  \
 		bytes_off += parse_cb(buf + bytes_off, dr->descriptor.length- bytes_off, &dr->name[dr->name##_cnt]); \
 		dr->name##_cnt ++; \
 	}
@@ -517,6 +521,7 @@ foreach_enum_descriptor
 	} else {  \
 		dr->name = (type *)calloc(dr->length, sizeof(type));	\
 	} \
+	if (!dr->name)  { return ENOMEM; } \
 	for (uint32_t i_ = 0; i_ < dr->length; i_++) { \
 		*(dr->name + i_) = *(type *)(buf + bytes_off);	\
 		bytes_off += sizeof(type); \
@@ -530,7 +535,9 @@ foreach_enum_descriptor
 	dr->name = NULL;	\
 	while(len - bytes_off) { \
 		dr->name##_num ++;	\
-		dr->name = (type *)realloc(dr->name, sizeof(type) * dr->name##_num);	\
+		type * name = (type *)realloc(dr->name, sizeof(type) * dr->name##_num);	\
+		if (!name) { return ENOMEM; } \
+		dr->name = name;  \
 		memcpy(dr->name + dr->name##_num - 1, buf + bytes_off, offsetof(type, length));	\
 		bytes_off += offsetof(type, length);	\
 		dr->name[dr->name##_num - 1].length = TS_READ8(buf + bytes_off);	\
@@ -539,6 +546,7 @@ foreach_enum_descriptor
 		v += offsetof(type, length) + sizeof(dr->name[dr->name##_num - 1].length); \
 		uintptr_t **vv = (uintptr_t **)v;	\
 		*vv = (uintptr_t *) calloc(1, dr->name[dr->name##_num - 1].length);   \
+		if (!*vv) { return ENOMEM; } \
 		memcpy(*vv, buf + bytes_off, dr->name[dr->name##_num - 1].length);	\
 		bytes_off += dr->name[dr->name##_num - 1].length; \
 	}
@@ -548,7 +556,9 @@ foreach_enum_descriptor
 	dr->name = NULL;	\
 	while(len > bytes_off) { \
 		dr->name##_num ++;	\
-		dr->name = (type *)realloc(dr->name, sizeof(type) * dr->name##_num);	\
+		type * name = (type *)realloc(dr->name, sizeof(type) * dr->name##_num);	\
+		if (!name) { return ENOMEM; } \
+		dr->name = name; \
 		bytes_off += parse_cb(buf + bytes_off, len - bytes_off, dr->name + dr->name##_num - 1); \
 	}
 
@@ -697,8 +707,6 @@ foreach_enum_descriptor
 #undef __mplast
 #undef __m1
 #undef __m
-
-int parse_tlv(uint8_t *buf);
 
 void init_descriptor_parsers(void);
 

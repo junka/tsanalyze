@@ -39,6 +39,9 @@ filter_t *filter_alloc(uint16_t pid)
 		return NULL;
 
 	struct filter_slot *fs = (struct filter_slot *)calloc(1, sizeof(struct filter_slot));
+	if (!fs) {
+		return NULL;
+	}
 	fs->t.pid = pid;
 	list_add(&pid_filter[pid].h, &(fs->n));
 	pid_filter[pid].filter_num++;
@@ -53,7 +56,7 @@ int filter_set(filter_t *f, filter_param_t *p, filter_cb func)
 		f->para.depth = p->depth;
 		memcpy(f->para.coff, p->coff, p->depth * sizeof(uint8_t));
 		memcpy(f->para.mask, p->mask, p->depth * sizeof(uint8_t));
-		memcpy(f->para.negete, p->negete, p->depth * sizeof(uint8_t));
+		memcpy(f->para.negate, p->negate, p->depth * sizeof(uint8_t));
 	}
 	f->callback = func;
 	return 0;
@@ -93,7 +96,7 @@ filter_t *filter_lookup(uint16_t pid, filter_param_t *para)
 		if (ix->t.para.depth == para->depth) {
 			if (0 == memcmp(ix->t.para.coff, para->coff, para->depth * sizeof(uint8_t)) &&
 				0 == memcmp(ix->t.para.mask, para->mask, para->depth * sizeof(uint8_t)) &&
-				0 == memcmp(ix->t.para.negete, para->negete, para->depth * sizeof(uint8_t)))
+				0 == memcmp(ix->t.para.negate, para->negate, para->depth * sizeof(uint8_t)))
 			{
 				f = &ix->t;
 				break;

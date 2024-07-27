@@ -7,9 +7,6 @@ AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_SOURCE_DIR}/src SRC_LIST)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
 
-# SET(CMAKE_C_COMPILER "/usr/local/opt/llvm/bin/clang")
-# SET(CMAKE_CXX_COMPILER "/usr/local/opt/llvm/bin/clang++")
-
 IF (WIN32)
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 ELSE()
@@ -31,8 +28,8 @@ ENDIF()
 
 ADD_EXECUTABLE(tsanalyze ${SRC_LIST})
 
-#find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
-#find_package(pybind11 REQUIRED)
-#python3 -m pybind11 --includes
+find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
+# on windows, use vcpkg install pybind11 and configure PYBIND11_DIR manually
+find_package(pybind11 CONFIG REQUIRED)
 
-#pybind11_add_module(tsana ./pybind/binding.cpp ${SRC_LIST})
+pybind11_add_module(tsana ./pybind/binding.cpp ${SRC_LIST})

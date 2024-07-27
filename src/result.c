@@ -8,7 +8,7 @@
 
 #define LINE_LEN (512)
 
-static uint8_t outtype = RES_STD;
+static int outtype = RES_STD;
 
 struct res_ops rops[RES_NUM];
 

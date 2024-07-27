@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "error.h"
 #include "pes.h"
@@ -24,7 +25,7 @@ static void init_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask, filte
 	para.depth = 1;
 	para.coff[0] = tableid;
 	para.mask[0] = mask;
-	para.negete[0] = 0;
+	para.negate[0] = 0;
 	filter_set(f, &para, func);
 }
 
@@ -35,7 +36,7 @@ static void uninit_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask)
 	para.depth = 1;
 	para.coff[0] = tableid;
 	para.mask[0] = mask;
-	para.negete[0] = 0;
+	para.negate[0] = 0;
 	f = filter_lookup(pid, &para);
 	if (f) {
 		filter_free(f);
@@ -580,6 +581,9 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 			free(ptable->sections[0].ptr);
 		ptable->sections[0].len = buf_size - 3;
 		ptable->sections[0].ptr = malloc(buf_size - 3);
+		if (!ptable->sections[0].ptr) {
+			return ENOMEM;
+		}
 		memcpy(ptable->sections[0].ptr, pdata, buf_size - 3);
 		ptable->private_data_byte = ptable->sections[0].ptr;
 	} else {
@@ -622,6 +626,9 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 
 		ptable->sections[cur_sec].len = buf_size - 3;
 		ptable->sections[cur_sec].ptr = malloc(buf_size - 3);
+		if (!ptable->sections[cur_sec].ptr) {
+			return ENOMEM;
+		}
 		memcpy(ptable->sections[cur_sec].ptr, pdata, buf_size - 8);
 		
 		/*tell us buffering*/
@@ -684,6 +691,9 @@ int parse_pat(uint8_t *pbuf, uint16_t buf_size, pat_t *pPAT)
 		} else {
 			register_pmt_ops(program_map_PID);
 			pn = calloc(1, sizeof(struct program_node));
+			if (!pn) {
+				return ENOMEM;
+			}
 			pn->program_number = program_num;
 			pn->program_map_PID = program_map_PID;
 			pPAT->program_bitmap[program_num / 64] |= ((uint64_t)1 << (program_num % 64));
@@ -711,7 +721,7 @@ int parse_cat(uint8_t *pbuf, uint16_t buf_size, cat_t *pCAT)
 	section_len -= (5 + 4);
 
 	//clear descriptors
-	if (&(pCAT->list)) {
+	if (!list_empty(&(pCAT->list))) {
 		free_descriptors(&(pCAT->list));
 	}
 	
@@ -735,7 +745,7 @@ int parse_tsdt(uint8_t *pbuf, uint16_t buf_size, tsdt_t *pTSDT)
 
 	section_len -= (5 + 4);
 
-	if (&(pTSDT->list)) {
+	if (!list_empty(&(pTSDT->list))) {
 		free_descriptors(&(pTSDT->list));
 	}
 
@@ -787,6 +797,9 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 
 	while (section_len > 0) {
 		pn = calloc(1, sizeof(struct es_node));
+		if (!pn) {
+			return ENOMEM;
+		}
 		list_head_init(&(pn->list));
 		list_node_init(&(pn->n));
 		pn->stream_type = TS_READ8(pdata);
@@ -855,6 +868,9 @@ int parse_nit(uint8_t *pbuf, uint16_t buf_size, nit_t *pNIT)
 
 	while (section_len > 0) {
 		pn = calloc(1, sizeof(struct transport_stream_node));
+		if (!pn) {
+			return ENOMEM;
+		}
 		list_head_init(&(pn->list));
 		pn->transport_stream_id = TS_READ16(pdata);
 		pdata += 2;
@@ -907,6 +923,9 @@ int parse_bat(uint8_t *pbuf, uint16_t buf_size, bat_t *pBAT)
 	section_len -= 2;
 	while (section_len > 0) {
 		pn = calloc(1, sizeof(struct transport_stream_node));
+		if (!pn) {
+			return ENOMEM;
+		}
 		list_head_init(&(pn->list));
 		list_node_init(&(pn->n));
 		pn->transport_stream_id = TS_READ16(pdata);
@@ -956,6 +975,9 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 	
 	while (section_len > 0) {
 		pn = calloc(1, sizeof(struct service_node));
+		if (!pn) {
+			return ENOMEM;
+		}
 		list_head_init(&(pn->list));
 		list_node_init(&(pn->n));
 		pn->service_id = TS_READ16(pdata);
@@ -1003,6 +1025,9 @@ static int parse_eit(uint8_t *pbuf, uint16_t buf_size, eit_t *pEIT)
 	section_len -= 6;
 	while (section_len > 0) {
 		pn = calloc(1, sizeof(struct event_node));
+		if (!pn) {
+			return ENOMEM;
+		}
 		list_head_init(&(pn->list));
 		list_node_init(&(pn->n));
 		pn->event_id = TS_READ16(pdata);
@@ -1183,11 +1208,17 @@ int parse_multi_string(uint8_t *pbuf, struct multiple_string *str)
 	str->number_strings = TS_READ8(pdata);
 	pdata += 1;
 	str->strings = calloc(str->number_strings, sizeof(struct lang_string));
+	if (!str->strings) {
+		return -ENOMEM;
+	}
 	for (int i = 0; i < str->number_strings; i ++) {
 		str->strings[i].ISO_639_language_code = TS_READ32_BITS(pdata, 24, 0);
 		str->strings[i].number_segments = TS_READ32_BITS(pdata, 8, 24);
 		pdata += 4;
 		str->strings[i].segments = calloc(str->strings[i].number_segments, sizeof(struct string_segment));
+		if (!str->strings[i].segments) {
+			return -ENOMEM;
+		}
 		for (int j =0; j < str->strings[i].number_segments; j ++) {
 			str->strings[i].segments[j].compression_type = TS_READ8(pdata);
 			pdata += 1;
@@ -1196,6 +1227,9 @@ int parse_multi_string(uint8_t *pbuf, struct multiple_string *str)
 			str->strings[i].segments[j].number_bytes = TS_READ8(pdata);
 			pdata += 1;
 			str->strings[i].segments[j].compressed_string_byte = calloc(1, str->strings[i].segments[j].number_bytes);
+			if (!str->strings[i].segments[j].compressed_string_byte) {
+				return -ENOMEM;
+			}
 			memcpy(str->strings[i].segments[j].compressed_string_byte, pdata, str->strings[i].segments[j].number_bytes);
 			pdata += str->strings[i].segments[j].number_bytes;
 		}
@@ -1227,6 +1261,9 @@ static int parse_mgt(uint8_t *pbuf, uint16_t buf_size, atsc_mgt_t *mgt)
 	mgt->tables_defined = TS_READ16(pdata);
 	pdata += 2;
 	mgt->tables = calloc(mgt->tables_defined, sizeof(struct define_table));
+	if (!mgt->tables) {
+		return ENOMEM;
+	}
 	for (int i= 0; i < mgt->tables_defined; i ++) {
 		mgt->tables[i].table_type = TS_READ16(pdata);
 		pdata += 2;
@@ -1274,6 +1311,9 @@ static int parse_tvct(uint8_t *pbuf, uint16_t buf_size, atsc_vct_t *tvct)
 	tvct->num_channels_in_section = TS_READ8(pdata);
 	pdata += 1;
 	tvct->channels = calloc(tvct->num_channels_in_section, sizeof(struct define_channel));
+	if (!tvct->channels) {
+		return ENOMEM;
+	}
 	for (int i = 0; i < tvct->num_channels_in_section; i ++) {
 		memcpy(tvct->channels[i].short_name, pdata, 7*16);
 		pdata += 7*16;
@@ -1335,6 +1375,9 @@ static int parse_cvct(uint8_t *pbuf, uint16_t buf_size, atsc_vct_t *cvct)
 	cvct->num_channels_in_section = TS_READ8(pdata);
 	pdata += 1;
 	cvct->channels = calloc(cvct->num_channels_in_section, sizeof(struct define_channel));
+	if (!cvct->channels) {
+		return ENOMEM;
+	}
 	for (int i = 0; i < cvct->num_channels_in_section; i ++) {
 		memcpy(cvct->channels[i].short_name, pdata, 7*16);
 		pdata += 7*16;
@@ -1411,6 +1454,9 @@ static int parse_rrt(uint8_t *pbuf, uint16_t buf_size, atsc_rrt_t *rrt)
 		rrt->dimensions[i].values_defined = TS_READ8_BITS(pdata, 4, 4);
 		pdata += 1;
 		rrt->dimensions[i].rating = calloc(rrt->dimensions[i].values_defined, sizeof(struct define_rating));
+		if (!rrt->dimensions[i].rating) {
+			return ENOMEM;
+		}
 		for (int j = 0; j < rrt->dimensions[i].values_defined; j ++) {
 			rrt->dimensions[i].rating[j].abbrev_rating_value_length = TS_READ8(pdata);
 			pdata += 1;
@@ -1468,6 +1514,9 @@ static int parse_atsc_eit(uint8_t *pbuf, uint16_t buf_size, atsc_eit_t* eit)
 	eit->num_events_in_section = TS_READ8(pdata);
 	pdata += 1;
 	eit->events = calloc(eit->num_events_in_section, sizeof(struct define_event));
+	if (!eit->events) {
+		return ENOMEM;
+	}
 	for (int i = 0; i < eit->num_events_in_section; i ++) {
 		eit->events[i].event_id = TS_READ16_BITS(pdata, 14, 2);
 		pdata += 2;
@@ -1536,6 +1585,10 @@ static int parse_dcct(uint8_t *pbuf, uint16_t buf_size, atsc_dcct_t* dcct)
 	dcct->dcc_test_count = TS_READ8(pdata);
 	pdata += 1;
 	dcct->dcc_tests = calloc(dcct->dcc_test_count, sizeof(struct define_dcc_test));
+	if (!dcct->dcc_tests) {
+		return ENOMEM;
+	}
+	
 	for (int i = 0; i < dcct->dcc_test_count; i ++) {
 		dcct->dcc_tests[i].dcc_context = TS_READ64_BITS(pdata, 1, 0);
 		dcct->dcc_tests[i].dcc_from_major_channel_number = TS_READ64_BITS(pdata, 10, 4);
@@ -1551,6 +1604,9 @@ static int parse_dcct(uint8_t *pbuf, uint16_t buf_size, atsc_dcct_t* dcct)
 		dcct->dcc_tests[i].dcc_term_count = TS_READ8(pdata);
 		pdata += 1;
 		dcct->dcc_tests[i].dcc_terms = calloc(dcct->dcc_tests[i].dcc_term_count, sizeof(struct define_dcc_term));
+		if (!dcct->dcc_tests[i].dcc_terms) {
+			return ENOMEM;
+		}
 		for (int j = 0; j < dcct->dcc_tests[i].dcc_term_count; j ++) {
 			dcct->dcc_tests[i].dcc_terms[j].dcc_selection_type = TS_READ8(pdata);
 			pdata += 1;
@@ -1589,6 +1645,9 @@ static int parse_dccsct(uint8_t *pbuf, uint16_t buf_size, atsc_dccsct_t* dccsct)
 	dccsct->updates_defined = TS_READ8(pdata);
 	pdata += 1;
 	dccsct->updates = calloc(dccsct->updates_defined, sizeof(struct define_update));
+	if (!dccsct->updates) {
+		return ENOMEM;
+	}
 	for (int i = 0; i < dccsct->updates_defined; i++) {
 		dccsct->updates[i].update_type = TS_READ8(pdata);
 		pdata += 1;

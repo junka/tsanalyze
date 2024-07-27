@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "types.h"
 #include "ts.h"
@@ -280,6 +281,9 @@ int parse_teletext(uint16_t pid, uint8_t *pbuf, int len, void *teletext)
     t_len += 1;
     text->n_units = (len - 1) / (2 + sizeof(struct data_field));
     text->units = calloc(text->n_units, sizeof(struct data_unit));
+    if (!text->units) {
+        return ENOMEM;
+    }
     int i = 0, j = 0;
     while (t_len < len) {
         text->units[i].data_unit_id = TS_READ8(pdata);

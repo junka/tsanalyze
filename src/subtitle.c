@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "types.h"
 #include "ts.h"
@@ -294,6 +295,9 @@ int read_pixel_data_sub_block(uint8_t *pbuf, int len, uint8_t *enc_data, int *en
         slen += read_8bit_pixel_code_string(pdata, len - 1, enc_data, enc_len);
     } else if (data_type == 0x20) {
         mt24 = calloc(1, 4);
+        if (!mt24) {
+            return ENOMEM;
+        }
         mt24[0] = TS_READ8_BITS(pdata, 4, 0);
         mt24[1] = TS_READ8_BITS(pdata, 4, 4);
         pdata += 1;
@@ -303,6 +307,9 @@ int read_pixel_data_sub_block(uint8_t *pbuf, int len, uint8_t *enc_data, int *en
         slen += 2;
     } else if (data_type == 0x21) {
         mt28 = calloc(1, 4);
+        if (!mt28) {
+            return ENOMEM;
+        }
         for (int j = 0; j < 4; j++) {
             mt28[j] = TS_READ8(pdata);
             pdata += 1;
@@ -310,6 +317,9 @@ int read_pixel_data_sub_block(uint8_t *pbuf, int len, uint8_t *enc_data, int *en
         slen += 4;
     } else if (data_type == 0x22) {
         mt48 = calloc(1, 16);
+        if (!mt48) {
+            return ENOMEM;
+        }
         for (int j = 0; j < 16; j++) {
             mt48[j] = TS_READ8(pdata);
             pdata += 1;
@@ -364,6 +374,9 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
     switch (type) {
         case display_definition_segment:
             dds = calloc(1, sizeof(*dds));
+            if (!dds) {
+                return ENOMEM;
+            }
             seg->segment.data = dds;
             dds->dds_version_number = TS_READ8_BITS(pdata, 4, 0);
             dds->display_window_flag = TS_READ8_BITS(pdata, 1, 4);
@@ -389,6 +402,9 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
             break;
         case page_composition_segment:
             pcs = calloc(1, sizeof(*pcs));
+            if (!pcs) {
+                return ENOMEM;
+            }
             seg->segment.data = pcs;
             pcs->page_time_out = TS_READ8(pdata);
             pdata += 1;
@@ -398,6 +414,9 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
             pdata += 1;
             slen += 1;
             pcs->region = calloc(((seg->segment.header.segment_length - 2) / 6), sizeof(struct region));
+            if (!pcs->region) {
+                return ENOMEM;
+            }
             while (slen < seg->segment.header.segment_length) {
                 pcs->region[i].region_id = TS_READ8(pdata);
                 /* skip a reserved byte */
@@ -415,6 +434,9 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
             break;
         case region_composition_segment:
             rcs = calloc(1, sizeof(*rcs));
+            if (!rcs) {
+                return ENOMEM;
+            }
             seg->segment.data = rcs;
             rcs->region_id = TS_READ8(pdata);
             pdata += 1;
@@ -445,7 +467,11 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
             slen += 1;
             i = 0;
             while (slen < seg->segment.header.segment_length) {
-                rcs->object = realloc(rcs->object, (i+1) * sizeof(struct object));
+				struct object *obj = (struct object *)realloc(rcs->object, (i + 1) * sizeof(struct object));
+				if (!obj) {
+					return ENOMEM;
+				}
+				rcs->object = obj;
                 rcs->object[i].object_id = TS_READ16(pdata);
                 pdata += 2;
                 slen += 2;
@@ -470,6 +496,9 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
             break;
         case CLUT_definition_segment:
             cds = calloc(1, sizeof(*cds));
+            if (!cds) {
+                return ENOMEM;
+            }
             seg->segment.data = cds;
             cds->CLUT_id = TS_READ8(pdata);
             pdata += 1;
@@ -479,7 +508,11 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
             slen += 1;
             i = 0;
             while (slen < seg->segment.header.segment_length) {
-                cds->cluts = realloc(cds->cluts, (i + 1) * sizeof(struct clut));
+                struct clut *cluts = (struct clut*)realloc(cds->cluts, (i + 1) * sizeof(struct clut));
+                if (!cluts) {
+                    return ENOMEM;
+                }
+                cds->cluts = cluts;
                 cds->cluts[i].entry_id = TS_READ8(pdata);
                 pdata += 1;
                 slen += 1;
@@ -513,6 +546,9 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
             break;
         case object_data_segment:
             ods = calloc(1, sizeof(*ods));
+            if (!ods) {
+                return ENOMEM;
+            }
             seg->segment.data = ods;
             ods->object_id = TS_READ16(pdata);
             pdata += 2;
@@ -531,8 +567,12 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
                 slen += 2;
                 i = 0;
                 int top_len = 0;
-                if (ods->top_field_data_block_length)
+                if (ods->top_field_data_block_length) {
                     ods->data_top = calloc(1, ods->top_field_data_block_length * 4);
+                    if (!ods->data_top) {
+                        return ENOMEM;
+                    }
+                }
                 while (top_len < ods->top_field_data_block_length) {
                     top_len += read_pixel_data_sub_block(pdata + top_len, ods->top_field_data_block_length - top_len, ods->data_top, &ods->top_dec_len);
                     // if (ods->top_sub_block[i].data_type != 0xf0) {
@@ -546,8 +586,12 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
                 ods->num_top = i;
                 int bottom_len = 0;
                 i = 0;
-                if (ods->bottom_field_data_block_length)
+                if (ods->bottom_field_data_block_length) {
                     ods->data_bottom = calloc(1, ods->bottom_field_data_block_length * 4);
+                    if (!ods->data_bottom) {
+                        return ENOMEM;
+                    }
+                }
                 while (bottom_len < ods->bottom_field_data_block_length) {
                     bottom_len += read_pixel_data_sub_block(pdata + bottom_len, ods->bottom_field_data_block_length - bottom_len, ods->data_bottom, &ods->bottom_dec_len);
                     i ++;
@@ -567,6 +611,9 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
                 pdata += 1;
                 slen += 1;
                 ods->character_code = calloc(ods->number_of_codes, 1);
+                if (!ods->character_code) {
+                    return ENOMEM;
+                }
                 for (int j = 0; j < ods->number_of_codes; j ++) {
                     ods->character_code[j] = TS_READ8(pdata);
                 }
@@ -582,6 +629,9 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
                 pdata += 2;
                 slen += 2;
                 ods->progressive_block.compressed_bitmap_data_byte = malloc(ods->progressive_block.compressed_data_block_length);
+				if (!ods->progressive_block.compressed_bitmap_data_byte) {
+					return ENOMEM;
+				}
                 for (int j = 0; j < ods->progressive_block.compressed_data_block_length; j ++) {
                     ods->progressive_block.compressed_bitmap_data_byte[j] = TS_READ8(pdata);
                     pdata += 1;
@@ -591,6 +641,9 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
             break;
         case disparity_signalling_segment:
             dss = calloc(1, sizeof(*dss));
+            if (!dss) {
+                return ENOMEM;
+            }
             seg->segment.data = dss;
             dss->dss_version_number = TS_READ8_BITS(pdata, 4, 0);
             dss->disparity_shift_update_sequence_page_flag = TS_READ8_BITS(pdata, 1, 4);
@@ -608,6 +661,9 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
                 pdata += 4;
                 slen += 4;
                 dss->disparity_shift_update_sequence.preiod = calloc(dss->disparity_shift_update_sequence.division_period_count, sizeof(struct division_period));
+                if (!dss->disparity_shift_update_sequence.preiod) {
+                    return ENOMEM;
+                }
                 for (int n = 0; n < dss->disparity_shift_update_sequence.division_period_count; n++) {
                     dss->disparity_shift_update_sequence.preiod[n].interval_count = TS_READ8(pdata);
                     pdata += 1;
@@ -617,13 +673,20 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
                 }
             }
             while (slen < seg->segment.header.segment_length) {
-                dss->disparity_regions = realloc(dss->disparity_regions, (i + 1) * sizeof(struct disparity_region));
+                struct disparity_region *regions = (struct disparity_region *)realloc(dss->disparity_regions, (i + 1) * sizeof(struct disparity_region));
+				if (!regions) {
+                    return ENOMEM;
+                }
+				dss->disparity_regions = regions;
                 dss->disparity_regions[i].region_id = TS_READ8(pdata);
                 pdata += 1;
                 slen += 1;
                 dss->disparity_regions[i].disparity_shift_update_sequence_region_flag = TS_READ8_BITS(pdata, 1, 0);
                 dss->disparity_regions[i].number_of_subregions_minus_1 = TS_READ8_BITS(pdata, 1, 6);
                 dss->disparity_regions[i].subregions = calloc(dss->disparity_regions[i].number_of_subregions_minus_1 + 1, sizeof(struct sub_region));
+                if (!dss->disparity_regions[i].subregions) {
+                    return ENOMEM;
+                }
                 for (int n = 0; n < dss->disparity_regions[i].number_of_subregions_minus_1 + 1; n ++) {
                     if (dss->disparity_regions[i].number_of_subregions_minus_1) {
                         dss->disparity_regions[i].subregions[n].horizontal_position = TS_READ16(pdata);
@@ -647,6 +710,9 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
                         pdata += 4;
                         slen += 4;
                         dss->disparity_regions[i].subregions[n].sub_sequence.preiod = calloc(dss->disparity_regions[i].subregions[n].sub_sequence.division_period_count, sizeof(struct division_period));
+                        if (!dss->disparity_regions[i].subregions[n].sub_sequence.preiod) {
+                            return ENOMEM;
+                        }
                         for (int k = 0; k < dss->disparity_shift_update_sequence.division_period_count; k++) {
                             dss->disparity_regions[i].subregions[n].sub_sequence.preiod[k].interval_count = TS_READ8(pdata);
                             pdata += 1;
@@ -662,6 +728,9 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
             break;
         case alternative_CLUT_segment:
             acs = calloc(1, sizeof(*acs));
+            if (!acs) {
+                return ENOMEM;
+            }
             seg->segment.data = acs;
             acs->CLUT_id = TS_READ8(pdata);
             pdata += 1;
@@ -678,7 +747,11 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
             slen += 2;
             i = 0;
             while (slen - 4 < seg->segment.header.segment_length) {
-                acs->cluts = realloc(acs->cluts, (i + 1) * sizeof(struct aclut));
+                struct aclut *cluts = (struct aclut*)realloc(acs->cluts, (i + 1) * sizeof(struct aclut));
+                if (!cluts) {
+                    return ENOMEM;
+                }
+                acs->cluts = cluts;
                 if (acs->CLUT_parameters.output_bit_depth == 1) {
                     acs->cluts[i].luma = TS_READ8(pdata);
                     pdata += 1;
@@ -709,7 +782,7 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
             // printf("end of display\n");
             break;
         default:
-            printf("have unsupport segment type, we should not go here\n");
+            printf("have unsupported segment type, we should not go here\n");
             slen += seg->segment.header.segment_length;
             break;
     }
@@ -739,6 +812,9 @@ int parse_subtitle(uint16_t pid, uint8_t *pbuf, int len, void *arg)
     uint8_t next_bits = TS_READ8(pdata);
     while(next_bits == SUBTITLE_SYNC_BYTE && seg_len) {
         struct segment_node *seg = calloc(1, sizeof(struct segment_node));
+        if (!seg) {
+            return ENOMEM;
+        }
         int slen = parse_subtitle_segment_header(pdata, seg_len, &seg->segment.header);
         assert(slen == 6);
         seg_len -= slen;
@@ -793,6 +869,9 @@ enum bmp_compression {
 uint8_t* alloc_bmp_head(uint8_t bits, int len, int w, int h)
 {
     struct bmp_header *bmp_p = malloc(54);
+	if (!bmp_p) {
+		return NULL;
+	}
 
     bmp_p->file_type = 0x4D42;
     bmp_p->file_size = 54+len;

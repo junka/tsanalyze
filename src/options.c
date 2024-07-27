@@ -117,8 +117,8 @@ static void prog_usage(FILE *fp, const char *pro_name)
 {
 	if (fp == NULL)
 		fp = stderr;
-	fprintf(fp, "Usage: %s [optins]... <file>\n", pro_name);
-	fprintf(fp, "  Display infomations about mpeg ts.\n\n");
+	fprintf(fp, "Usage: %s [options]... <file>\n", pro_name);
+	fprintf(fp, "  Display informations about mpeg ts.\n\n");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_HELP_NUM, ", --" OPT_HELP, "\tShow this help");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_FORMAT_NUM, ", --" OPT_FORMAT, "Select input format [udp][file]");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_BRIEF_LIST_NUM, ", --" OPT_BRIEF_LIST, "\tShow all infos in brief");

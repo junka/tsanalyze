@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "filter.h"
 #include "pes.h"
@@ -28,6 +29,9 @@ void *pes_private_alloc(uint8_t tag)
 {
 	if (tag == 0x59) {
 		struct subtitle_pes_data *sub = calloc(1, sizeof(struct subtitle_pes_data));
+		if (!sub) {
+			return NULL;
+		}
 		list_head_init(&sub->seg_list);
 		return sub;
 	} else if (tag == 0x56) {
@@ -289,7 +293,9 @@ void register_pes_ops(uint16_t pid, uint8_t stream_type)
 	};
 	if ((pes.pid_bitmap[ pid / 64] & ((uint64_t) 1 << (pid % 64))) == 0) {
 		pes.pid_bitmap[ pid / 64] |= ((uint64_t) 1 << (pid % 64));
-		pes.list = (pes_t *)realloc(pes.list, (pes.pid_num + 1) * sizeof(pes_t));
+		pes_t *pes_list = (pes_t *)realloc(pes.list, (pes.pid_num + 1) * sizeof(pes_t));
+		if (!pes_list) {return;}
+		pes.list = pes_list;
 		memset(&pes.list[pes.pid_num], 0, sizeof(pes_t));
 		pes.list[pes.pid_num].type = stream_type;
 		pes.list[pes.pid_num].pid = pid;
@@ -311,7 +317,7 @@ void unregister_pes_ops(void)
 		.depth = 1,
 		.coff = {0},
 		.mask = {0},
-		.negete = {0},
+		.negate = {0},
 	};
 	filter_t *f = NULL;
 	for (int i = 0; i < pes.pid_num; i ++) {

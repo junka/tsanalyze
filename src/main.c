@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -28,6 +29,10 @@ void dump_result(int sig)
 
 int main(int argc, char *argv[])
 {
+#if __STDC_VERSION__ < 201112L
+	printf("good");
+	exit(0);
+#endif
 	fileio_init();
 	udp_io_init();
 	int ret;

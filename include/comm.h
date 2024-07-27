@@ -27,7 +27,7 @@ extern "C" {
 #define container_of(item, type, member) ((type *)((char *)item - (char *)(&((type *)0)->member)))
 #endif
 
-//For msvc cl.exe see https://learn.microsoft.com/zh-cn/cpp/c-language/typeof-c?view=msvc-170
+//For MSVC cl.exe see https://learn.microsoft.com/zh-cn/cpp/c-language/typeof-c?view=msvc-170
 // see https://learn.microsoft.com/zh-cn/cpp/overview/compiler-versions?view=msvc-170
 
 #if _MSC_VER >= 1939
@@ -48,12 +48,12 @@ extern "C" {
 
 #define BUILD_ASSERT_OR_ZERO(cond) (sizeof(char[1 - 2 * !(cond)]) - 1)
 
-#if HAVE_TYPEOF
+#ifdef HAVE_TYPEOF
 #define check_type(expr, type) ((typeof(expr) *)0 != (type *)0)
 
 #define check_types_match(expr1, expr2) ((typeof(expr1) *)0 != (typeof(expr2) *)0)
 #else
-/* Without typeof, we can only test the sizes. */
+/* Without 'typeof', we can only test the sizes. */
 #define check_type(expr, type) BUILD_ASSERT_OR_ZERO(sizeof(expr) == sizeof(type))
 
 #define check_types_match(expr1, expr2) BUILD_ASSERT_OR_ZERO(sizeof(expr1) == sizeof(expr2))

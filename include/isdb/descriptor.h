@@ -200,6 +200,9 @@ __parse_compatibility_descriptor(uint8_t *buf, int len, struct compatibility_des
     c->count = TS_READ16(ptr);
     ptr += 2;
     c->sub = (struct compatobilitylist_descriptor *)calloc(c->count, sizeof(struct compatobilitylist_descriptor));
+    if (!c->sub) {
+        return -ENOMEM;
+    }
     for (int i = 0; i < c->count; i++) {
         c->sub[i].type = TS_READ8(ptr);
         ptr += 1;
@@ -215,12 +218,18 @@ __parse_compatibility_descriptor(uint8_t *buf, int len, struct compatibility_des
         c->sub[i].count = TS_READ8(ptr);
         ptr += 1;
         c->sub[i].sub = (struct sub_descriptor *)calloc(c->sub[i].count, sizeof(struct sub_descriptor));
+		if (!c->sub[i].sub) {
+			return -ENOMEM;
+        }
         for (int j = 0; j < c->sub[i].count; j ++) {
             c->sub[i].sub[j].sub_descriptor_tag = TS_READ8(ptr);
             ptr += 1;
             c->sub[i].sub[j].sub_descriptor_length = TS_READ8(ptr);
             ptr += 1;
             c->sub[i].sub[j].sub_descriptor_byte = (uint8_t *)calloc(1, c->sub[i].sub[j].sub_descriptor_length);
+			if (!c->sub[i].sub[j].sub_descriptor_byte) {
+				return -ENOMEM;
+			}
             for (int m = 0; m < c->sub[i].sub[j].sub_descriptor_length; m ++) {
                 c->sub[i].sub[j].sub_descriptor_byte[m] = TS_READ8(ptr);
                 ptr ++;
@@ -256,11 +265,17 @@ __free_compatibility_descriptor(struct compatibility_descriptor *c)
 {
     for (int i = 0; i < c->count; i ++) {
         for (int j = 0; j < c->sub[i].count; j ++) {
-            free(c->sub[i].sub[j].sub_descriptor_byte);
+			if (c->sub[i].sub[j].sub_descriptor_byte) {
+				free(c->sub[i].sub[j].sub_descriptor_byte);
+			}
         }
-        free(c->sub[i].sub);
+		if (c->sub[i].sub) {
+			free(c->sub[i].sub);
+		}
     }
-    free(c->sub);
+	if (c->sub) {
+		free(c->sub);
+	}
 }
 
 struct module_info{
@@ -281,6 +296,9 @@ __parse_module_info_list(uint8_t *buf, int len, struct module_info_list *m)
     m->num_of_modules = TS_READ16(ptr);
     ptr += 2;
     m->info = (struct module_info *)calloc(m->num_of_modules, sizeof(struct module_info));
+	if (!m->info) {
+		return -ENOMEM;
+	}
     for (int i = 0; i < m->num_of_modules; i ++) {
         m->info[i].module_id = TS_READ16(ptr);
         ptr += 2;
@@ -289,6 +307,9 @@ __parse_module_info_list(uint8_t *buf, int len, struct module_info_list *m)
         m->info[i].module_info_length = TS_READ8(ptr);
         ptr += 1;
         m->info[i].module_info_byte = (uint8_t *)calloc(1, m->info[i].module_info_length);
+		if (!m->info[i].module_info_byte) {
+			return -ENOMEM;
+		}
         for (int j = 0; j < m->info[i].module_info_length; j ++) {
             m->info[i].module_info_byte[j] = TS_READ8(ptr);
             ptr += 1;
@@ -333,6 +354,9 @@ __parse_text_info(uint8_t *buf, int len, struct text_info *t)
     ptr += 4;
 
     t->text_char = (uint8_t *)calloc(1, t->text_length);
+	if (!t->text_char) {
+		return ENOMEM;
+	}
     for (int i = 0; i < t->text_length; i++) {
         t->text_char[i] = TS_READ8(ptr);
         ptr += 1;

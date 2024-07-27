@@ -9,7 +9,6 @@ extern "C" {
 #include "types.h"
 #include "table.h"
 
-
 #if 0
 enum PES_scrambling_control{
 	PES_non_scrambled = 0x00,
@@ -59,7 +58,6 @@ typedef struct
 
 typedef struct
 {
-	EXT_STD_C11
 	union
 	{
 		struct

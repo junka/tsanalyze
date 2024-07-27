@@ -245,7 +245,9 @@ __parse_extend_event_linkage_info(uint8_t *buf, int len, struct extend_event_lin
 	ptr += 1;
 	int l = 0, i = 0;
 	while (l < e->loop_length) {
-		e->subinfo = (struct extend_event_linkage_subinfo *)realloc(e->subinfo , (i+1) * sizeof(struct extend_event_linkage_subinfo));
+		struct extend_event_linkage_subinfo *einfo = (struct extend_event_linkage_subinfo *)realloc(e->subinfo, (i + 1) * sizeof(struct extend_event_linkage_subinfo));
+		if (!einfo) {return ENOMEM; }
+		e->subinfo = einfo;
 		e->subinfo[i].target_event_id = TS_READ16(ptr);
 		ptr += 2;
 		l += 2;
@@ -517,6 +519,9 @@ __parse_multilingual_node(uint8_t *buf, int len, struct multilingual_node *node)
 	node->ISO_639_language_code = TS_READ32_BITS(buf, 24, 0);
 	node->name_length = TS_READ32_BITS(buf, 8, 24);
 	node->text_char = (uint8_t *)calloc(1, node->name_length + 1);
+	if (!node->text_char) {
+		return ENOMEM;
+	}
 	memcpy(node->text_char, buf + 4, node->name_length);
 	return node->name_length + 4;
 }
@@ -556,9 +561,15 @@ __parse_multilingual_service_node(uint8_t *buf, int len, struct multilingual_ser
 	node->ISO_639_language_code = TS_READ32_BITS(buf, 24, 0);
 	node->name_length = TS_READ32_BITS(buf, 8, 24);
 	node->text_char = (uint8_t *)calloc(1, node->name_length + 1);
+	if (!node->text_char) {
+		return ENOMEM;
+	}
 	memcpy(node->text_char, buf + 4, node->name_length);
 	node->service_name_length = TS_READ8(buf + 4 + node->name_length);
 	node->service_char = (uint8_t *)calloc(1, node->service_name_length + 1);
+	if (!node->service_char) {
+		return ENOMEM;
+	}
 	memcpy(node->service_char, buf + 5 + node->name_length, node->service_name_length);
 	return node->name_length + 5 + node->service_name_length;
 }
@@ -729,6 +740,9 @@ parse_cell_list_descriptor__(uint8_t *buf, int len, struct cell_list_node *n)
 	ptr += 4;
 	int num = n->subcell_info_loop_length / sizeof(struct subcell_list_info);
 	n->subcell_list = (struct subcell_list_info *)calloc(num, sizeof(struct subcell_list_info));
+	if (!n->subcell_list) {
+		return ENOMEM;
+	}
 	for (int i = 0; i < num; i ++) {
 		n->subcell_list[i].cell_id_extension = TS_READ64_BITS(ptr, 8, 0);
 		n->subcell_list[i].subcell_latitude = TS_READ64_BITS(ptr, 16, 8);
@@ -790,6 +804,9 @@ parse_cell_frequency_link_descriptor__(uint8_t *buf, int len, struct cell_freque
 	ptr += 1;
 	int num = n->subcell_info_loop_length / sizeof(struct subcell_info);
 	n->subcell_info_list = (struct subcell_info *)calloc(num, sizeof(struct subcell_info));
+	if (!n->subcell_info_list) {
+		return ENOMEM;
+	}
 	for (int i = 0; i < num; i ++) {
 		n->subcell_info_list[i].cell_id_extension = TS_READ8(ptr);
 		ptr += 1;
