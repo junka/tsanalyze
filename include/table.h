@@ -202,6 +202,7 @@ typedef struct
 	uint64_t program_bitmap[1024];
 	struct list_head h; /* pmt list */
 	uint32_t crc32;
+	struct list_node n;
 } pat_t;
 
 /* INFO int CAT */
@@ -400,7 +401,8 @@ typedef struct
 
 typedef struct
 {
-	pat_t pat;
+	pat_t *pat;					/* current active pat */
+	struct list_head pat_list;  /* all parsed pat */
 	cat_t cat;
 	tsdt_t tsdt;
 	int ca_num;

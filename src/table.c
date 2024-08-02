@@ -3,8 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/errno.h>
 
 #include "error.h"
+#include "list.h"
 #include "pes.h"
 #include "filter.h"
 #include "table.h"
@@ -43,21 +45,41 @@ static void uninit_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask)
 	}
 }
 
-int psi_table_init(void)
+static void psi_table_uninit(void) {
+	pat_t *patn = NULL, *pnext = NULL;
+	struct program_node *pn = NULL, *next = NULL;
+	// clear pat list
+	list_for_each_safe(&(psi.pat_list), patn, pnext, n)
+	{
+		// clear each program list in PAT
+		list_for_each_safe(&(patn->h), pn, next, n)
+		{
+			list_del(&(pn->n));
+			free(pn);
+		}
+		list_del(&(patn->n));
+		free(patn);
+	}
+	psi.pat = NULL;
+
+}
+
+static int psi_table_init(void)
 {
 	int i = 0;
 
 	memset(&psi, 0, sizeof(psi));
 
-	memset(psi.pat.pat_header.section_bitmap, 0, sizeof(uint64_t) * 4);
-	psi.pat.pat_header.version_number = 0x1F;
+	// memset(psi.pat.pat_header.section_bitmap, 0, sizeof(uint64_t) * 4);
+	// psi.pat.pat_header.version_number = 0x1F;
 
 	memset(psi.sdt_actual.sdt_header.section_bitmap, 0, sizeof(uint64_t) * 4);
 	psi.sdt_actual.sdt_header.version_number = 0x1F;
 	memset(psi.sdt_actual.sdt_header.sections, 0, sizeof(struct section_node *) * MAX_SECTION_NUM);
 
 
-	list_head_init(&(psi.pat.h));
+	// list_head_init(&(psi.pat.h));
+	list_head_init(&(psi.pat_list));
 	list_head_init(&(psi.cat.list));
 	for (i = 0; i < 8192; i++) {
 		list_head_init(&(psi.pmt[i].h));
@@ -314,8 +336,12 @@ void dump_tables(void)
 	if (tsaconf->tables == 0)
 		tsaconf->tables = UINT8_MAX;
 
-	if (psi.stats.pat_sections && (tsaconf->tables & PAT_SHOW))
-		dump_pat(&psi.pat);
+	pat_t *pat = NULL, *next = NULL;
+	if (psi.stats.pat_sections && (tsaconf->tables & PAT_SHOW)) {
+		list_for_each_safe(&(psi.pat_list), pat, next, n) {
+			dump_pat(psi.pat);
+		}
+	}
 	if (psi.ca_num > 0 && (tsaconf->tables & CAT_SHOW)) {
 		dump_cat(&psi.cat);
 	}
@@ -369,6 +395,7 @@ static void clear_sections(struct section_node *nodes, int num)
 void free_tables(void)
 {
 	int i = 0;
+	pat_t *patn = NULL, *pnext = NULL;
 	struct program_node *pn = NULL, *pat_next = NULL;
 	struct es_node *no = NULL, *pmt_next = NULL;
 	struct service_node *sn = NULL, *sdt_next = NULL;
@@ -398,17 +425,18 @@ void free_tables(void)
 		}
 	}
 	if (psi.stats.pat_sections){
-		if (!list_empty(&(psi.pat.h))) {
-			list_for_each_safe(&psi.pat.h, pn, pat_next, n)
+		list_for_each_safe(&psi.pat_list, patn, pnext, n) {
+			list_for_each_safe(&patn->h, pn, pat_next, n)
 			{
 				unregister_pmt_ops(pn->program_map_PID);
 				list_del(&pn->n);
 				free(pn);
 			}
+		
+			if (patn->pat_header.private_data_byte)
+				free(patn->pat_header.private_data_byte);
+			clear_sections(patn->pat_header.sections, patn->pat_header.last_section_number + 1);
 		}
-		if (psi.pat.pat_header.private_data_byte)
-			free(psi.pat.pat_header.private_data_byte);
-		clear_sections(psi.pat.pat_header.sections, psi.pat.pat_header.last_section_number + 1);
 	}
 
 	if (psi.stats.sdt_actual_sections) {
@@ -540,7 +568,33 @@ static uint8_t * concat_sections(struct section_node *nodes, int total_length, i
 	return ret;
 }
 
+int check_section_header_version(uint8_t *pbuf, uint16_t bufsize, uint8_t cur_version) {
+	if (unlikely(pbuf == NULL)) {
+		return -1;
+	}
+	uint8_t *pdata = pbuf + 1;
+	uint8_t section_syntax_indicator = TS_READ_BIT(pdata, 7);
+	if (section_syntax_indicator == 0) {
+		// not a section header
+		return 0;
+	}
+	pdata += 4;
+	uint8_t version = TS_READ8_BITS(pdata, 5, 1);
+	if (cur_version == version) {
+		// same version, continue process
+		return 0;
+	} else if (version > cur_version || 
+			(cur_version == 0x1F && version != 0x1F)) {
+		// new version
+		return 1;
+	}
+	// older version ? skip
+	return 2;
+
+}
+
 /* refer to wiki of psi, also see iso 13818-1 Table 2-30 */
+/* return 0 when parse a full section done */
 int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *ptable)
 {
 	if (unlikely(pbuf == NULL || ptable == NULL)) {
@@ -551,15 +605,16 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 	
 	uint8_t tableid = TS_READ8(pdata);
 	pdata += 1;
-	ptable->table_id = tableid;
+	// ptable->table_id = tableid;
 
 	/* A flag indicates if the syntax section follows the section length,
 	 the PAT, PMT, and CAT all set this to 1 */
-	ptable->section_syntax_indicator = TS_READ_BIT(pdata, 7);
+	uint8_t section_syntax_indicator = TS_READ_BIT(pdata, 7);
+	// ptable->section_syntax_indicator = section_syntax_indicator;
 
 	// the PAT, PMT, and CAT all set this to 0, others set this to 1
 	uint8_t private_bit = TS_READ_BIT(pdata, 6);
-	ptable->private_bit = private_bit;
+	// ptable->private_bit = private_bit;
 
 	//skip two bits for reserved
 
@@ -569,13 +624,16 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 	 including the CRC. The value in this field shall not exceed 1021 (0x3FD).*/
 	section_len = TS_READ16(pdata) & 0x0FFF;
 	pdata += 2;
-	if (ptable->section_syntax_indicator == 1 && (section_len > 0x3FD)) {
+	if (section_syntax_indicator == 1 && (section_len > 0x3FD)) {
 		return INVALID_SEC_LEN;
-	} else if (ptable->section_syntax_indicator == 0 && (section_len > 0xFFD)) {
+	} else if (section_syntax_indicator == 0 && (section_len > 0xFFD)) {
 		return INVALID_SEC_LEN;
 	}
 	
-	if (ptable->section_syntax_indicator == 0) {
+	if (section_syntax_indicator == 0) {
+		ptable->section_syntax_indicator = 0;
+		ptable->table_id = tableid;
+		ptable->private_bit = private_bit;
 		ptable->section_length = section_len;
 		if (ptable->sections[0].ptr)
 			free(ptable->sections[0].ptr);
@@ -602,16 +660,21 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 		last_sec =  TS_READ8(pdata);
 		pdata += 1;
 		
-		/*syntax section, table data. concat them if there are multiple sections */
-		/* clear list when version update */
-		if (version_num > ptable->version_number ||
-			(ptable->version_number == 0x1F && version_num != 0x1F))
-		{
-			clear_sections(ptable->sections, ptable->last_section_number + 1);
-			memset(ptable->section_bitmap, 0, sizeof(uint64_t) * 4);
-			ptable->version_number = version_num;
-			ptable->last_section_number = last_sec;
-		}
+		/* syntax section, table data. concat them if there are multiple sections */
+		/* malloc new struct when version update, usually greater than the older version */
+		// if (version_num > ptable->version_number ||
+		// 	(ptable->version_number == 0x1F && version_num != 0x1F))
+		// {
+		// 	// clear_sections(ptable->sections, ptable->last_section_number + 1);
+		// 	memset(ptable->section_bitmap, 0, sizeof(uint64_t) * 4);
+		// 	ptable->version_number = version_num;
+		// 	ptable->last_section_number = last_sec;
+		// }
+		ptable->version_number = version_num;
+		ptable->last_section_number = last_sec;
+		ptable->table_id = tableid;
+		ptable->private_bit = private_bit;
+		ptable->section_syntax_indicator = section_syntax_indicator;
 
 		ptable->section_length = section_len;
 		ptable->table_id_ext = tableid_ext;
@@ -644,26 +707,46 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 	return 0;
 }
 
-int parse_pat(uint8_t *pbuf, uint16_t buf_size, pat_t *pPAT)
+int parse_pat(uint8_t *pbuf, uint16_t buf_size)
 {
 	uint16_t section_len = 0;
 	uint8_t *pdata = NULL;
 	struct program_node *pn = NULL, *next = NULL;
+	pat_t *pPAT = psi.pat;
+	uint8_t cur_version = 0x1F;
+	if (pPAT) {
+		cur_version = pPAT->pat_header.version_number;
+	}
 
-	int ret = parse_section_header(pbuf, buf_size, &pPAT->pat_header);
-	if (ret != 0) {
-		// printf("aaa ret %d\n", ret);
+	int ret = check_section_header_version(pbuf, buf_size, cur_version);
+	if (ret == 1) {
+		// new version, alloc new struct
+		pPAT = calloc(1, sizeof(pat_t));
+		if (!pPAT) {
+			return ENOMEM;
+		}
+		list_head_init(&(pPAT->h));
+		pPAT->pat_header.version_number = 0x1F;
+		psi.pat = pPAT;
+		list_add_tail(&psi.pat_list, &pPAT->n);
+	} else if (ret != 0){
+		// skip process sections
 		return ret;
 	}
 
-	/* clear list when version update */
-	if (!list_empty(&(pPAT->h))) {
-		list_for_each_safe(&(pPAT->h), pn, next, n)
-		{
-			list_del(&(pn->n));
-			free(pn);
-		}
+	// else it is the sections for the same version, do concat
+	ret = parse_section_header(pbuf, buf_size, &pPAT->pat_header);
+	if (ret != 0) {
+		return ret;
 	}
+
+	// if (!list_empty(&(pPAT->h))) {
+	// 	list_for_each_safe(&(pPAT->h), pn, next, n)
+	// 	{
+	// 		list_del(&(pn->n));
+	// 		free(pn);
+	// 	}
+	// }
 
 	// TODO: limit program total length
 	section_len = pPAT->pat_header.section_length;
@@ -1096,7 +1179,7 @@ static int parse_tot(uint8_t *pbuf, uint16_t buf_size, tot_t *pTOT)
 static int pat_proc(__maybe_unused uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	psi.stats.pat_sections ++;
-	parse_pat(pkt, len, &psi.pat);
+	parse_pat(pkt, len);
 	return 0;
 }
 
@@ -1798,6 +1881,7 @@ void uninit_table_ops(void)
 	uninit_table_filter(BAT_PID, BAT_TID, 0xFF);
 	uninit_table_filter(TDT_PID, TDT_TID, 0xFF);
 	uninit_table_filter(TOT_PID, TOT_TID, 0xFF);
+	psi_table_uninit();
 }
 
 void register_pmt_ops(uint16_t pid)

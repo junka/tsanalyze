@@ -5,8 +5,6 @@
 #include <errno.h>
 
 #include "descriptor.h"
-#include "ts.h"
-#include "utils.h"
 
 struct descriptor_ops des_ops[256];
 

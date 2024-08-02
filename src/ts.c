@@ -8,7 +8,6 @@
 #include "tsio.h"
 #include "table.h"
 #include "ts.h"
-#include "utils.h"
 
 /*
  * port from ffmpeg for judging TS packet length
