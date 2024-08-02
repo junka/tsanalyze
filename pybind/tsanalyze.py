@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import tsana
 import sys
@@ -9,7 +9,6 @@ def analyze(args):
     tsana.run()
     tsana.result()
     tsana.deinit()
-
 
 def main():
     analyze(sys.argv)

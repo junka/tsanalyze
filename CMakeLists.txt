@@ -38,3 +38,4 @@ find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 
 pybind11_add_module(tsana ./pybind/binding.cpp ${SRC_LIST})
+install(FILES ./pybind/tsanalyze.py DESTINATION /usr/local/bin)

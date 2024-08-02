@@ -5,6 +5,7 @@
 #include "table.h"
 #include "pes.h"
 #include "options.h"
+#include "tsio.h"
 
 namespace py = pybind11;
 
@@ -42,6 +43,7 @@ static int parse_args(const py::list& args)
 
 int init(const py::list& args)
 {
+	fileio_init();
 	parse_args(args);
 	init_pid_processor();
 	return 0;
