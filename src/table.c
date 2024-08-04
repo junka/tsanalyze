@@ -4,6 +4,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include "descriptor.h"
 #include "error.h"
 #include "list.h"
 #include "pes.h"
@@ -44,25 +45,6 @@ static void uninit_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask)
 	}
 }
 
-static void psi_table_uninit(void) {
-	pat_t *patn = NULL, *pnext = NULL;
-	struct program_node *pn = NULL, *next = NULL;
-	// clear pat list
-	list_for_each_safe(&(psi.pat_list), patn, pnext, n)
-	{
-		// clear each program list in PAT
-		list_for_each_safe(&(patn->h), pn, next, n)
-		{
-			list_del(&(pn->n));
-			free(pn);
-		}
-		list_del(&(patn->n));
-		free(patn);
-	}
-	psi.pat = NULL;
-
-}
-
 static int psi_table_init(void)
 {
 	int i = 0;
@@ -77,9 +59,8 @@ static int psi_table_init(void)
 	memset(psi.sdt_actual.sdt_header.sections, 0, sizeof(struct section_node *) * MAX_SECTION_NUM);
 
 
-	// list_head_init(&(psi.pat.h));
 	list_head_init(&(psi.pat_list));
-	list_head_init(&(psi.cat.list));
+	list_head_init(&(psi.cat_list));
 	for (i = 0; i < 8192; i++) {
 		list_head_init(&(psi.pmt[i].h));
 		list_head_init(&(psi.pmt[i].list));
@@ -133,7 +114,7 @@ static void dump_cat(cat_t *p_cat)
 
 	dump_section_header("CAT", &p_cat->cat_header);
 	rout(1, "ca systems", NULL);
-	// list_for_each(&(p_cat->list), pn, n)
+	// list_for_each_safe(&(p_cat->list), pn, n)
 	// {
 	// 	ca = (CA_descriptor_t *)pn;
 	// 	uint16_t system_id = ca->CA_system_ID;
@@ -335,14 +316,18 @@ void dump_tables(void)
 	if (tsaconf->tables == 0)
 		tsaconf->tables = UINT8_MAX;
 
-	pat_t *pat = NULL, *next = NULL;
+	pat_t *pat = NULL, *pat_next = NULL;
 	if (psi.stats.pat_sections && (tsaconf->tables & PAT_SHOW)) {
-		list_for_each_safe(&(psi.pat_list), pat, next, n) {
-			dump_pat(psi.pat);
+		list_for_each_safe(&(psi.pat_list), pat, pat_next, n) {
+			dump_pat(pat);
 		}
 	}
+
+	cat_t *cat = NULL, *cat_next = NULL;
 	if (psi.ca_num > 0 && (tsaconf->tables & CAT_SHOW)) {
-		dump_cat(&psi.cat);
+		list_for_each_safe(&(psi.cat_list), cat, cat_next, n) {
+			dump_cat(cat);
+		}
 	}
 
 	if (psi.stats.tsdt_sections && (tsaconf->tables & TSDT_SHOW))
@@ -394,6 +379,7 @@ static void clear_sections(struct section_node *nodes, int num)
 void free_tables(void)
 {
 	int i = 0;
+	cat_t *catn = NULL, *cnext = NULL;
 	pat_t *patn = NULL, *pnext = NULL;
 	struct program_node *pn = NULL, *pat_next = NULL;
 	struct es_node *no = NULL, *pmt_next = NULL;
@@ -401,13 +387,17 @@ void free_tables(void)
 	struct transport_stream_node *tn = NULL, *nit_next = NULL, *bat_next = NULL;
 	struct event_node *en = NULL, *eit_next = NULL;
 
+	// clear cat
 	if (psi.ca_num > 0) {
-		free_descriptors(&psi.cat.list);
-		if (psi.cat.cat_header.private_data_byte) {
-			free(psi.cat.cat_header.private_data_byte);
+		list_for_each_safe(&psi.cat_list, catn, cnext, n) {
+			free_descriptors(&catn->list);
+		
+			if (catn->cat_header.private_data_byte)
+				free(catn->cat_header.private_data_byte);
+			clear_sections(catn->cat_header.sections, catn->cat_header.last_section_number + 1);
 		}
-		clear_sections(psi.cat.cat_header.sections, psi.cat.cat_header.last_section_number + 1);
 	}
+
 	// pid
 	for (i = 0; i < 0x2000; i++) {
 		if (psi.pmt_bitmap[i / 64] & ((uint64_t)1 << (i % 64))) {
@@ -423,6 +413,7 @@ void free_tables(void)
 			psi.pmt_bitmap[i / 64] &= ~((uint64_t)1 << (i % 64));
 		}
 	}
+	/* clear pat sections */
 	if (psi.stats.pat_sections){
 		list_for_each_safe(&psi.pat_list, patn, pnext, n) {
 			list_for_each_safe(&patn->h, pn, pat_next, n)
@@ -786,12 +777,33 @@ int parse_pat(uint8_t *pbuf, uint16_t buf_size)
 	return 0;
 }
 
-int parse_cat(uint8_t *pbuf, uint16_t buf_size, cat_t *pCAT)
+int parse_cat(uint8_t *pbuf, uint16_t buf_size)
 {
 	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
+	cat_t *pCAT = psi.cat;
+	uint8_t cur_version = 0x1F;
+	if (pCAT) {
+		cur_version = pCAT->cat_header.version_number;
+	}
 
-	int ret = parse_section_header(pbuf, buf_size, &pCAT->cat_header);
+	int ret = check_section_header_version(pbuf, buf_size, cur_version);
+	if (ret == 1) {
+		// new version, alloc new struct
+		pCAT = calloc(1, sizeof(pat_t));
+		if (!pCAT) {
+			return ENOMEM;
+		}
+		list_head_init(&(pCAT->list));
+		pCAT->cat_header.version_number = 0x1F;
+		psi.cat = pCAT;
+		list_add_tail(&psi.cat_list, &pCAT->n);
+	} else if (ret != 0){
+		// skip process sections
+		return ret;
+	}
+
+	ret = parse_section_header(pbuf, buf_size, &pCAT->cat_header);
 	if (ret != 0)
 		return ret;
 
@@ -1185,10 +1197,10 @@ static int pat_proc(__maybe_unused uint16_t pid, uint8_t *pkt, uint16_t len)
 static int cat_proc(__maybe_unused uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	psi.stats.cat_sections ++;
-	parse_cat(pkt, len, &psi.cat);
+	parse_cat(pkt, len);
 	descriptor_t *ca = NULL;
 	psi.ca_num = 0;
-	list_for_each(&psi.cat.list, ca, n) {
+	list_for_each(&psi.cat->list, ca, n) {
 		psi.ca_num ++;
 	}
 	return 0;
@@ -1880,7 +1892,6 @@ void uninit_table_ops(void)
 	uninit_table_filter(BAT_PID, BAT_TID, 0xFF);
 	uninit_table_filter(TDT_PID, TDT_TID, 0xFF);
 	uninit_table_filter(TOT_PID, TOT_TID, 0xFF);
-	psi_table_uninit();
 }
 
 void register_pmt_ops(uint16_t pid)

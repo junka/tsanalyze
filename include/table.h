@@ -211,6 +211,7 @@ typedef struct
 	struct table_header cat_header;
 	struct list_head list; /* ca_descriptor list */
 	uint32_t crc32;
+	struct list_node n;
 } cat_t;
 
 /* INFO int PMT */
@@ -403,7 +404,8 @@ typedef struct
 {
 	pat_t *pat;					/* current active pat */
 	struct list_head pat_list;  /* all parsed pat */
-	cat_t cat;
+	cat_t *cat;					/* current active cat */
+	struct list_head cat_list;  /* all parsed cat */
 	tsdt_t tsdt;
 	int ca_num;
 	int pmt_num;
