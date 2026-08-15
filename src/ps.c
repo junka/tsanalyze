@@ -31,7 +31,6 @@ int parse_system_header(uint8_t *pkt, uint16_t len, system_header *sh)
 	sh->video_bound = TS_READ8_BITS(buf, 5, 3);
 	PL_STEP(buf, l, 1);
 	sh->packet_rate_restriction_flag = TS_READ8_BITS(buf, 1, 0);
-	// sh->reserved_bits = TS_READ8_BITS(buf, 7, 1);
 	PL_STEP(buf, l, 1);
 	//if next bit start with 1, then there is estd es;
 	if (TS_READ_BIT(buf, 7)) {
@@ -65,8 +64,6 @@ int parse_pack(uint16_t pid, uint8_t *pkt, uint16_t len, pack_header *ph)
 	PL_STEP(buf, l, 1);
 
 	// skip reading stuffing bytes
-	// ph->stuffing_byte = (uint8_t *)malloc(ph->pack_stuffing_length);
-	// memcpy(ph->stuffing_byte, buf, ph->pack_stuffing_length);
 	PL_STEP(buf, l, ph->pack_stuffing_length);
 
 	system_header sh;

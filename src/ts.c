@@ -107,7 +107,7 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 				*buffering = (pkt + 1 + pointer_field);
 				return p->limit_len;
 			} else {
-				// memset(p->buffer, 0, 4096); // PSI length less than this
+				/* PSI section spans multiple packets, buffer it */
 				memcpy(p->buffer, pkt + 1 + pointer_field, p->total_len);
 			}
 		} else { /* PES has no pointer field */
@@ -116,20 +116,11 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 			if (p->limit_len > 0)
 				p->limit_len += 6;
 			if (p->limit_len == 0) {
-				// printf("no limit on pid, drop it now %d\n", pid);
 				return 0;
-				// uint8_t stream_id = pkt[3];
-				/* allowed only for a video elementary stream */
-				// if (stream_id <= 0xEF && stream_id >= 0xE0) {
-					// memset(p->buffer, 0, 65536);
-					// memcpy(p->buffer, pkt, p->total_len);
-				// }
-				// return -1;
 			} else if (p->limit_len <= p->total_len) {
 				*buffering = pkt;
 				return p->total_len;
 			} else {
-				// memset(p->buffer, 0, 65536);
 				memcpy(p->buffer, pkt, p->total_len);
 			}
 		}
@@ -146,10 +137,8 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 				return p->limit_len;
 			}
 		} else {
-			if (p->limit_len == 0) {
-				// printf("drop it now");
+			if (p->limit_len == 0)
 				return 0;
-			}
 			memcpy(p->buffer + p->total_len, pkt, len);
 			p->total_len += len;
 			if (p->total_len >= p->limit_len) {
@@ -220,7 +209,6 @@ int ts_adaptation_field_proc(uint16_t pid, uint8_t pkt_len, uint8_t *data, uint8
 		PL_STEP(ptr, l, 4);
 		opcr.program_clock_reference_extension = (TS_READ16(ptr) & 0x1FF);
 		PL_STEP(ptr, l, 2);
-		// printf("original clock %lu\n",calc_pcr_clock(pcr));
 	}
 	if (adapt.splicing_point_flag) {
 		PL_STEP(ptr, l, 1);
@@ -369,17 +357,12 @@ int ts_process(void)
 		return -1;
 	}
 
-	// res_hexdump(0, "", ptr, 188*2);
 	analyze(ptr, ts_pktlen * 2, ts_pktlen, &start_index);
-	// printf("Ts packet len %zu, starting at offset %d\n", ts_pktlen, start_index);
 	if (start_index) {
 		PL_STEP(ptr, len, start_index);
 	}
 
-	while (ops->end()) {
-		// if(ops->wip()) {
-		// 	printf("%d%%\n", ops->wip());
-		// }
+	do {
 		if (pkt_con_len == ts_pktlen) {
 			ts_proc(pkt_con, ts_pktlen);
 			pkt_con_len = 0;
@@ -399,7 +382,7 @@ int ts_process(void)
 			PL_STEP(ptr, len, ts_pktlen - pkt_con_len);
 			pkt_con_len = ts_pktlen;
 		}
-	}
+	} while (ops->end());
 	ops->close();
 
 	return 0;

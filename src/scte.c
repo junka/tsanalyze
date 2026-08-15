@@ -188,13 +188,9 @@ int parse_splice_descriptors(struct list_head *h, uint8_t *buf, int len)
 	int l = len;
 	uint8_t *ptr = buf;
 	descriptor_t *more = NULL;
-	uint32_t identifier;
 	void *des = NULL;
 	while (l > 0) {
-		// printf("%s(0x%x) : %d, %d\n", des_ops[ptr[0]].tag_name, ptr[0], l,
-		// ptr[1]);
 		uint8_t tag = ptr[0];
-		// des = des_ops[tag].descriptor_alloc();
 		des = calloc(1, sizeof(descriptor_t) + ptr[1]);
 		if (!des) {
 			return ENOMEM;
@@ -203,11 +199,6 @@ int parse_splice_descriptors(struct list_head *h, uint8_t *buf, int len)
 		more->tag = tag;
 		more->length = ptr[1];
 		ptr += 2;
-		identifier = TS_READ32(ptr);
-		if (identifier != 0x43554549) /* CUEI*/
-		{
-			// printf("invalid splice descriptor 0x%x\n", identifier);
-		}
 		ptr += 4;
 		memcpy(more->data, ptr, more->length - 4);
 		l -= more->length - 6;
@@ -268,9 +259,6 @@ static int parse_splice_info(uint8_t *pbuf, uint16_t buf_size, scte_t *splice)
 	if (!list_empty(&(splice->list)))
 		free_descriptors(&(splice->list));
 
-	// res_hexdump(0, "", pbuf, buf_size);
-	// printf("section len %d, buf_size %d\n", section_len, buf_size);
-
 	splice->section_length = section_len;
 	splice->protocol_version = TS_READ8(pdata);
 	pdata += 1;
@@ -286,9 +274,6 @@ static int parse_splice_info(uint8_t *pbuf, uint16_t buf_size, scte_t *splice)
 	splice->splice_command_length = TS_READ32_BITS(pdata, 12, 12);
 	splice->splice_command_type = TS_READ32_BITS(pdata, 8, 24);
 	pdata += 4;
-	// printf("tier %d, splice_command_type %d, splice_command_length %d\n",
-	// splice->tier, splice->splice_command_type,
-	// splice->splice_command_length);
 	switch (splice->splice_command_type) {
 	case SPLICE_SCHEDULE:
 		ret = parse_splice_schedule(pdata, splice->splice_command_length, &splice->schedule);

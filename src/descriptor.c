@@ -66,7 +66,6 @@ void parse_descriptors(struct list_head *h, uint8_t *buf, int len)
 	descriptor_t *more = NULL;
 	void *des = NULL;
 	while (l > 0) {
-		// printf("%s(0x%x) : %d, %d\n", des_ops[ptr[0]].tag_name, ptr[0], l, ptr[1]);
 		uint8_t tag = ptr[0];
 		des = des_ops[tag].descriptor_alloc();
 		more = (descriptor_t *)des;

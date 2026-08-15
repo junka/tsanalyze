@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include <cstring>
 #include <string>
 
 #include "ts.h"
@@ -19,7 +20,7 @@ static char** convertPythonListToArgv(const py::list& args_list) {
 
     for (size_t i = 0; i < argc; ++i) {
         std::string arg = args_list[i].cast<std::string>();
-		argv[i] = new char[arg.size()];
+		argv[i] = new char[arg.size() + 1];
 		std::strcpy(argv[i], arg.c_str());
     }
 

@@ -19,6 +19,18 @@
 static mpeg_psi_t psi;
 static atsc_psip_t psip;
 
+/* marks which PSIP tables were successfully parsed (see psip_proc) */
+#define PSIP_MGT   (1 << 0)
+#define PSIP_TVCT  (1 << 1)
+#define PSIP_CVCT  (1 << 2)
+#define PSIP_RRT   (1 << 3)
+#define PSIP_EIT   (1 << 4)
+#define PSIP_ETT   (1 << 5)
+#define PSIP_STT   (1 << 6)
+#define PSIP_DCCT  (1 << 7)
+#define PSIP_DCCSCT (1 << 8)
+static uint16_t psip_seen_mask;
+
 
 static void init_table_filter(uint16_t pid, uint8_t tableid, uint8_t mask, filter_cb func)
 {
@@ -51,9 +63,6 @@ static int psi_table_init(void)
 
 	memset(&psi, 0, sizeof(psi));
 
-	// memset(psi.pat.pat_header.section_bitmap, 0, sizeof(uint64_t) * 4);
-	// psi.pat.pat_header.version_number = 0x1F;
-
 	memset(psi.sdt_actual.sdt_header.section_bitmap, 0, sizeof(uint64_t) * 4);
 	psi.sdt_actual.sdt_header.version_number = 0x1F;
 	memset(psi.sdt_actual.sdt_header.sections, 0, sizeof(struct section_node *) * MAX_SECTION_NUM);
@@ -76,6 +85,17 @@ static int psi_table_init(void)
 	list_head_init(&(psi.sdt_actual.h));
 	list_head_init(&(psi.sdt_other.h));
 	list_head_init(&(psi.tot.list));
+	list_head_init(&(psi.tsdt.list));
+
+	/* ATSC PSIP table lists */
+	memset(&psip, 0, sizeof(psip));
+	list_head_init(&psip.mgt.list);
+	list_head_init(&psip.tvct.list);
+	list_head_init(&psip.cvct.list);
+	list_head_init(&psip.rrt.list);
+	list_head_init(&psip.stt.list);
+	list_head_init(&psip.dcct.list);
+	list_head_init(&psip.dccsct.list);
 	return 0;
 }
 
@@ -109,18 +129,8 @@ static void dump_pat(pat_t *p_pat)
 
 static void dump_cat(cat_t *p_cat)
 {
-	// descriptor_t *pn = NULL;
-	// CA_descriptor_t *ca = NULL;
-
 	dump_section_header("CAT", &p_cat->cat_header);
 	rout(1, "ca systems", NULL);
-	// list_for_each_safe(&(p_cat->list), pn, n)
-	// {
-	// 	ca = (CA_descriptor_t *)pn;
-	// 	uint16_t system_id = ca->CA_system_ID;
-	// 	uint16_t emm_pid = ca->CA_PID;
-	// 	rout(2, "cat system id", "0x%04x    emm pid 0x%04x", system_id, emm_pid);
-	// }
 	if (!list_empty(&(p_cat->list)))
 		dump_descriptors(2, &(p_cat->list));
 }
@@ -136,14 +146,18 @@ static void dump_tsdt(tsdt_t *p_tsdt)
 
 static void dump_tdt(tdt_t *p_tdt)
 {
+	char utc[20];
 	rout(0, "TDT (Time and Date Table)", NULL);
-	rout(1, "UTC time", "%s", convert_UTC(&p_tdt->utc_time));
+	convert_UTC(&p_tdt->utc_time, utc, sizeof(utc));
+	rout(1, "UTC time", "%s", utc);
 }
 
 static void dump_tot(tot_t *p_tot)
 {
+	char utc[20];
 	rout(0, "TOT (Time Offset Table)", NULL);
-	rout(1, "UTC time", "%s", convert_UTC(&p_tot->utc_time));
+	convert_UTC(&p_tot->utc_time, utc, sizeof(utc));
+	rout(1, "UTC time", "%s", utc);
 
 	dump_descriptors(2, &(p_tot->list));
 }
@@ -271,6 +285,131 @@ static void dump_eit(eit_t *p_eit)
 	}
 }
 
+/* ---- ATSC PSIP table dumping (A/65) ---- */
+
+static void dump_mgt(atsc_mgt_t *mgt)
+{
+	dump_section_header("MGT (Master Guide Table)", &mgt->mgt_header);
+	rout(1, "protocol_version", "%d", mgt->protocol_version);
+	rout(1, "tables_defined", "%d", mgt->tables_defined);
+	for (int i = 0; i < mgt->tables_defined; i++) {
+		rout(2, "table_type", "0x%04x", mgt->tables[i].table_type);
+		rout(2, "table_type_PID", "0x%x", mgt->tables[i].table_type_PID);
+		rout(2, "version_number", "%d", mgt->tables[i].table_type_version_number);
+		rout(2, "number_bytes", "%u", mgt->tables[i].number_bytes);
+		if (!list_empty(&mgt->tables[i].list))
+			dump_descriptors(3, &mgt->tables[i].list);
+	}
+	if (!list_empty(&mgt->list))
+		dump_descriptors(1, &mgt->list);
+}
+
+static void dump_vct(const char *name, atsc_vct_t *vct)
+{
+	dump_section_header(name, &vct->vct_header);
+	rout(1, "protocol_version", "%d", vct->protocol_version);
+	rout(1, "num_channels_in_section", "%d", vct->num_channels_in_section);
+	for (int i = 0; i < vct->num_channels_in_section; i++) {
+		rout(2, "channel", NULL);
+		rout(3, "major_channel_number", "%d", vct->channels[i].major_channel_number);
+		rout(3, "minor_channel_number", "%d", vct->channels[i].minor_channel_number);
+		rout(3, "modulation_mode", "%d", vct->channels[i].modulation_mode);
+		rout(3, "program_number", "%d", vct->channels[i].program_number);
+		rout(3, "service_type", "%d", vct->channels[i].service_type);
+		rout(3, "source_id", "%d", vct->channels[i].source_id);
+		if (!list_empty(&vct->channels[i].list))
+			dump_descriptors(4, &vct->channels[i].list);
+	}
+	if (!list_empty(&vct->list))
+		dump_descriptors(1, &vct->list);
+}
+
+static void dump_rrt(atsc_rrt_t *rrt)
+{
+	dump_section_header("RRT (Rating Region Table)", &rrt->rrt_header);
+	rout(1, "protocol_version", "%d", rrt->protocol_version);
+	rout(1, "dimensions_defined", "%d", rrt->dimensions_defined);
+	if (!list_empty(&rrt->list))
+		dump_descriptors(1, &rrt->list);
+}
+
+static void dump_ett(atsc_ett_t *ett)
+{
+	dump_section_header("ETT (Extended Text Table)", &ett->ett_header);
+	rout(1, "protocol_version", "%d", ett->protocol_version);
+	rout(1, "ETM_id", "0x%x", ett->ETM_id);
+}
+
+static void dump_atsc_eit(atsc_eit_t *eit)
+{
+	dump_section_header("ATSC EIT (Event Information Table)", &eit->eit_header);
+	rout(1, "protocol_version", "%d", eit->protocol_version);
+	rout(1, "num_events_in_section", "%d", eit->num_events_in_section);
+	for (int i = 0; i < eit->num_events_in_section; i++) {
+		rout(2, "event_id", "0x%x", eit->events[i].event_id);
+		rout(2, "start_time", "%u", eit->events[i].start_time);
+		rout(2, "length_in_seconds", "%u", eit->events[i].length_in_seconds);
+		if (!list_empty(&eit->events[i].list))
+			dump_descriptors(3, &eit->events[i].list);
+	}
+}
+
+static void dump_stt(atsc_stt_t *stt)
+{
+	dump_section_header("STT (System Time Table)", &stt->stt_header);
+	rout(1, "protocol_version", "%d", stt->protocol_version);
+	rout(1, "system_time", "%u", stt->system_time);
+	rout(1, "GPS_UTC_offset", "%d", stt->GPS_UTC_offset);
+	rout(1, "daylight_saving", "0x%x", stt->daylight_saving);
+	if (!list_empty(&stt->list))
+		dump_descriptors(1, &stt->list);
+}
+
+static void dump_dcct(atsc_dcct_t *dcct)
+{
+	dump_section_header("DCCT (Directed Channel Change Table)", &dcct->dcct_header);
+	rout(1, "protocol_version", "%d", dcct->protocol_version);
+	rout(1, "dcc_test_count", "%d", dcct->dcc_test_count);
+	if (!list_empty(&dcct->list))
+		dump_descriptors(1, &dcct->list);
+}
+
+static void dump_dccsct(atsc_dccsct_t *dccsct)
+{
+	dump_section_header("DCCSCT (Directed Channel Change Selection Table)", &dccsct->dccsct_header);
+	rout(1, "protocol_version", "%d", dccsct->protocol_version);
+	rout(1, "updates_defined", "%d", dccsct->updates_defined);
+	if (!list_empty(&dccsct->list))
+		dump_descriptors(1, &dccsct->list);
+}
+
+static int psip_seen(void)
+{
+	return psip_seen_mask != 0;
+}
+
+static void dump_psip(void)
+{
+	if (psip_seen_mask & PSIP_MGT)
+		dump_mgt(&psip.mgt);
+	if (psip_seen_mask & PSIP_TVCT)
+		dump_vct("TVCT (Terrestrial Virtual Channel Table)", &psip.tvct);
+	if (psip_seen_mask & PSIP_CVCT)
+		dump_vct("CVCT (Cable Virtual Channel Table)", &psip.cvct);
+	if (psip_seen_mask & PSIP_RRT)
+		dump_rrt(&psip.rrt);
+	if (psip_seen_mask & PSIP_EIT)
+		dump_atsc_eit(&psip.eit);
+	if (psip_seen_mask & PSIP_ETT)
+		dump_ett(&psip.ett);
+	if (psip_seen_mask & PSIP_STT)
+		dump_stt(&psip.stt);
+	if (psip_seen_mask & PSIP_DCCT)
+		dump_dcct(&psip.dcct);
+	if (psip_seen_mask & PSIP_DCCSCT)
+		dump_dccsct(&psip.dccsct);
+}
+
 static void convert_pids_to_tables(void)
 {
 	struct tsa_config *tsaconf = get_config();
@@ -294,8 +433,14 @@ static void convert_pids_to_tables(void)
 					tsaconf->tables |= BAT_SHOW;
 					break;
 				case EIT_PID:
-					tsaconf->tables |= EIT_SHOW;
-					break;
+				tsaconf->tables |= EIT_SHOW;
+				break;
+			case TDT_PID:
+				tsaconf->tables |= TDT_SHOW;
+				break;
+			case MGT_PID:
+				tsaconf->tables |= PSIP_SHOW;
+				break;
 				default:
 					tsaconf->tables |= PMT_SHOW;
 					break;
@@ -314,7 +459,9 @@ void dump_tables(void)
 
 	/*show all tables in default */
 	if (tsaconf->tables == 0)
-		tsaconf->tables = UINT8_MAX;
+		tsaconf->tables = (uint16_t)(PAT_SHOW | CAT_SHOW | PMT_SHOW | TSDT_SHOW |
+					    NIT_SHOW | SDT_SHOW | BAT_SHOW | TDT_SHOW |
+					    EIT_SHOW | PSIP_SHOW);
 
 	pat_t *pat = NULL, *pat_next = NULL;
 	if (psi.stats.pat_sections && (tsaconf->tables & PAT_SHOW)) {
@@ -336,7 +483,7 @@ void dump_tables(void)
 	// pid
 	if (tsaconf->tables & PMT_SHOW) {
 		for (int i = 0x10; i < 0x2000; i++) {
-			if (psi.pmt_bitmap[i / 64] & ((uint64_t)1 << (i % 64))) {
+			if (bitmap64_get(psi.pmt_bitmap, i)) {
 				dump_pmt(&psi.pmt[i], i);
 			}
 		}
@@ -362,6 +509,9 @@ void dump_tables(void)
 	if (psi.stats.eit_other_sections && (tsaconf->tables & EIT_SHOW))
 		dump_eit(&psi.eit_other);
 
+	if (psip_seen() && (tsaconf->tables & PSIP_SHOW))
+		dump_psip();
+
 }
 
 static void clear_sections(struct section_node *nodes, int num)
@@ -375,6 +525,22 @@ static void clear_sections(struct section_node *nodes, int num)
 		nodes[i].len = 0;
 	}
 }
+
+static void free_table_header(struct table_header *h)
+{
+	if (h->private_data_byte)
+		free(h->private_data_byte);
+	clear_sections(h->sections, h->last_section_number + 1);
+}
+
+/* free a descriptor-bearing list whose nodes are of the same type */
+#define free_list_nodes(head, node, next)				\
+	list_for_each_safe((head), (node), (next), n)		\
+	{													\
+		free_descriptors(&(node)->list);				\
+		list_del(&(node)->n);							\
+		free(node);										\
+	}
 
 void free_tables(void)
 {
@@ -391,16 +557,13 @@ void free_tables(void)
 	if (psi.ca_num > 0) {
 		list_for_each_safe(&psi.cat_list, catn, cnext, n) {
 			free_descriptors(&catn->list);
-		
-			if (catn->cat_header.private_data_byte)
-				free(catn->cat_header.private_data_byte);
-			clear_sections(catn->cat_header.sections, catn->cat_header.last_section_number + 1);
+			free_table_header(&catn->cat_header);
 		}
 	}
 
 	// pid
 	for (i = 0; i < 0x2000; i++) {
-		if (psi.pmt_bitmap[i / 64] & ((uint64_t)1 << (i % 64))) {
+		if (bitmap64_get(psi.pmt_bitmap, i)) {
 			list_for_each_safe(&(psi.pmt[i].h), no, pmt_next, n)
 			{
 				free_descriptors(&(no->list));
@@ -408,9 +571,8 @@ void free_tables(void)
 				free(no);
 			}
 			free_descriptors(&(psi.pmt[i].list));
-			if (psi.pmt[i].pmt_header.private_data_byte)
-				free(psi.pmt[i].pmt_header.private_data_byte);
-			psi.pmt_bitmap[i / 64] &= ~((uint64_t)1 << (i % 64));
+			free_table_header(&psi.pmt[i].pmt_header);
+			bitmap64_clear(psi.pmt_bitmap, i);
 		}
 	}
 	/* clear pat sections */
@@ -423,111 +585,53 @@ void free_tables(void)
 				free(pn);
 			}
 		
-			if (patn->pat_header.private_data_byte)
-				free(patn->pat_header.private_data_byte);
-			clear_sections(patn->pat_header.sections, patn->pat_header.last_section_number + 1);
+			free_table_header(&patn->pat_header);
 		}
 	}
 
 	if (psi.stats.sdt_actual_sections) {
-		if (!list_empty(&(psi.sdt_actual.h))) {
-			list_for_each_safe(&psi.sdt_actual.h, sn, sdt_next, n)
-			{
-				free_descriptors(&sn->list);
-				list_del(&sn->n);
-				free(sn);
-			}
-		}
-		if (psi.sdt_actual.sdt_header.private_data_byte)
-			free(psi.sdt_actual.sdt_header.private_data_byte);
-		clear_sections(psi.sdt_actual.sdt_header.sections, psi.sdt_actual.sdt_header.last_section_number + 1);
+		if (!list_empty(&(psi.sdt_actual.h)))
+			free_list_nodes(&psi.sdt_actual.h, sn, sdt_next);
+		free_table_header(&psi.sdt_actual.sdt_header);
 	}
 	sdt_next = NULL;
 	if (psi.stats.sdt_other_sections) {
-		if (!list_empty(&(psi.sdt_other.h))) {
-			list_for_each_safe(&psi.sdt_other.h, sn, sdt_next, n)
-			{
-				free_descriptors(&sn->list);
-				list_del(&sn->n);
-				free(sn);
-			}
-		}
-		if (psi.sdt_other.sdt_header.private_data_byte)
-			free(psi.sdt_other.sdt_header.private_data_byte);
-		clear_sections(psi.sdt_other.sdt_header.sections, psi.sdt_other.sdt_header.last_section_number + 1);
+		if (!list_empty(&(psi.sdt_other.h)))
+			free_list_nodes(&psi.sdt_other.h, sn, sdt_next);
+		free_table_header(&psi.sdt_other.sdt_header);
 	}
-	if (psi.stats.nit_actual_sections ) {
+	if (psi.stats.nit_actual_sections) {
 		if (!list_empty(&(psi.nit_actual.list)))
 			free_descriptors(&(psi.nit_actual.list));
-		if (!list_empty(&(psi.nit_actual.h))) {
-			list_for_each_safe(&(psi.nit_actual.h), tn, nit_next, n)
-			{
-				free_descriptors(&tn->list);
-				list_del(&(tn->n));
-				free(tn);
-			}
-		}
-		if (psi.nit_actual.nit_header.private_data_byte)
-			free(psi.nit_actual.nit_header.private_data_byte);
-		clear_sections(psi.nit_actual.nit_header.sections, psi.nit_actual.nit_header.last_section_number + 1);
+		if (!list_empty(&(psi.nit_actual.h)))
+			free_list_nodes(&psi.nit_actual.h, tn, nit_next);
+		free_table_header(&psi.nit_actual.nit_header);
 	}
 	nit_next = NULL;
 	if (psi.stats.nit_other_sections) {
 		if (!list_empty(&(psi.nit_other.list)))
 			free_descriptors(&(psi.nit_other.list));
-		if (!list_empty(&(psi.nit_other.h))) {
-			list_for_each_safe(&(psi.nit_other.h), tn, nit_next, n)
-			{
-				free_descriptors(&tn->list);
-				list_del(&(tn->n));
-				free(tn);
-			}
-		}
-		if (psi.nit_other.nit_header.private_data_byte)
-			free(psi.nit_other.nit_header.private_data_byte);
-		clear_sections(psi.nit_other.nit_header.sections, psi.nit_other.nit_header.last_section_number + 1);
+		if (!list_empty(&(psi.nit_other.h)))
+			free_list_nodes(&psi.nit_other.h, tn, nit_next);
+		free_table_header(&psi.nit_other.nit_header);
 	}
 	if (psi.stats.bat_sections) {
 		if (!list_empty(&(psi.bat.list)))
 			free_descriptors(&(psi.bat.list));
-		if (!list_empty(&(psi.bat.h))) {
-			list_for_each_safe(&(psi.bat.h), tn, bat_next, n)
-			{
-				free_descriptors(&tn->list);
-				list_del(&(tn->n));
-				free(tn);
-			}
-		}
-		if (psi.bat.bat_header.private_data_byte)
-			free(psi.bat.bat_header.private_data_byte);
-		clear_sections(psi.bat.bat_header.sections, psi.bat.bat_header.last_section_number + 1);
+		if (!list_empty(&(psi.bat.h)))
+			free_list_nodes(&psi.bat.h, tn, bat_next);
+		free_table_header(&psi.bat.bat_header);
 	}
 	if (psi.stats.eit_actual_sections) {
-		if (!list_empty(&(psi.eit_actual.h))) {
-			list_for_each_safe(&(psi.eit_actual.h), en, eit_next, n)
-			{
-				free_descriptors(&en->list);
-				list_del(&(en->n));
-				free(en);
-			}
-		}
-		if (psi.eit_actual.eit_header.private_data_byte)
-			free(psi.eit_actual.eit_header.private_data_byte);
-		clear_sections(psi.eit_actual.eit_header.sections, psi.eit_actual.eit_header.last_section_number + 1);
+		if (!list_empty(&(psi.eit_actual.h)))
+			free_list_nodes(&psi.eit_actual.h, en, eit_next);
+		free_table_header(&psi.eit_actual.eit_header);
 	}
 	eit_next = NULL;
 	if (psi.stats.eit_other_sections) {
-		if (!list_empty(&(psi.eit_other.h))) {
-			list_for_each_safe(&(psi.eit_other.h), en, eit_next, n)
-			{
-				free_descriptors(&en->list);
-				list_del(&(en->n));
-				free(en);
-			}
-		}
-		if (psi.eit_other.eit_header.private_data_byte)
-			free(psi.eit_other.eit_header.private_data_byte);
-		clear_sections(psi.eit_other.eit_header.sections, psi.eit_other.eit_header.last_section_number + 1);
+		if (!list_empty(&(psi.eit_other.h)))
+			free_list_nodes(&psi.eit_other.h, en, eit_next);
+		free_table_header(&psi.eit_other.eit_header);
 	}
 
 	if (psi.stats.tot_sections) {
@@ -595,16 +699,12 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 	
 	uint8_t tableid = TS_READ8(pdata);
 	pdata += 1;
-	// ptable->table_id = tableid;
-
 	/* A flag indicates if the syntax section follows the section length,
 	 the PAT, PMT, and CAT all set this to 1 */
 	uint8_t section_syntax_indicator = TS_READ_BIT(pdata, 7);
-	// ptable->section_syntax_indicator = section_syntax_indicator;
 
 	// the PAT, PMT, and CAT all set this to 0, others set this to 1
 	uint8_t private_bit = TS_READ_BIT(pdata, 6);
-	// ptable->private_bit = private_bit;
 
 	//skip two bits for reserved
 
@@ -651,15 +751,6 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 		pdata += 1;
 		
 		/* syntax section, table data. concat them if there are multiple sections */
-		/* malloc new struct when version update, usually greater than the older version */
-		// if (version_num > ptable->version_number ||
-		// 	(ptable->version_number == 0x1F && version_num != 0x1F))
-		// {
-		// 	// clear_sections(ptable->sections, ptable->last_section_number + 1);
-		// 	memset(ptable->section_bitmap, 0, sizeof(uint64_t) * 4);
-		// 	ptable->version_number = version_num;
-		// 	ptable->last_section_number = last_sec;
-		// }
 		ptable->version_number = version_num;
 		ptable->last_section_number = last_sec;
 		ptable->table_id = tableid;
@@ -671,10 +762,10 @@ int parse_section_header(uint8_t *pbuf, uint16_t buf_size, struct table_header *
 		ptable->current_next_indicator = current_next_indicator;
 
 		//old data come again, ignore
-		if ((ptable->section_bitmap[cur_sec / 64] & ((uint64_t)1 << (cur_sec % 64)))) {
+		if (bitmap64_get(ptable->section_bitmap, cur_sec)) {
 			return DUPLICATE_DATA;
 		}
-		ptable->section_bitmap[cur_sec / 64] |= ((uint64_t)1 << (cur_sec % 64));
+		bitmap64_set(ptable->section_bitmap, cur_sec);
 
 
 		ptable->sections[cur_sec].len = buf_size - 3;
@@ -702,45 +793,37 @@ int parse_pat(uint8_t *pbuf, uint16_t buf_size)
 	uint16_t section_len = 0;
 	uint8_t *pdata = NULL;
 	struct program_node *pn = NULL, *next = NULL;
-	pat_t *pPAT = psi.pat;
+	pat_t *p_pat = psi.pat;
 	uint8_t cur_version = 0x1F;
-	if (pPAT) {
-		cur_version = pPAT->pat_header.version_number;
+	if (p_pat) {
+		cur_version = p_pat->pat_header.version_number;
 	}
 
 	int ret = check_section_header_version(pbuf, buf_size, cur_version);
 	if (ret == 1) {
 		// new version, alloc new struct
-		pPAT = calloc(1, sizeof(pat_t));
-		if (!pPAT) {
+		p_pat = calloc(1, sizeof(pat_t));
+		if (!p_pat) {
 			return ENOMEM;
 		}
-		list_head_init(&(pPAT->h));
-		pPAT->pat_header.version_number = 0x1F;
-		psi.pat = pPAT;
-		list_add_tail(&psi.pat_list, &pPAT->n);
+		list_head_init(&(p_pat->h));
+		p_pat->pat_header.version_number = 0x1F;
+		psi.pat = p_pat;
+		list_add_tail(&psi.pat_list, &p_pat->n);
 	} else if (ret != 0){
 		// skip process sections
 		return ret;
 	}
 
 	// else it is the sections for the same version, do concat
-	ret = parse_section_header(pbuf, buf_size, &pPAT->pat_header);
+	ret = parse_section_header(pbuf, buf_size, &p_pat->pat_header);
 	if (ret != 0) {
 		return ret;
 	}
 
-	// if (!list_empty(&(pPAT->h))) {
-	// 	list_for_each_safe(&(pPAT->h), pn, next, n)
-	// 	{
-	// 		list_del(&(pn->n));
-	// 		free(pn);
-	// 	}
-	// }
-
 	// TODO: limit program total length
-	section_len = pPAT->pat_header.section_length;
-	pdata = pPAT->pat_header.private_data_byte;
+	section_len = p_pat->pat_header.section_length;
+	pdata = p_pat->pat_header.private_data_byte;
 
 	section_len -= (5 + 4);
 	while (section_len > 0) {
@@ -754,8 +837,8 @@ int parse_pat(uint8_t *pbuf, uint16_t buf_size)
 		if (program_num == 0xFFFF) {
 			break;
 		}
-		if (pPAT->program_bitmap[program_num / 64] & ((uint64_t)1 << (program_num % 64))) {
-			list_for_each_safe(&(pPAT->h), pn, next, n)
+		if (p_pat->program_bitmap[program_num / 64] & ((uint64_t)1 << (program_num % 64))) {
+			list_for_each_safe(&(p_pat->h), pn, next, n)
 			{
 				if (pn->program_number == program_num) {
 					pn->program_map_PID = program_map_PID;
@@ -769,8 +852,8 @@ int parse_pat(uint8_t *pbuf, uint16_t buf_size)
 			}
 			pn->program_number = program_num;
 			pn->program_map_PID = program_map_PID;
-			pPAT->program_bitmap[program_num / 64] |= ((uint64_t)1 << (program_num % 64));
-			list_add_tail(&(pPAT->h), &(pn->n));
+			p_pat->program_bitmap[program_num / 64] |= ((uint64_t)1 << (program_num % 64));
+			list_add_tail(&(p_pat->h), &(pn->n));
 		}
 	}
 
@@ -781,85 +864,85 @@ int parse_cat(uint8_t *pbuf, uint16_t buf_size)
 {
 	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
-	cat_t *pCAT = psi.cat;
+	cat_t *p_cat = psi.cat;
 	uint8_t cur_version = 0x1F;
-	if (pCAT) {
-		cur_version = pCAT->cat_header.version_number;
+	if (p_cat) {
+		cur_version = p_cat->cat_header.version_number;
 	}
 
 	int ret = check_section_header_version(pbuf, buf_size, cur_version);
 	if (ret == 1) {
 		// new version, alloc new struct
-		pCAT = calloc(1, sizeof(pat_t));
-		if (!pCAT) {
+		p_cat = calloc(1, sizeof(cat_t));
+		if (!p_cat) {
 			return ENOMEM;
 		}
-		list_head_init(&(pCAT->list));
-		pCAT->cat_header.version_number = 0x1F;
-		psi.cat = pCAT;
-		list_add_tail(&psi.cat_list, &pCAT->n);
+		list_head_init(&(p_cat->list));
+		p_cat->cat_header.version_number = 0x1F;
+		psi.cat = p_cat;
+		list_add_tail(&psi.cat_list, &p_cat->n);
 	} else if (ret != 0){
 		// skip process sections
 		return ret;
 	}
 
-	ret = parse_section_header(pbuf, buf_size, &pCAT->cat_header);
+	ret = parse_section_header(pbuf, buf_size, &p_cat->cat_header);
 	if (ret != 0)
 		return ret;
 
 	// // Transport Stream ID
-	// ts_id = pCAT->cat_header.table_id_ext;
-	section_len = pCAT->cat_header.section_length;
+	// ts_id = p_cat->cat_header.table_id_ext;
+	section_len = p_cat->cat_header.section_length;
 
-	pdata = pCAT->cat_header.private_data_byte;
+	pdata = p_cat->cat_header.private_data_byte;
 	section_len -= (5 + 4);
 
 	//clear descriptors
-	if (!list_empty(&(pCAT->list))) {
-		free_descriptors(&(pCAT->list));
+	if (!list_empty(&(p_cat->list))) {
+		free_descriptors(&(p_cat->list));
 	}
 	
-	parse_descriptors(&(pCAT->list), pdata, section_len);
+	parse_descriptors(&(p_cat->list), pdata, section_len);
 
 	return 0;
 }
 
-int parse_tsdt(uint8_t *pbuf, uint16_t buf_size, tsdt_t *pTSDT)
+int parse_tsdt(uint8_t *pbuf, uint16_t buf_size, tsdt_t *p_tsdt)
 {
 	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
-	int ret = parse_section_header(pbuf, buf_size, &pTSDT->tsdt_header);
+	int ret = parse_section_header(pbuf, buf_size, &p_tsdt->tsdt_header);
 	if (ret != 0)
 		return ret;
 
-	section_len = pTSDT->tsdt_header.section_length;
+	section_len = p_tsdt->tsdt_header.section_length;
 
-	pdata = pTSDT->tsdt_header.private_data_byte;
+	pdata = p_tsdt->tsdt_header.private_data_byte;
 
 	section_len -= (5 + 4);
 
-	if (!list_empty(&(pTSDT->list))) {
-		free_descriptors(&(pTSDT->list));
+	if (!list_empty(&(p_tsdt->list))) {
+		free_descriptors(&(p_tsdt->list));
 	}
 
-	parse_descriptors(&(pTSDT->list), pdata, section_len);
+	parse_descriptors(&(p_tsdt->list), pdata, section_len);
 
 	return 0;
 }
 
-int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
+int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *p_pmt)
 {
 	int16_t section_len = 0;
 	uint8_t *pdata = NULL;
 	struct es_node *pn = NULL, *next = NULL;
 
-	int ret = parse_section_header(pbuf, buf_size, &pPMT->pmt_header);
+	int ret = parse_section_header(pbuf, buf_size, &p_pmt->pmt_header);
 	if (ret != 0)
 		return ret;
 
-	if (!list_empty(&(pPMT->h))) {
-		list_for_each_safe(&(pPMT->h), pn, next, n)
+	if (!list_empty(&(p_pmt->h))) {
+		list_for_each_safe(&(p_pmt->h), pn, next, n)
 		{
 			if (!list_empty(&(pn->list)))
 				free_descriptors(&(pn->list));
@@ -868,26 +951,26 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 		}
 	}
 
-	if (!list_empty(&(pPMT->list)))
-		free_descriptors(&(pPMT->list));
+	if (!list_empty(&(p_pmt->list)))
+		free_descriptors(&(p_pmt->list));
 
-	section_len = pPMT->pmt_header.section_length;
+	section_len = p_pmt->pmt_header.section_length;
 
 	// Transport Stream ID
-	pPMT->program_number = pPMT->pmt_header.table_id_ext;
+	p_pmt->program_number = p_pmt->pmt_header.table_id_ext;
 
 	section_len -= 5 + 4;
-	pdata = pPMT->pmt_header.private_data_byte;
+	pdata = p_pmt->pmt_header.private_data_byte;
 
-	pPMT->PCR_PID = TS_READ16(pdata) & 0x1FFF;
+	p_pmt->PCR_PID = TS_READ16(pdata) & 0x1FFF;
 	pdata += 2;
 	section_len -= 2;
-	pPMT->program_info_length = TS_READ16(pdata) & 0x0FFF;
+	p_pmt->program_info_length = TS_READ16(pdata) & 0x0FFF;
 	pdata += 2;
 
-	parse_descriptors(&(pPMT->list), pdata, pPMT->program_info_length);
-	pdata += pPMT->program_info_length;
-	section_len -= 2 + pPMT->program_info_length;
+	parse_descriptors(&(p_pmt->list), pdata, p_pmt->program_info_length);
+	pdata += p_pmt->program_info_length;
+	section_len -= 2 + p_pmt->program_info_length;
 
 	while (section_len > 0) {
 		pn = calloc(1, sizeof(struct es_node));
@@ -903,7 +986,7 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 		pn->ES_info_length = TS_READ16(pdata) & 0x0FFF;
 		pdata += 2;
 		parse_descriptors(&(pn->list), pdata, (int)pn->ES_info_length);
-		if (pn->stream_type == STEAM_TYPE_MPEG2_SECTIONS) {
+		if (pn->stream_type == STREAM_TYPE_MPEG2_SECTIONS) {
 			register_section_ops(pn->elementary_PID, 0, NULL);
 		} else if (pn->stream_type >= 0x08 && pn->stream_type <= 0x0D) {
 			register_section_ops(pn->elementary_PID, 0, NULL);
@@ -919,46 +1002,46 @@ int parse_pmt(uint8_t *pbuf, uint16_t buf_size, pmt_t *pPMT)
 		}
 		pdata += pn->ES_info_length;
 		section_len -= (5 + pn->ES_info_length);
-		list_add_tail(&(pPMT->h), &(pn->n));
+		list_add_tail(&(p_pmt->h), &(pn->n));
 	}
 
 	return 0;
 }
 
-int parse_nit(uint8_t *pbuf, uint16_t buf_size, nit_t *pNIT)
+int parse_nit(uint8_t *pbuf, uint16_t buf_size, nit_t *p_nit)
 {
 	int16_t section_len = 0;
 	uint8_t *pdata = NULL;
 	struct transport_stream_node *pn = NULL, *next = NULL;
 
-	int ret = parse_section_header(pbuf, buf_size, &pNIT->nit_header);
+	int ret = parse_section_header(pbuf, buf_size, &p_nit->nit_header);
 	if (ret != 0)
 		return ret;
 
-	section_len = pNIT->nit_header.section_length;
+	section_len = p_nit->nit_header.section_length;
 
-	pdata = pNIT->nit_header.private_data_byte;
+	pdata = p_nit->nit_header.private_data_byte;
 
 	section_len -= (5 + 4);
 
-	if (!list_empty(&(pNIT->list)))
-		free_descriptors(&(pNIT->list));
+	if (!list_empty(&(p_nit->list)))
+		free_descriptors(&(p_nit->list));
 
-	if (!list_empty(&(pNIT->h))) {
-		list_for_each_safe(&(pNIT->h), pn, next, n)
+	if (!list_empty(&(p_nit->h))) {
+		list_for_each_safe(&(p_nit->h), pn, next, n)
 		{
 			list_del(&(pn->n));
 			free(pn);
 		}
 	}
 
-	pNIT->network_descriptors_length = TS_READ16(pdata) & 0xFFF;	
+	p_nit->network_descriptors_length = TS_READ16(pdata) & 0xFFF;	
 	pdata += 2;
-	parse_descriptors(&(pNIT->list), pdata, (int)pNIT->network_descriptors_length);
-	pdata += pNIT->network_descriptors_length;
-	pNIT->transport_stream_loop_length = TS_READ16(pdata) & 0xFFF;
+	parse_descriptors(&(p_nit->list), pdata, (int)p_nit->network_descriptors_length);
+	pdata += p_nit->network_descriptors_length;
+	p_nit->transport_stream_loop_length = TS_READ16(pdata) & 0xFFF;
 	pdata += 2;
-	section_len -= 4 + pNIT->network_descriptors_length;;
+	section_len -= 4 + p_nit->network_descriptors_length;;
 
 	while (section_len > 0) {
 		pn = calloc(1, sizeof(struct transport_stream_node));
@@ -975,44 +1058,44 @@ int parse_nit(uint8_t *pbuf, uint16_t buf_size, nit_t *pNIT)
 		parse_descriptors(&(pn->list), pdata, (int)pn->transport_descriptors_length);
 		pdata += pn->transport_descriptors_length;
 		section_len -= 6 + pn->transport_descriptors_length;
-		list_add_tail(&(pNIT->h), &(pn->n));
+		list_add_tail(&(p_nit->h), &(pn->n));
 	}
 	return 0;
 }
 
-int parse_bat(uint8_t *pbuf, uint16_t buf_size, bat_t *pBAT)
+int parse_bat(uint8_t *pbuf, uint16_t buf_size, bat_t *p_bat)
 {
 	int16_t section_len = 0;
 	uint8_t *pdata = NULL;
 	struct transport_stream_node *pn = NULL, *next = NULL;
 
-	int ret = parse_section_header(pbuf, buf_size, &pBAT->bat_header);
+	int ret = parse_section_header(pbuf, buf_size, &p_bat->bat_header);
 	if (ret != 0)
 		return ret;
 
-	section_len = pBAT->bat_header.section_length;
-	pBAT->bouquet_id = pBAT->bat_header.table_id;
-	pdata = pBAT->bat_header.private_data_byte;
+	section_len = p_bat->bat_header.section_length;
+	p_bat->bouquet_id = p_bat->bat_header.table_id;
+	pdata = p_bat->bat_header.private_data_byte;
 
 	section_len -= 5 + 4;
 
-	if (!list_empty(&(pBAT->h))) {
-		list_for_each_safe(&(pBAT->h), pn, next, n)
+	if (!list_empty(&(p_bat->h))) {
+		list_for_each_safe(&(p_bat->h), pn, next, n)
 		{
 			list_del(&(pn->n));
 			free(pn);
 		}
 	}	
-	if (!list_empty(&(pBAT->list)))
-		free_descriptors(&(pBAT->list));
+	if (!list_empty(&(p_bat->list)))
+		free_descriptors(&(p_bat->list));
 
-	pBAT->bouquet_descriptors_length = TS_READ16(pdata) & 0xFFF;
+	p_bat->bouquet_descriptors_length = TS_READ16(pdata) & 0xFFF;
 	pdata += 2;
-	parse_descriptors(&(pBAT->list), pdata, pBAT->bouquet_descriptors_length);
-	pdata += pBAT->bouquet_descriptors_length;
+	parse_descriptors(&(p_bat->list), pdata, p_bat->bouquet_descriptors_length);
+	pdata += p_bat->bouquet_descriptors_length;
 	section_len -= 2;
-	section_len -= pBAT->bouquet_descriptors_length;
-	pBAT->transport_stream_loop_length = TS_READ16(pdata) & 0xFFF;
+	section_len -= p_bat->bouquet_descriptors_length;
+	p_bat->transport_stream_loop_length = TS_READ16(pdata) & 0xFFF;
 	pdata += 2;
 	section_len -= 2;
 	while (section_len > 0) {
@@ -1031,29 +1114,29 @@ int parse_bat(uint8_t *pbuf, uint16_t buf_size, bat_t *pBAT)
 		parse_descriptors(&(pn->list), pdata, pn->transport_descriptors_length);
 		pdata += pn->transport_descriptors_length;
 		section_len -= (6 + pn->transport_descriptors_length);
-		list_add_tail(&(pBAT->h), &(pn->n));
+		list_add_tail(&(p_bat->h), &(pn->n));
 	}
 
 	return 0;
 }
 
-int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
+int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *p_sdt)
 {
 	int16_t section_len = 0;
 	uint8_t *pdata = NULL;
 	struct service_node *pn = NULL, *next = NULL;
 
-	int ret = parse_section_header(pbuf, buf_size, &pSDT->sdt_header);
+	int ret = parse_section_header(pbuf, buf_size, &p_sdt->sdt_header);
 	if (ret != 0)
 		return ret;
 
-	section_len = pSDT->sdt_header.section_length;
-	pdata = pSDT->sdt_header.private_data_byte;
+	section_len = p_sdt->sdt_header.section_length;
+	pdata = p_sdt->sdt_header.private_data_byte;
 
 	section_len -= (5 + 4);
 
-	if (!list_empty(&(pSDT->h))) {
-		list_for_each_safe(&(pSDT->h), pn, next, n)
+	if (!list_empty(&(p_sdt->h))) {
+		list_for_each_safe(&(p_sdt->h), pn, next, n)
 		{
 			list_del(&(pn->n));
 			if (!list_empty(&(pn->list))) {
@@ -1063,7 +1146,7 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 		}
 	}
 
-	pSDT->original_network_id = TS_READ16(pdata);
+	p_sdt->original_network_id = TS_READ16(pdata);
 	pdata += 3;
 	section_len -= 3;
 	
@@ -1087,34 +1170,34 @@ int parse_sdt(uint8_t *pbuf, uint16_t buf_size, sdt_t *pSDT)
 		parse_descriptors(&(pn->list), pdata, (int)(pn->descriptors_loop_length));
 		pdata += pn->descriptors_loop_length;
 		section_len -= (5 + pn->descriptors_loop_length);
-		list_add_tail(&(pSDT->h), &(pn->n));
+		list_add_tail(&(p_sdt->h), &(pn->n));
 	}
 
 	return 0;
 }
 
-static int parse_eit(uint8_t *pbuf, uint16_t buf_size, eit_t *pEIT)
+static int parse_eit(uint8_t *pbuf, uint16_t buf_size, eit_t *p_eit)
 {
 	uint16_t section_len = 0;
 	uint8_t *pdata = NULL;
 	struct event_node *pn = NULL;
 
-	int ret = parse_section_header(pbuf, buf_size, &pEIT->eit_header);
+	int ret = parse_section_header(pbuf, buf_size, &p_eit->eit_header);
 	if (ret != 0)
 		return ret;
 
 
-	pdata = pEIT->eit_header.private_data_byte;
-	section_len = pEIT->eit_header.section_length;
+	pdata = p_eit->eit_header.private_data_byte;
+	section_len = p_eit->eit_header.section_length;
 
 	section_len -= (5 + 4);
-	pEIT->transport_stream_id = TS_READ16(pdata);
+	p_eit->transport_stream_id = TS_READ16(pdata);
 	pdata += 2;
-	pEIT->original_network_id = TS_READ16(pdata);
+	p_eit->original_network_id = TS_READ16(pdata);
 	pdata += 2;
-	pEIT->segment_last_section_number = TS_READ8(pdata);
+	p_eit->segment_last_section_number = TS_READ8(pdata);
 	pdata += 1;
-	pEIT->last_table_id = TS_READ8(pdata);
+	p_eit->last_table_id = TS_READ8(pdata);
 	pdata += 1;
 	section_len -= 6;
 	while (section_len > 0) {
@@ -1125,7 +1208,7 @@ static int parse_eit(uint8_t *pbuf, uint16_t buf_size, eit_t *pEIT)
 		list_head_init(&(pn->list));
 		list_node_init(&(pn->n));
 		pn->event_id = TS_READ16(pdata);
-		pdata += 1;
+		pdata += 2;
 		pn->start_time = TS_READ64_BITS(pdata, 40, 0);
 		pn->duration = TS_READ64_BITS(pdata, 24, 40);
 		pdata += 8;
@@ -1133,20 +1216,23 @@ static int parse_eit(uint8_t *pbuf, uint16_t buf_size, eit_t *pEIT)
 		pn->free_CA_mode = TS_READ16_BITS(pdata, 1, 3);
 		pn->descriptors_loop_length = TS_READ16_BITS(pdata, 12, 4);
 		pdata += 2;
+		fprintf(stderr, "DBG eit: event_id=%d desc_len=%d section_len=%d buf_size=%d\n", pn->event_id, pn->descriptors_loop_length, section_len, buf_size);
+		for (int di = 0; di < 45 && di < buf_size; di++) fprintf(stderr, "%02x ", pdata[di]);
+		fprintf(stderr, "\n");
 		parse_descriptors(&(pn->list), pdata, (int)(pn->descriptors_loop_length));
 		section_len -= (12 + pn->descriptors_loop_length);;
-		list_add_tail(&(pEIT->h), &(pn->n));
+		list_add_tail(&(p_eit->h), &(pn->n));
 	}
 
 	return 0;
 }
 
-static int parse_tdt(uint8_t *pbuf, uint16_t buf_size, tdt_t *pTDT)
+static int parse_tdt(uint8_t *pbuf, uint16_t buf_size, tdt_t *p_tdt)
 {
 	uint16_t section_len = 0;
 	uint8_t *pdata = pbuf;
 
-	if (unlikely(pbuf == NULL || pTDT == NULL)) {
+	if (unlikely(pbuf == NULL || p_tdt == NULL)) {
 		return -1;
 	}
 
@@ -1156,17 +1242,17 @@ static int parse_tdt(uint8_t *pbuf, uint16_t buf_size, tdt_t *pTDT)
 
 	pdata += 1;
 	section_len = TS_READ16(pdata) & 0xFFF;
-	pTDT->section_length = section_len;
+	p_tdt->section_length = section_len;
 	pdata += 2;
-	memcpy(&pTDT->utc_time, pdata, 5);
+	memcpy(&p_tdt->utc_time, pdata, 5);
 	return 0;
 }
 
-static int parse_tot(uint8_t *pbuf, uint16_t buf_size, tot_t *pTOT)
+static int parse_tot(uint8_t *pbuf, uint16_t buf_size, tot_t *p_tot)
 {
 	uint8_t *pdata = pbuf;
 
-	if (unlikely(pbuf == NULL || pTOT == NULL)) {
+	if (unlikely(pbuf == NULL || p_tot == NULL)) {
 		return -1;
 	}
 
@@ -1175,15 +1261,15 @@ static int parse_tot(uint8_t *pbuf, uint16_t buf_size, tot_t *pTOT)
 	}
 
 	pdata += 1;
-	pTOT->section_length = TS_READ16(pdata) & 0xFFF;
+	p_tot->section_length = TS_READ16(pdata) & 0xFFF;
 	pdata += 2;
-	memcpy(&pTOT->utc_time, pdata, 5);
+	memcpy(&p_tot->utc_time, pdata, 5);
 	pdata += 5;
-	pTOT->descriptors_loop_length = TS_READ16(pdata) & 0xFFF;
+	p_tot->descriptors_loop_length = TS_READ16(pdata) & 0xFFF;
 	pdata += 2;
-	if (!list_empty(&(pTOT->list)))
-		free_descriptors(&(pTOT->list));
-	parse_descriptors(&(pTOT->list), pdata, (int)pTOT->descriptors_loop_length);
+	if (!list_empty(&(p_tot->list)))
+		free_descriptors(&(p_tot->list));
+	parse_descriptors(&(p_tot->list), pdata, (int)p_tot->descriptors_loop_length);
 	return 0;
 }
 
@@ -1303,7 +1389,7 @@ int parse_multi_string(uint8_t *pbuf, struct multiple_string *str)
 	pdata += 1;
 	str->strings = calloc(str->number_strings, sizeof(struct lang_string));
 	if (!str->strings) {
-		return -ENOMEM;
+		return ENOMEM;
 	}
 	for (int i = 0; i < str->number_strings; i ++) {
 		str->strings[i].ISO_639_language_code = TS_READ32_BITS(pdata, 24, 0);
@@ -1311,7 +1397,7 @@ int parse_multi_string(uint8_t *pbuf, struct multiple_string *str)
 		pdata += 4;
 		str->strings[i].segments = calloc(str->strings[i].number_segments, sizeof(struct string_segment));
 		if (!str->strings[i].segments) {
-			return -ENOMEM;
+			return ENOMEM;
 		}
 		for (int j =0; j < str->strings[i].number_segments; j ++) {
 			str->strings[i].segments[j].compression_type = TS_READ8(pdata);
@@ -1322,7 +1408,7 @@ int parse_multi_string(uint8_t *pbuf, struct multiple_string *str)
 			pdata += 1;
 			str->strings[i].segments[j].compressed_string_byte = calloc(1, str->strings[i].segments[j].number_bytes);
 			if (!str->strings[i].segments[j].compressed_string_byte) {
-				return -ENOMEM;
+				return ENOMEM;
 			}
 			memcpy(str->strings[i].segments[j].compressed_string_byte, pdata, str->strings[i].segments[j].number_bytes);
 			pdata += str->strings[i].segments[j].number_bytes;
@@ -1409,8 +1495,8 @@ static int parse_tvct(uint8_t *pbuf, uint16_t buf_size, atsc_vct_t *tvct)
 		return ENOMEM;
 	}
 	for (int i = 0; i < tvct->num_channels_in_section; i ++) {
-		memcpy(tvct->channels[i].short_name, pdata, 7*16);
-		pdata += 7*16;
+		memcpy(tvct->channels[i].short_name, pdata, 7 * sizeof(uint16_t));
+		pdata += 7 * sizeof(uint16_t);
 		tvct->channels[i].major_channel_number = TS_READ32_BITS(pdata, 10, 4);
 		tvct->channels[i].minor_channel_number = TS_READ32_BITS(pdata, 10, 14);
 		tvct->channels[i].modulation_mode = TS_READ32_BITS(pdata, 8, 24);
@@ -1781,30 +1867,39 @@ static int psip_proc(uint16_t pid __maybe_unused, uint8_t *pkt, uint16_t len)
 	switch (pkt[0]) {
 		case MGT_TID:
 			parse_mgt(pkt, len, &psip.mgt);
+			psip_seen_mask |= PSIP_MGT;
 			break;
 		case TVCT_TID:
 			parse_tvct(pkt, len, &psip.tvct);
+			psip_seen_mask |= PSIP_TVCT;
 			break;
 		case CVCT_TID:
 			parse_cvct(pkt, len, &psip.cvct);
+			psip_seen_mask |= PSIP_CVCT;
 			break;
 		case RRT_TID:
 			parse_rrt(pkt, len, &psip.rrt);
+			psip_seen_mask |= PSIP_RRT;
 			break;
 		case ETT_TID:
 			parse_ett(pkt, len, &psip.ett);
+			psip_seen_mask |= PSIP_ETT;
 			break;
 		case EIT_TID:
 			parse_atsc_eit(pkt, len, &psip.eit);
+			psip_seen_mask |= PSIP_EIT;
 			break;
 		case STT_TID:
 			parse_stt(pkt, len, &psip.stt);
+			psip_seen_mask |= PSIP_STT;
 			break;
 		case DCCT_TID:
 			parse_dcct(pkt, len, &psip.dcct);
+			psip_seen_mask |= PSIP_DCCT;
 			break;
 		case DCCSCT_TID:
 			parse_dccsct(pkt, len, &psip.dccsct);
+			psip_seen_mask |= PSIP_DCCSCT;
 			break;
 		default:
 			break;
@@ -1871,13 +1966,13 @@ void init_table_ops(void)
 	init_table_filter(TDT_PID, TDT_TID, 0xFF, tdt_tot_proc);
 	init_table_filter(TOT_PID, TOT_TID, 0xFF, tdt_tot_proc);
 
-	init_table_filter(MGT_PID, MGT_TID, 0xFF, psip_proc);
-	init_table_filter(TVCT_PID, TVCT_TID, 0xFF, psip_proc);
-	init_table_filter(CVCT_PID, CVCT_TID, 0xFF, psip_proc);
-	init_table_filter(RRT_PID, RRT_TID, 0xFF, psip_proc);
-	init_table_filter(STT_PID, STT_TID, 0xFF, psip_proc);
-	init_table_filter(DCCT_PID, DCCT_TID, 0xFF, psip_proc);
-	init_table_filter(DCCSCT_PID, DCCSCT_TID, 0xFF, psip_proc);
+	/* All PSIP tables share PID 0x1FFB, but MAX_FILTER_NUM (6) limits the
+	 * number of filters per PID. Register a single wildcard filter (mask 0)
+	 * and dispatch by table_id inside psip_proc. */
+	init_table_filter(MGT_PID, 0, 0, psip_proc);
+	/* PID 0x1FFB is not < 0x20, so mark it as a section PID so the demux
+	 * reassembles sections on it (all PSIP tables share this PID). */
+	psi.section_bitmap[MGT_PID / 64] |= ((uint64_t)1 << (MGT_PID % 64));
 }
 
 void uninit_table_ops(void)

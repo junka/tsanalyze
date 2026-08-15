@@ -1,5 +1,5 @@
-#ifndef _BITS_H_
-#define _BITS_H_
+#ifndef _TS_H_
+#define _TS_H_
 
 #include <stdint.h>
 
@@ -83,6 +83,7 @@ enum PID_e {
 	TVCT_PID = 0x1FFB,
 	CVCT_PID = 0x1FFB,
 	RRT_PID = 0x1FFB,
+	ETT_PID = 0x1FFB,
 	STT_PID = 0x1FFB,
 	DCCT_PID = 0x1FFB,
 	DCCSCT_PID = 0x1FFB,
@@ -144,6 +145,7 @@ static inline uint24_t ts_read_uint24(uint8_t *buff)
 #define BAT_SHOW 	(1 << 6)
 #define TDT_SHOW 	(1 << 7)
 #define EIT_SHOW	(1 << 8)
+#define PSIP_SHOW	(1 << 9)
 
 /* payload length step on */
 #define PL_STEP(p, l, v) \

@@ -76,15 +76,9 @@ uint8_t reverse_byte(uint8_t n)
 
 #define REVERSE_BYTE(n) reverse_byte(n)
 
-// #define HAMMING8_DATA(x) ((((x & 0x55) >> 3) & 0x8) | (((x & 0x55) >> 2) & 0x4) | (((x & 0x55) >> 1) & 0x2) | (((x &
-// 0x55)) & 0x1))
-
 /* rev order */
 #define HAMMING8_DATA(x)                                                                                               \
 	((((x & 0x55) >> 6) & 0x1) | (((x & 0x55) >> 3) & 0x2) | (((x & 0x55)) & 0x4) | (((x & 0x55) << 3) & 0x8))
-
-// #define HAMMING24_DATA(x) ((x[2]&0xFE) >>1 | (x[1]&0xFE) << 6 | ((x[0] & 0x2E) << 13) & 0x7 |  ((x[0] & 0x2E) << 12)
-// & 0x8)
 
 #define HAMMING24_DATA(x)                                                                                              \
 	((REVERSE_BYTE(x[2]) & 0x7F) << 11 | ((REVERSE_BYTE(x[1]) & 0x7F) << 4) |                                          \
@@ -191,7 +185,6 @@ int decode_hamming_address(uint16_t addr, int *X)
 	*X = (HAMMING8_DATA(ret)) & 0x7;
 	int Y = (HAMMING8_DATA(ret) >> 3 & 0x1) | (HAMMING8_DATA(decode_hamming8_code(packet)) << 1);
 
-	// printf("0x%x -> X %d, 0x%x -> Y %d\n", magazine, *X, packet, Y);
 	return Y;
 }
 
@@ -217,7 +210,6 @@ int parse_teletext_data(uint16_t addr, uint8_t data[40])
 		uint8_t units = HAMMING8_DATA(ret);
 		uint8_t tens = HAMMING8_DATA(decode_hamming8_code(data[1]));
 		P = tens * 10 + units;
-		// printf("X %d page %d (%d, %d)\n", X, P, tens, units);
 		uint8_t s1 __maybe_unused = HAMMING8_DATA(decode_hamming8_code(data[2]));
 		uint8_t s2 __maybe_unused = HAMMING8_DATA(decode_hamming8_code(data[3])) & 0x7;
 		uint8_t s3 __maybe_unused = HAMMING8_DATA(decode_hamming8_code(data[4]));
@@ -247,8 +239,6 @@ int parse_teletext_data(uint16_t addr, uint8_t data[40])
 		 * Byte 6 is then Hamming 8/4 coded and is referred to as the Designation Code.
 		 */
 		uint8_t designation_code __maybe_unused = HAMMING8_DATA(decode_hamming8_code(data[0]));
-		// decode_hamming24_code(data+3)
-		// uint32_t triplet = HAMMING24_DATA(data);
 
 		if (Y == 26) {
 
@@ -305,7 +295,6 @@ int parse_teletext(uint16_t pid, uint8_t *pbuf, int len, void *teletext)
 		t_len += 46;
 		i++;
 	}
-	// dump_teletext_pages(6, 6);
 	return 0;
 }
 

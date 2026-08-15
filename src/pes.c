@@ -22,9 +22,6 @@ typedef struct {
 
 static mpegts_pes_t pes = {.pid_num = 0, .list = NULL};
 
-// static pes_data_callback pes_fns[0xFF] = {NULL};
-
-
 void *pes_private_alloc(uint8_t tag)
 {
 	if (tag == 0x59) {
@@ -43,7 +40,6 @@ void *pes_private_alloc(uint8_t tag)
 
 void register_pes_data_callback(uint16_t pid, uint8_t stream_type, pes_data_callback cb, uint8_t tag)
 {
-	// pes_fns[stream_type] = cb;
 	if (pes.pid_index[pid] >= pes.pid_num) {
 		return;
 	}
@@ -183,7 +179,6 @@ int parse_pes_packet(uint16_t pid, uint8_t *pkt, uint16_t len)
 			if (pt->packet_data.extension.pack_header_field_flag) {
 				pt->packet_data.extension.pack_head_length = buf[0];
 				buf += 1;
-				//parse_pack_header(buf);
 				buf += pt->packet_data.extension.pack_head_length;
 				head_len += (1 + pt->packet_data.extension.pack_head_length);
 			}
@@ -237,7 +232,6 @@ static int pes_proc(uint16_t pid, uint8_t *pkt, uint16_t len)
 {
 	int ret = parse_pes_packet(pid, pkt, len);
 	if (ret < 0) {
-		// printf("error in parsing pes %d, len %d\n", pid, len);
 		return -1;
 	}
 	return 0;
@@ -303,7 +297,6 @@ void register_pes_ops(uint16_t pid, uint8_t stream_type)
 		pes.list[pes.pid_num].cb = NULL;
 		pes.pid_index[pid] = pes.pid_num;
 		//can be null at first
-		// pes.list[pes.pid_num].cb = pes_fns[stream_type];
 		pes.pid_num ++;
 
 		filter_t *f = filter_alloc(pid);

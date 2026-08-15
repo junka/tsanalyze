@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -286,7 +287,6 @@ int read_pixel_data_sub_block(uint8_t *pbuf, int len, uint8_t *enc_data, int *en
     uint8_t data_type = TS_READ8(pdata);
     pdata += 1;
     slen += 1;
-    // printf("data sub block type 0x%x, len %d\n", data_type, len);
     if (data_type == 0x10) {
         slen += read_2bit_pixel_code_string(pdata, len - 1, enc_data, enc_len);
     } else if (data_type == 0x11) {
@@ -356,7 +356,6 @@ int parse_subtitle_segment_header(uint8_t *pbuf, int len, struct segment_header 
     h->segment_length = TS_READ16(pdata);
     hlen += 2;
     pdata += 2;
-    //printf("segment_type %d, page id %d, segment_length %d\n", h->segment_type, h->page_id, h->segment_length);
     return hlen;
 }
 
@@ -575,10 +574,8 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
                 }
                 while (top_len < ods->top_field_data_block_length) {
                     top_len += read_pixel_data_sub_block(pdata + top_len, ods->top_field_data_block_length - top_len, ods->data_top, &ods->top_dec_len);
-                    // if (ods->top_sub_block[i].data_type != 0xf0) {
                     i ++;
                 }
-                // printf("ori len %d, dec_len %d\n", ods->top_field_data_block_length, dec_top_len);
 
                 pdata += top_len;
                 slen += top_len;
@@ -779,7 +776,6 @@ int parse_sub_segment(uint8_t *pbuf, int len, uint8_t type, struct segment_node 
             break;
         case end_of_display_set_segment:
             /* only header here */
-            // printf("end of display\n");
             break;
         default:
             printf("have unsupported segment type, we should not go here\n");
@@ -1004,7 +1000,6 @@ void dump_subtitles(struct subtitle_pes_data *sub)
                 rout(5, "top_field_data_block_length", "%d", ods->top_field_data_block_length);
                 rout(5, "bottom_field_data_block_length", "%d", ods->bottom_field_data_block_length);
                 rout(5, "num_top", "%d", ods->num_top);
-                // dump_subtitle_bitmap("topxxx", NULL, ods->data_top, ods->top_dec_len, 720, 36, 4);
                 rout(5, "num_bottom", "%d", ods->num_bottom);
             } else if (ods->object_coding_method == 1) {
                 rout(5, "number_of_codes", "%d", ods->number_of_codes);
@@ -1061,21 +1056,6 @@ void free_subtitles(struct subtitle_pes_data *sub)
                 if (ods->data_bottom) {
                     free(ods->data_bottom);
                 }
-                // if (ods->top_sub_block) {
-                //     for (int i =0; i < ods->num_top; i ++) {
-                //         if (ods->top_sub_block[i].data) {
-                //             free(ods->top_sub_block[i].data);
-                //         }
-                //     }
-                //     free(ods->top_sub_block);
-                // }
-                // if (ods->bottom_sub_block) {
-                //     for (int i =0; i < ods->num_bottom; i ++) {
-                //         if (ods->bottom_sub_block[i].data)
-                //             free(ods->bottom_sub_block[i].data);
-                //     }
-                //     free(ods->bottom_sub_block);
-                // }
         } else if (ods->object_coding_method == 1) {
                 if (ods->character_code) {
                     free(ods->character_code);

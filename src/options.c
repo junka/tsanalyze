@@ -171,7 +171,6 @@ int prog_parse_args(int argc,  char * const *argv)
 			prog_usage(stdout, prgname);
 			return -EINVAL;
 		}
-		// printf("parse %c %s\n",opt,optarg);
 		switch (opt) {
 		case 'h':
 			prog_usage(stdout, prgname);

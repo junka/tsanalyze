@@ -464,9 +464,9 @@ foreach_enum_descriptor
 #define __m(type, name, bits)                                                                                \
 	dr->name = TS_READ_BITS_##type(buf + bytes_off, bits, bits_off);                                                   \
 	bits_off += bits;                                                                                                  \
-	if (bits_off == sizeof(type) * 8) {                                                                                \
-		bits_off = 0;                                                                                                  \
-		bytes_off += sizeof(type);                                                                                     \
+	while (bits_off >= 8) {                                                                                            \
+		bits_off -= 8;                                                                                                 \
+		bytes_off += 1;                                                                                                \
 	}
 
 #define __m1(type, name)                                                                                    \
@@ -568,7 +568,7 @@ foreach_enum_descriptor
 		if (buf[0] != dr_##desname) {                                                                                  \
 			return -1;                                                                                                 \
 		}                                                                                                              \
-		uint32_t bits_off = 0, bytes_off = 0;                                                                          \
+		uint32_t bits_off __maybe_unused = 0, bytes_off = 0;                                                           \
 		desname##_descriptor_t *dr = (desname##_descriptor_t *)ptr;                                                    \
 		dr->descriptor.tag = buf[0];                                                                                   \
 		dr->descriptor.length = buf[1];                                                                                \
@@ -604,7 +604,7 @@ extern struct descriptor_ops des_ops[256];
 	size_t i = 0, psize = dr->name##_cnt * tplen;                                                   \
 	if (dr->name##_cnt > 0) {                                                                       \
 		if (tplen == 1) {                                                                           \
-			if (strstr(#name, "name") != NULL) { rout(lv +1, #name, "%s", (uint8_t*)dr->name);}     \
+			if (strstr(#name, "name") != NULL) { rout(lv +1, #name, "%.*s", (int)psize, (uint8_t*)dr->name);}   \
 			else { res_hexdump(lv + 1, #name, (uint8_t*)dr->name, psize); }                         \
 		} else {                                                                                    \
 			char buf_##name[2048];                                                                  \
@@ -650,7 +650,7 @@ extern struct descriptor_ops des_ops[256];
 	size_t i_##name = 0, j_##name = 0, ret_##name = 0;	\
 	if (sizeof(type) == 1) {                \
 		if (strstr(#name, "name")) { \
-			rout(lv+1, #name, "%s", (uint8_t *)dr->name);       \
+			rout(lv+1, #name, "%.*s", (int)dr->length, (uint8_t *)dr->name);       \
 		} else { res_hexdump(lv+1, #name, (uint8_t *)dr->name, dr->length); }   \
 	} else{   \
 		char buf_##name[512];                                               \

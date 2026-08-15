@@ -24,10 +24,7 @@
 
 #include "tsio.h"
 
-#define URL_NAME_LENGTH 32
-
 struct url {
-	// char proto[URL_NAME_LENGTH];
 	uint32_t addr;
 	uint16_t port;
 };
@@ -122,7 +119,6 @@ static int udp_open(const char *urlpath)
 	if (ret < 0) {
 	}
 	getsockname(udp_ops.fd, (struct sockaddr *)&addr, &(len));
-	// printf("%s \n",inet_ntoa(addr.sin_addr));
 	return 0;
 }
 

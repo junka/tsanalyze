@@ -456,11 +456,13 @@ struct local_time_node {
 static inline
 void dump_local_time_offset__(int lv, struct local_time_node *n)
 {
+	char utc[20];
 	rout(lv, "country", "%c%c%c", (n->country_code>>16)& 0xFF, (n->country_code>>8)& 0xFF, n->country_code & 0xFF);
 	rout(lv, "country_region_id", "%d", n->country_region_id);
 	rout(lv, "local_time_offset_polarity", "%d", (n->local_time_offset_polarity));
 	rout(lv, "local_time_offset", "%d", (n->local_time_offset));
-	rout(lv, "time_of_change", "%s", convert_UTC(&n->time_of_change));
+	convert_UTC(&n->time_of_change, utc, sizeof(utc));
+	rout(lv, "time_of_change", "%s", utc);
 	rout(lv, "next_time_offset", "%d", (n->next_time_offset));
 }
 
