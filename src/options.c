@@ -92,7 +92,7 @@ static uint8_t parse_format_type(const char *format)
 static uint8_t parse_output_type(const char *format)
 {
 	uint8_t i = 0;
-	const char *formats[] = { "stdout", "txt", "json" };
+	const char *formats[] = { "stdout", "txt", "json", "yaml", "html" };
 	for (i = 0; i < ARRAY_SIZE(formats); i++) {
 		if (strcmp(formats[i], format) == 0) {
 			return i;
@@ -128,7 +128,7 @@ static void prog_usage(FILE *fp, const char *pro_name)
 	/*fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_MEMORY_NUM, ", --" OPT_MEMORY, "memory to use");*/
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_TABLE_NUM, ", --" OPT_TABLE, "\tShow table [pat][cat][pmt][tsdt][nit][sdt][bat][tdt]");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_PID_NUM, ", --" OPT_PID, "\tShow select pid only");
-	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_OUT_NUM, ", --" OPT_OUT, "Save output to [stdout][txt][json]");
+	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_OUT_NUM, ", --" OPT_OUT, "Save output to [stdout][txt][json][yaml][html]");
 	fprintf(fp, "\n\n");
 }
 
