@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <errno.h>
 
 #include "filter.h"
@@ -70,24 +71,59 @@ static int mpegts_probe(unsigned char *buf, int buf_size)
 		return -1;
 }
 
+/* Maximum section length we can reassemble.  PSI sections are capped at
+ * 0x3FD (1021) and PES at 65535; a fixed upper bound avoids unbounded growth,
+ * but the buffer itself is now allocated on demand instead of being a huge
+ * static array (was 8192 * 65535 bytes of .bss). */
+#define MAX_SECTION_BUF (65535)
+
 struct section_parser {
 	int total_len;
 	int32_t limit_len;
 	uint8_t cc;
 	//for no-limit-length video, this is not enough, but we will drop video packet
-	uint8_t buffer[65535];
+	uint8_t *buffer;   /* lazily allocated reassembly buffer (NULL until needed) */
+	size_t cap;        /* allocated capacity of buffer */
 };
 
+static struct section_parser sec[8192];
+
+/*
+ * Allocate the cross-packet reassembly buffer on first use.  Most sections are
+ * contained in a single TS packet and never need this buffer, so it is created
+ * lazily per PID rather than reserving 65536 bytes for every PID up front.
+ */
+static uint8_t *sec_getbuf(struct section_parser *p)
+{
+	if (p->buffer == NULL) {
+		p->cap = MAX_SECTION_BUF;
+		p->buffer = malloc(p->cap);
+	}
+	return p->buffer;
+}
+
+void uninit_section_parser(void)
+{
+	int i;
+	for (i = 0; i < 8192; i++) {
+		free(sec[i].buffer);
+		sec[i].buffer = NULL;
+		sec[i].cap = 0;
+		sec[i].total_len = 0;
+		sec[i].limit_len = 0;
+	}
+}
 
 #define TS_IS_PES (1)
 #define TS_IS_PSI (0)
 
-// do memcpy if section length greater than one packet
+/* do memcpy if section length greater than one packet.  Entry points that
+ * need to reassemble across packets are the only ones that allocate. */
 int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buffering,
 						uint8_t payload_unit_start_indicator, uint8_t continuity_counter, uint8_t psi_or_pes)
 {
-	static struct section_parser sec[8192];
 	struct section_parser *p = &sec[pid];
+	uint8_t *pbuf;
 	*buffering = NULL;
 
 	/* indicate start of PES or PSI */
@@ -108,7 +144,9 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 				return p->limit_len;
 			} else {
 				/* PSI section spans multiple packets, buffer it */
-				memcpy(p->buffer, pkt + 1 + pointer_field, p->total_len);
+				if ((pbuf = sec_getbuf(p)) == NULL)
+					return -1;
+				memcpy(pbuf, pkt + 1 + pointer_field, p->total_len);
 			}
 		} else { /* PES has no pointer field */
 			p->total_len = len;
@@ -121,7 +159,9 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 				*buffering = pkt;
 				return p->total_len;
 			} else {
-				memcpy(p->buffer, pkt, p->total_len);
+				if ((pbuf = sec_getbuf(p)) == NULL)
+					return -1;
+				memcpy(pbuf, pkt, p->total_len);
 			}
 		}
 	} else {
@@ -129,20 +169,24 @@ int16_t section_preproc(uint16_t pid, uint8_t *pkt, uint16_t len, uint8_t **buff
 		if (psi_or_pes == TS_IS_PSI) {
 			if (p->total_len == 0)
 				return -1;
-			memcpy(p->buffer + p->total_len, pkt, len);
+			if ((pbuf = sec_getbuf(p)) == NULL)
+				return -1;
+			memcpy(pbuf + p->total_len, pkt, len);
 			p->total_len += len;
 			if (p->total_len >= p->limit_len) {
-				*buffering = p->buffer;
+				*buffering = pbuf;
 				p->total_len = 0;
 				return p->limit_len;
 			}
 		} else {
 			if (p->limit_len == 0)
 				return 0;
-			memcpy(p->buffer + p->total_len, pkt, len);
+			if ((pbuf = sec_getbuf(p)) == NULL)
+				return 0;
+			memcpy(pbuf + p->total_len, pkt, len);
 			p->total_len += len;
 			if (p->total_len >= p->limit_len) {
-				*buffering = p->buffer;
+				*buffering = pbuf;
 				return p->limit_len;
 			}
 		}
@@ -328,6 +372,7 @@ int init_pid_processor(void)
 void uninit_pid_processor(void) 
 {
 	uninit_table_ops();
+	uninit_section_parser();
 }
 
 int ts_process(void)

@@ -1004,6 +1004,92 @@ static void build_atsc(const char *dir)
 	write_file(dir, "atsc_psip.ts", stream, pos);
 }
 
+/* ====================================================================
+ * subtitle.ts : DVB subtitling (EN 300 743) carried as a PES stream.
+ *
+ * PAT -> PMT(0x20) -> a subtitle ES on PID 0xE2 whose PMT ES descriptor
+ * loop carries a subtitling descriptor (0x59).  The ES itself is a PES
+ * stream of subtitle segments.  The parser registers parse_subtitle on
+ * that PID and, with --detail (-d), dumps the parsed segments.
+ * ==================================================================== */
+static void build_subtitle(const char *dir)
+{
+	static uint8_t stream[100 * TS_PKT];
+	size_t pos = 0;
+
+	/* PAT : program 1 -> PMT 0x20 */
+	{
+		uint8_t body[32], o = 0;
+		body[o++] = 0x00; body[o++] = 0x00; body[o++] = 0x00; body[o++] = 0x10;
+		body[o++] = 0x00; body[o++] = 0x01; body[o++] = 0x00; body[o++] = 0x20;
+		uint8_t sec[128];
+		int len = sec_build(sec, 0x00, 0x0001, 0, 1, 0, 0, body, o);
+		int cc = 0;
+		emit_section(stream, &pos, 0x0000, &cc, sec, len);
+	}
+
+	/* PMT 0x20 : PCR_PID 0xE0, one subtitle ES 0x06 -> PID 0xE2 with a
+	 * subtitling descriptor (0x59) so parse_subtitle gets registered. */
+	{
+		uint8_t esd[16], eo = 0;
+		eo = d_subtitling(esd, eo, "eng", 0x10, 0x100, 0x200); /* 8 bytes */
+		uint8_t body[64], o = 0;
+		body[o++] = 0xE0; body[o++] = 0x00; /* PCR_PID */
+		body[o++] = 0x00; body[o++] = 0x00; /* program_info_length 0 */
+		body[o++] = 0x06; body[o++] = 0xE0; body[o++] = 0xE2; /* private: PID 0xE2 */
+		body[o++] = (uint8_t)(eo >> 8); body[o++] = (uint8_t)(eo);
+		memcpy(body + o, esd, eo); o += eo;
+		uint8_t sec[128];
+		int len = sec_build(sec, 0x02, 0x0001, 0, 1, 0, 0, body, o);
+		int cc = 0;
+		emit_section(stream, &pos, 0x0020, &cc, sec, len);
+	}
+
+	/* ---- subtitle PES on PID 0xE2 ----
+	 * A minimal but valid DVB subtitle page:
+	 *   PES payload:
+	 *     data_identifier      0x20
+	 *     subtitle_stream_id   0x00
+	 *     page_composition_segment (sync 0x0F, type 0x10, page_id 0x0001):
+	 *       page_time_out 0xFF, page_version=0/page_state=0x2 (0x20),
+	 *       segment_length 0x0002, no regions.
+	 *
+	 * PES header (stream_id 0xBD private_stream_1):
+	 *   00 00 01 BD  PES_packet_length(hi lo)  80 00 00
+	 * PES_packet_length = 3 (header bytes) + payload bytes.  Payload is 10
+	 * bytes (2 subtitle header + 8-byte segment), so length = 13 (0x000D).
+	 */
+	{
+		/* PES_packet_data_byte view handed to parse_subtitle: */
+		uint8_t subpayload[10] = {
+			0x20,                         /* data_identifier */
+			0x00,                         /* subtitle_stream_id */
+			0x0F, 0x10, 0x00, 0x01, 0x00, 0x02, /* page_composition_segment */
+			0xFF, 0x20,                  /* timeout, version+page_state */
+		};
+		uint8_t pes[9 + 10]; /* 9-byte PES header + 10-byte payload */
+		pes[0] = 0x00; pes[1] = 0x00; pes[2] = 0x01; pes[3] = 0xBD; /* private_stream_1 */
+		pes[4] = 0x00; pes[5] = 0x0D; /* PES_packet_length = 13 */
+		pes[6] = 0x80;                 /* marker, scrambling 0, ... */
+		pes[7] = 0x00;                 /* no PTS/DTS, no flags */
+		pes[8] = 0x00;                 /* PES_header_data_length 0 */
+		memcpy(pes + 9, subpayload, 10);
+
+		uint8_t pkt[TS_PKT];
+		memset(pkt, 0xFF, TS_PKT);
+		pkt[0] = 0x47;
+		pkt[1] = (uint8_t)(0x40 | ((0xE2 >> 8) & 0x1F)); /* PUSI + PID hi */
+		pkt[2] = 0xE2;                 /* PID lo */
+		pkt[3] = 0x10;                 /* payload only, cc 0 */
+		memcpy(pkt + 4, pes, sizeof(pes));
+		memcpy(stream + pos, pkt, TS_PKT);
+		pos += TS_PKT;
+	}
+
+	pad_null(stream, &pos, 2040);
+	write_file(dir, "subtitle.ts", stream, pos);
+}
+
 int main(int argc, char *argv[])
 {
 	if (argc < 2) {
@@ -1022,6 +1108,7 @@ int main(int argc, char *argv[])
 	build_dvb_multi_pmt(dir);
 	build_isdb(dir);
 	build_atsc(dir);
+	build_subtitle(dir);
 
 	return 0;
 }

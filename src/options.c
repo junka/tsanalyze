@@ -101,16 +101,73 @@ static uint8_t parse_output_type(const char *format)
 	return UINT8_MAX;
 }
 
-/* return the number of pids*/
-static int parse_selected_pids(const char *format)
+/* parse a single pid token, supporting hex (0x..) and decimal */
+static int parse_selected_pid_value(const char *token, int *out)
 {
-	int pid = atoi(format);
-	if (pid < 0 || pid > TS_MAX_PID) {
-		printf("pid greater than limit %d\n" ,TS_MAX_PID);
+	char *end = NULL;
+	long val;
+	errno = 0;
+	if (token[0] == '0' && (token[1] == 'x' || token[1] == 'X'))
+		val = strtol(token + 2, &end, 16);
+	else
+		val = strtol(token, &end, 10);
+	if (errno != 0 || end == token || *end != '\0')
+		return -1;
+	if (val < 0 || val > TS_MAX_PID) {
+		printf("pid greater than limit %d\n", TS_MAX_PID);
 		return -1;
 	}
-	tsaconf.pids[pid] = 1;
+	*out = (int)val;
 	return 0;
+}
+
+/* return the number of pids.  Accepts comma-separated lists and ranges,
+ * e.g. --pid 0x10-0x1f,0x100 */
+static int parse_selected_pids(const char *format)
+{
+	const char *p = format;
+	int pids = 0;
+
+	while (*p) {
+		const char *end = p;
+		while (*end && *end != ',')
+			end++;
+
+		char tok[64];
+		size_t n = (size_t)(end - p);
+		if (n == 0 || n >= sizeof(tok))
+			return -1;
+		memcpy(tok, p, n);
+		tok[n] = '\0';
+
+		char *dash = strchr(tok, '-');
+		if (dash != NULL) {
+			int lo = 0, hi = 0;
+			char save = *dash;
+			*dash = '\0';
+			if (parse_selected_pid_value(tok, &lo) < 0)
+				return -1;
+			*dash = save;
+			if (parse_selected_pid_value(dash + 1, &hi) < 0)
+				return -1;
+			if (lo > hi) {
+				printf("invalid pid range %s\n", tok);
+				return -1;
+			}
+			for (int i = lo; i <= hi; i++)
+				tsaconf.pids[i] = 1, pids++;
+		} else {
+			int pid = 0;
+			if (parse_selected_pid_value(tok, &pid) < 0)
+				return -1;
+			tsaconf.pids[pid] = 1, pids++;
+		}
+
+		if (*end == '\0')
+			break;
+		p = end + 1;
+	}
+	return pids;
 }
 
 static void prog_usage(FILE *fp, const char *pro_name)
@@ -127,7 +184,7 @@ static void prog_usage(FILE *fp, const char *pro_name)
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_VERSION_NUM, ", --" OPT_VERSION, "Show version");
 	/*fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_MEMORY_NUM, ", --" OPT_MEMORY, "memory to use");*/
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_TABLE_NUM, ", --" OPT_TABLE, "\tShow table [pat][cat][pmt][tsdt][nit][sdt][bat][tdt]");
-	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_PID_NUM, ", --" OPT_PID, "\tShow select pid only");
+	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_PID_NUM, ", --" OPT_PID, "\tShow select pid only (comma list / range, e.g. 0x10-0x1f,0x20)");
 	fprintf(fp, "%13s%c%s\t%s\n", "  -", OPT_OUT_NUM, ", --" OPT_OUT, "Save output to [stdout][txt][json][yaml][html]");
 	fprintf(fp, "\n\n");
 }

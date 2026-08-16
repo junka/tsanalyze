@@ -177,6 +177,8 @@ int ts_process(void);
 
 void dump_ts_info(void);
 
+void uninit_section_parser(void);
+
 #ifdef __cplusplus
 }
 #endif

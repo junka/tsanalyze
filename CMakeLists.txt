@@ -6,8 +6,10 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# common warnings
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -W -Wall -Wfatal-errors -Wstrict-prototypes -Wshadow -Wno-unused-parameter")
+# common warnings (GCC/Clang only; MSVC treats -W/-Wall as /W//Wall)
+if(NOT MSVC)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -W -Wall -Wfatal-errors -Wstrict-prototypes -Wshadow -Wno-unused-parameter")
+endif()
 if(NOT WIN32)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector-all")
 endif()
@@ -118,6 +120,15 @@ add_test(NAME "full_atsc_descriptors"
 	COMMAND "${TSANA}" -f file -o stdout "${TESTDATA_DIR}/atsc_psip.ts")
 set_tests_properties(full_atsc_descriptors PROPERTIES
 	PASS_REGULAR_EXPRESSION "caption_service_descriptor;extended_channel_name_descriptor")
+
+# subtitle.ts : DVB subtitling PES (EN 300 743) must be parsed and dumped.
+# -d enables the PES/elementary-stream dump path.  Expect the registered
+# subtitle stream plus the parsed page_composition_segment tree.
+add_test(NAME "full_subtitle"
+	COMMAND "${TSANA}" -d -f file -o stdout "${TESTDATA_DIR}/subtitle.ts")
+set_tests_properties(full_subtitle PROPERTIES
+	PASS_REGULAR_EXPRESSION
+		"subtitle;page_composition_segment;page_id;page_time_out;n_region")
 
 # missing required arguments must fail
 add_test(NAME "missing_args"
