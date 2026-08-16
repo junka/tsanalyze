@@ -152,6 +152,13 @@ static void build_robustness(const char *dir)
 		write_file(dir, "garbage_2040.ts", b, sizeof(b));
 	}
 
+	/* a plain valid stream: 12 packets (1 PAT + NULL), used by stream_valid_pat */
+	{
+		uint8_t b[12 * TS_PKT];
+		build_valid_pat(b);
+		write_file(dir, "valid_pat.ts", b, sizeof(b));
+	}
+
 	/* a truncated stream: 11 full packets + 100 bytes of a 12th (cut mid-payload) */
 	{
 		uint8_t b[12 * TS_PKT];
