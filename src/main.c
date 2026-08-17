@@ -8,6 +8,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#ifdef _WIN32
+#include <io.h>
+#endif
+
 #include "tsio.h"
 #include "table.h"
 #include "ts.h"
@@ -29,6 +33,14 @@ void dump_result(int sig)
 
 int main(int argc, char *argv[])
 {
+#ifdef _WIN32
+	/* emit binary (LF-only) stdout so text output is identical across
+	 * platforms and CTest's \r\n-agnostic regex anchors match reliably */
+	_setmode(_fileno(stdin), _O_BINARY);
+	_setmode(_fileno(stdout), _O_BINARY);
+	_setmode(_fileno(stderr), _O_BINARY);
+#endif
+
 	fileio_init();
 	udp_io_init();
 	int ret;
